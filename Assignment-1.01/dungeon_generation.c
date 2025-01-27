@@ -4,14 +4,28 @@
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
+#define IMMUTABLE_ROCK -1
+#define ROCK 0
+#define ROOM 1
+#define CORRIDOR 2
+#define MIN_ROOMS 6
+#define DUNGEON_HEIGHT 21
+#define DUNGEON_WIDTH 80
+
+
+struct RoomPair {
+    int room1;
+    int room2;
+};
 
 // rememeber dungeon is row by col so height comes first before width
-char dungeon[21][80];
-static int DUNGEON_HEIGHT = 21;
-static int DUNGEON_WIDTH = 80;
+int NUM_ROOMS = MIN_ROOMS;
+char dungeon[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 static struct Room *rooms[10];
+struct RoomPair connectedRooms[100];
+int connectedRoomsCount = 0; 
 int roomCounter = 0;
-bool addedCorrdorStairs = false;
+
 struct Room
 {
     int height;
@@ -30,6 +44,8 @@ void addRoomsAndStairs();
 void printDungeon();
 void addCorridors();
 void carveCorridor(int startX, int startY, int endX, int endY);
+bool pairExists(int room1, int room2);
+void addConnectionPair(int room1, int room2);
 
 // main
 int main(int argc, char *argv[])
@@ -45,6 +61,30 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+// Function to check if a pair already exists
+bool pairExists(int room1, int room2) {
+    for (int i = 0; i < connectedRoomsCount; ++i) {
+        if ((connectedRooms[i].room1 == room1 && connectedRooms[i].room2 == room2) ||
+            (connectedRooms[i].room1 == room2 && connectedRooms[i].room2 == room1)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Add a connection pair to the array
+void addConnectionPair(int room1, int room2) {
+    if (!pairExists(room1, room2)) {
+        connectedRooms[connectedRoomsCount].room1 = room1;
+        connectedRooms[connectedRoomsCount].room2 = room2;
+        connectedRoomsCount++;
+         // Add the reverse pair to avoid duplicate paths
+        connectedRooms[connectedRoomsCount].room1 = room2;
+        connectedRooms[connectedRoomsCount].room2 = room1;
+        connectedRoomsCount++;
+    }
+}
+
 void addCorridors()
 {
     // Calculate the centroids of each room
@@ -56,13 +96,13 @@ void addCorridors()
         roomCentroids[i][1] = roomY;
     }
 
-    // Connect rooms one by one
+    // Step 1: Connect rooms one by one
     for (int i = 1; i < roomCounter; ++i) {
         // Find the closest previous room to the current room
         int minDist = DUNGEON_HEIGHT * DUNGEON_WIDTH; // A large number
         int closestRoomIndex = 0;
         for (int j = 0; j < i; ++j) {
-           double dist = sqrt(pow(roomCentroids[i][0] - roomCentroids[j][0], 2) + 
+            double dist = sqrt(pow(roomCentroids[i][0] - roomCentroids[j][0], 2) + 
                                pow(roomCentroids[i][1] - roomCentroids[j][1], 2));
             if (dist < minDist) {
                 minDist = dist;
@@ -78,6 +118,57 @@ void addCorridors()
 
         // Carve a path from start to end
         carveCorridor(startX, startY, endX, endY);
+
+        // Add the pair of rooms to the connected pairs array
+        addConnectionPair(i, closestRoomIndex);
+    }
+
+   int corridorsCarved = 0;
+    while (corridorsCarved < 2) {
+        // Pick a random room
+        int randomRoomIndex = rand() % roomCounter;
+        int randomRoomX = roomCentroids[randomRoomIndex][0];
+        int randomRoomY = roomCentroids[randomRoomIndex][1];
+
+        // Find the closest room to the random room
+        double minDist = DUNGEON_HEIGHT * DUNGEON_WIDTH;  // A large number
+        int closestRoomIndex = -1;
+        for (int i = 0; i < roomCounter; ++i) {
+            if (i != randomRoomIndex) {
+                double dist = sqrt(pow(randomRoomX - roomCentroids[i][0], 2) + 
+                                   pow(randomRoomY - roomCentroids[i][1], 2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestRoomIndex = i;
+                }
+            }
+        }
+
+        // Find the second closest room
+        double secondMinDist = DUNGEON_HEIGHT * DUNGEON_WIDTH;  // A large number
+        int secondClosestRoomIndex = -1;
+        for (int i = 0; i < roomCounter; ++i) {
+            if (i != randomRoomIndex && i != closestRoomIndex) {
+                double dist = sqrt(pow(randomRoomX - roomCentroids[i][0], 2) + 
+                                   pow(randomRoomY - roomCentroids[i][1], 2));
+                if (dist < secondMinDist) {
+                    secondMinDist = dist;
+                    secondClosestRoomIndex = i;
+                }
+            }
+        }
+
+        // Check if the pair exists, if not, carve the corridor
+        if (!pairExists(randomRoomIndex, secondClosestRoomIndex)) {
+            // Get the coordinates of the second closest room
+            int secondRoomX = roomCentroids[secondClosestRoomIndex][0];
+            int secondRoomY = roomCentroids[secondClosestRoomIndex][1];
+
+            // Carve the corridor between the random room and the second closest room
+            carveCorridor(randomRoomX, randomRoomY, secondRoomX, secondRoomY);
+            addConnectionPair(randomRoomIndex, secondClosestRoomIndex);
+            corridorsCarved++;
+        }
     }
 }
 
@@ -89,63 +180,30 @@ void carveCorridor(int startX, int startY, int endX, int endY)
     // Track all corridor positions to replace one with a staircase later
     int corridorPositions[100][2]; // Array to store the positions of corridor cells
     int corridorCount = 0;
-    
-    // Introduce more random direction changes
-    bool horizontalFirst = rand() % 2 == 0; // Start moving either horizontally or vertically
-    int directionChanges = rand() % 5 + 5;  // Random number of direction changes (between 5 and 9)
-
-    for (int i = 0; i < directionChanges; ++i) {
-        // Randomly choose whether to move horizontally or vertically
-        if (horizontalFirst) {
-            if (x < endX) x++;    // Move right
-            else if (x > endX) x--;  // Move left
-        } else {
-            if (y < endY) y++;    // Move down
-            else if (y > endY) y--;  // Move up
-        }
-
-        // Carve the corridor at the new position
-        if (dungeon[x][y] == ' ') {
-            dungeon[x][y] = '#'; // Carve the path
-            corridorPositions[corridorCount][0] = x;
-            corridorPositions[corridorCount][1] = y;
-            corridorCount++;
-        }
-
-        // Introduce some randomness in direction after each step
-        if (rand() % 3 == 0) {  // 1 in 3 chance to change direction
-            horizontalFirst = !horizontalFirst;  // Flip the direction for the next step
-        }
-
-        // Randomize the number of steps taken in the current direction (between 2 and 4)
-        int steps = rand() % 3 + 2;  // Move 2 to 4 steps in the current direction
-        for (int j = 0; j < steps; ++j) {
-            // Move the current number of steps
-            if (horizontalFirst) {
-                if (x < endX) x++;
-                else if (x > endX) x--;
-            } else {
-                if (y < endY) y++;
-                else if (y > endY) y--;
-            }
-
-            // Carve the corridor
-            if (dungeon[x][y] == ' ') {
-                dungeon[x][y] = '#';
-                corridorPositions[corridorCount][0] = x;
-                corridorPositions[corridorCount][1] = y;
-                corridorCount++;
-            }
-        }
-    }
-
+    bool xWentLast = false;
     // Ensure the corridor reaches the destination
+    // add randomness here
+    
     while (x != endX || y != endY) {
-        if (x < endX) x++;
-        else if (x > endX) x--;
 
-        if (y < endY) y++;
-        else if (y > endY) y--;
+        if (!xWentLast) {
+            if (x < endX) {
+                x++;
+            }
+            else if (x > endX) {
+                x--;
+            }
+            xWentLast = true;
+        }
+        else {
+            if (y < endY) {
+                y++;
+            }
+            else if (y > endY) {
+                y--;
+            } 
+            xWentLast = false;
+        }
 
         // Carve the path to the destination
         if (dungeon[x][y] == ' ') {
@@ -155,22 +213,6 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             corridorCount++;
         }
     }
-
-    // Randomly choose one corridor position to replace with a staircase
-    /*if (!addedCorrdorStairs) {
-        addedCorrdorStairs = true;
-        int randomCorridorIndex = rand() % corridorCount;
-        int staircaseX = corridorPositions[randomCorridorIndex][0];
-        int staircaseY = corridorPositions[randomCorridorIndex][1];
-
-        // Randomly choose up or down staircase
-        if (rand() % 2 == 0) {
-            dungeon[staircaseX][staircaseY] = '<'; // Upwards staircase
-        } else {
-            dungeon[staircaseX][staircaseY] = '>'; // Downwards staircase
-        }
-    }
-    */
 }
 
 
@@ -179,10 +221,10 @@ void addRoomsAndStairs()
     int minRoomHeight = 3;
     int minRoomWidth = 4;
     srand(time(NULL));
-    int numRooms = rand() % 2 + 6; // random number of rooms, at least 6 and up to 7
+    NUM_ROOMS = rand() % 2 + 6; // random number of rooms, at least 6 and up to 7
     int counter = 0;
     int stairsCounter = 0;
-    while (counter != numRooms) // until we have enough rooms
+    while (counter != NUM_ROOMS) // until we have enough rooms
     {
         bool roomInserted = false;
         

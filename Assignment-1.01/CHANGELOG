@@ -4,10 +4,13 @@ Functionalities Added
     - Added dungeon_generation.c file
     - Added room struct
     - Added dungeon border
-    
+    - Added rooms
 Functionalities Changed
     - Item
 Bug Fixes
     - Fixed dungeon border generating wrong
 Bugs Discovered
     - Dungeon border generating wrong
+    - Rooms are not listening to the border requirement
+    - Rooms are all trying to generate stairs
+    - Illegal corridors are being generated

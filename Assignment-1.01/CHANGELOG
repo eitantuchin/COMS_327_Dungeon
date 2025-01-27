@@ -1,14 +1,31 @@
 Format:
+01/27/2025
+Functionalities Added
+    - Added functioning corridors
+    - Added hardness to different cells
+Functionalities Changed
+    - Added an additional 2 corridors to the dungeon to make more paths for the player
+    - Made each cell in the grid have a corresponding type. This was made to distinguish between
+        rock and immutable rock
+Bug Fixes
+    - Fixed corridors generating all over the place
+Bugs Discovered
+    - Corridors generating all over the place
+
 01/26/2025
 Functionalities Added
     - Added dungeon_generation.c file
     - Added room struct
     - Added dungeon border
     - Added rooms
+    - Added stairs
 Functionalities Changed
-    - Item
+    - Made there be at least 2 cells of spacing between rooms
 Bug Fixes
     - Fixed dungeon border generating wrong
+    - Fixed rooms are not listening to the border requirement
+    - Fixed rooms are all trying to generate stairs
+    - Fixed illegal corridors are being generated
 Bugs Discovered
     - Dungeon border generating wrong
     - Rooms are not listening to the border requirement

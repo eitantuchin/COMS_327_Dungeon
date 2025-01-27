@@ -1,10 +1,13 @@
 Format:
-Day
-Functioanlities Added
-    - Item
+01/26/2025
+Functionalities Added
+    - Added dungeon_generation.c file
+    - Added room struct
+    - Added dungeon border
+    
 Functionalities Changed
     - Item
 Bug Fixes
-    - Item
+    - Fixed dungeon border generating wrong
 Bugs Discovered
-    - Item
+    - Dungeon border generating wrong

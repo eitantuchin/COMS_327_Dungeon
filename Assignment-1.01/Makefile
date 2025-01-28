@@ -1,18 +1,22 @@
 CC = gcc
+
 CFLAGS = -g -Wall
 
-SRC = dungeon_generation.c
-OBJ = $(SRC:.c=.o)
+LDFLAGS = -lm
 
-OUT = dungeon_generation
+TARGET = dungeon_generation
 
-all: $(OUT)
+SRCS = dungeon_generation.c
 
-$(OUT): $(OBJ)
-	$(CC) $(OBJ) -o $(OUT)
+OBJS = $(SRCS:.c=.o)
 
-$(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -c $(SRC)
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(OUT)
+	rm -f $(OBJS) $(TARGET)

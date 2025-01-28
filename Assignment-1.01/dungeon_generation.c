@@ -4,6 +4,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 
 #define MIN_ROOMS 6
 #define DUNGEON_HEIGHT 21
@@ -15,12 +16,13 @@ typedef struct
     int hardness;
 } Cell;
 
-const Cell IMMUTABLE_ROCK_CELL = {' ', INFINITY};
+const Cell IMMUTABLE_ROCK_CELL = {' ', INT_MAX};
 const Cell ROCK_CELL = {' ', 100};
 const Cell ROOM_CELL = {'.', 0};
 const Cell CORRIDOR_CELL = {'#', 0};
 const Cell UPWARD_STAIRS_CELL = {'<', 0};
 const Cell DOWNWARD_STAIRS_CELL = {'>', 0};
+Cell dungeon[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 
 struct Room
 {
@@ -35,7 +37,6 @@ struct Room
 };
 
 int NUM_ROOMS = MIN_ROOMS;
-Cell dungeon[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 static struct Room *rooms[10];
 int roomCounter = 0;
 

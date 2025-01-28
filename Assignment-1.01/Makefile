@@ -20,3 +20,6 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+
+remove-changelog-exec:
+	chmod -x CHANGELOG

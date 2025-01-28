@@ -4,9 +4,9 @@ CFLAGS = -g -Wall
 
 LDFLAGS = -lm
 
-TARGET = dungeon_generation
+TARGET = dungeon_save_and_load
 
-SRCS = dungeon_generation.c
+SRCS = dungeon_save_and_load.c
 
 OBJS = $(SRCS:.c=.o)
 

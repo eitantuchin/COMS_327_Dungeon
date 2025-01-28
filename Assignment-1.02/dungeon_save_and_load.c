@@ -1,54 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <stdbool.h>
-#include <math.h>
-#include <limits.h>
+#include "dungeon_save_and_load.h"
 
-#define MIN_ROOMS 6
-#define DUNGEON_HEIGHT 21
-#define DUNGEON_WIDTH 80
-
-typedef struct
-{
-    char ch;
-    int hardness;
-} Cell;
-
-const Cell IMMUTABLE_ROCK_CELL = {' ', INT_MAX};
-const Cell ROCK_CELL = {' ', 100};
-const Cell ROOM_CELL = {'.', 0};
-const Cell CORRIDOR_CELL = {'#', 0};
-const Cell UPWARD_STAIRS_CELL = {'<', 0};
-const Cell DOWNWARD_STAIRS_CELL = {'>', 0};
-Cell dungeon[DUNGEON_HEIGHT][DUNGEON_WIDTH];
-
-struct Room
-{
-    int height;
-    int width;
-    int posX;
-    int posY;
-    bool upwardsStairs;
-    bool downwardsStairs;
-    int stairX;
-    int stairY;
-};
-
-int NUM_ROOMS = MIN_ROOMS;
-static struct Room *rooms[10];
+dungeon_t dungeon;
 int roomCounter = 0;
-
-// Function prototypes
-void addRoomsAndStairs();
-void printDungeon();
-void addCorridors();
-void carveCorridor(int startX, int startY, int endX, int endY);
-void initImmutableRock();
 
 int main(int argc, char *argv[])
 {
+    dungeon.numRooms = MIN_NUM_ROOMS;
+    dungeon.rooms = (room_t *)malloc(sizeof(room_t) * dungeon.numRooms);
     srand(time(NULL));
     initImmutableRock();
     addRoomsAndStairs();
@@ -65,11 +23,11 @@ void printDungeon()
         printf("|");
         for (int j = 0; j < DUNGEON_WIDTH; ++j)
         {
-            printf("%c", dungeon[i][j].ch);
+            printf("%c", dungeon.map[i][j].ch);
         }
         printf("|\n");
     }
-    printf("----------------------------------------------------------------------------------");
+    printf("----------------------------------------------------------------------------------\n");
 }
 
 void initImmutableRock()
@@ -78,7 +36,7 @@ void initImmutableRock()
     {
         for (int x = 0; x < DUNGEON_WIDTH; x++)
         {
-            dungeon[y][x] = ROCK_CELL;
+            dungeon.map[y][x] = ROCK_CELL;
         }
     }
 
@@ -86,13 +44,13 @@ void initImmutableRock()
     int maxY = DUNGEON_HEIGHT - 1;
     for (int y = 0; y < DUNGEON_HEIGHT; y++)
     {
-        dungeon[y][0] = IMMUTABLE_ROCK_CELL;
-        dungeon[y][maxX] = IMMUTABLE_ROCK_CELL;
+        dungeon.map[y][0] = IMMUTABLE_ROCK_CELL;
+        dungeon.map[y][maxX] = IMMUTABLE_ROCK_CELL;
     }
     for (int x = 0; x < DUNGEON_WIDTH; x++)
     {
-        dungeon[0][x] = IMMUTABLE_ROCK_CELL;
-        dungeon[maxY][x] = IMMUTABLE_ROCK_CELL;
+        dungeon.map[0][x] = IMMUTABLE_ROCK_CELL;
+        dungeon.map[maxY][x] = IMMUTABLE_ROCK_CELL;
     }
 }
 
@@ -101,8 +59,8 @@ void addCorridors()
     int roomCentroids[roomCounter][2];
     for (int i = 0; i < roomCounter; ++i)
     {
-        roomCentroids[i][0] = rooms[i]->posX + rooms[i]->height / 2;
-        roomCentroids[i][1] = rooms[i]->posY + rooms[i]->width / 2;
+        roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].height / 2;
+        roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].length / 2;
     }
 
     for (int i = 1; i < roomCounter; ++i)
@@ -153,39 +111,37 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             xWentLast = false;
         }
 
-        if (dungeon[x][y].ch == ROCK_CELL.ch && dungeon[x][y].hardness == ROCK_CELL.hardness)
+        if (dungeon.map[x][y].ch == ROCK_CELL.ch && dungeon.map[x][y].hardness == ROCK_CELL.hardness)
         {
-            dungeon[x][y] = CORRIDOR_CELL;
+            dungeon.map[x][y] = CORRIDOR_CELL;
         }
     }
 }
 
 void addRoomsAndStairs()
 {
-    int minRoomHeight = 3;
-    int minRoomWidth = 4;
-    NUM_ROOMS = rand() % 2 + 6;
+    dungeon.numRooms = rand() % (MAX_NUM_ROOMS - MIN_NUM_ROOMS + 1) + MIN_NUM_ROOMS;
     int counter = 0;
     int stairsCounter = 0;
 
-    while (counter != NUM_ROOMS)
+    while (counter != dungeon.numRooms)
     {
         bool roomInserted = false;
         while (!roomInserted)
         {
             int randX = rand() % (DUNGEON_HEIGHT - 2) + 1;
             int randY = rand() % (DUNGEON_WIDTH - 2) + 1;
-            int randHeight = rand() % 6 + minRoomHeight;
-            int randWidth = rand() % 10 + minRoomWidth;
+            int randHeight = rand() % (MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT + 1) + MIN_ROOM_HEIGHT;
+            int randLength = rand() % (MAX_ROOM_WIDTH - MIN_ROOM_WIDTH + 1) + MIN_ROOM_WIDTH;
 
-            if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randWidth <= DUNGEON_WIDTH - 1)
+            if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randLength <= DUNGEON_WIDTH - 1)
             {
                 bool validRoomPositionFound = true;
                 for (int i = randX - 2; i < randX + randHeight + 2; ++i)
                 {
-                    for (int j = randY - 2; j < randY + randWidth + 2; ++j)
+                    for (int j = randY - 2; j < randY + randLength + 2; ++j)
                     {
-                        if (dungeon[i][j].ch != ROCK_CELL.ch || dungeon[i][j].hardness != ROCK_CELL.hardness)
+                        if (dungeon.map[i][j].ch != ROCK_CELL.ch || dungeon.map[i][j].hardness != ROCK_CELL.hardness)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -211,41 +167,39 @@ void addRoomsAndStairs()
                     }
 
                     int stairX = randX + (rand() % randHeight);
-                    int stairY = randY + (rand() % randWidth);
-                    struct Room *room = (struct Room *)malloc(sizeof(struct Room));
-                    room->height = randHeight;
-                    room->width = randWidth;
-                    room->posX = randX;
-                    room->posY = randY;
-                    room->downwardsStairs = hasDownwardsStairs;
-                    room->upwardsStairs = hasUpwardsStairs;
-                    room->stairX = stairX;
-                    room->stairY = stairY;
-                    rooms[roomCounter] = room;
+                    int stairY = randY + (rand() % randLength);
+                    dungeon.rooms[roomCounter].height = randHeight;
+                    dungeon.rooms[roomCounter].length = randLength;
+                    dungeon.rooms[roomCounter].posX = randX;
+                    dungeon.rooms[roomCounter].posY = randY;
+                    dungeon.rooms[roomCounter].downwardsStairs = hasDownwardsStairs;
+                    dungeon.rooms[roomCounter].upwardsStairs = hasUpwardsStairs;
+                    dungeon.rooms[roomCounter].stairX = stairX;
+                    dungeon.rooms[roomCounter].stairY = stairY;
                     roomCounter++;
 
                     for (int i = randX; i < randX + randHeight; ++i)
                     {
-                        for (int j = randY; j < randY + randWidth; ++j)
+                        for (int j = randY; j < randY + randLength; ++j)
                         {
                             if (i == stairX && j == stairY)
                             {
                                 if (hasDownwardsStairs)
                                 {
-                                    dungeon[i][j] = DOWNWARD_STAIRS_CELL;
+                                    dungeon.map[i][j] = DOWNWARD_STAIRS_CELL;
                                 }
                                 else if (hasUpwardsStairs)
                                 {
-                                    dungeon[i][j] = UPWARD_STAIRS_CELL;
+                                    dungeon.map[i][j] = UPWARD_STAIRS_CELL;
                                 }
                                 else
                                 {
-                                    dungeon[i][j] = ROOM_CELL;
+                                    dungeon.map[i][j] = ROOM_CELL;
                                 }
                             }
                             else
                             {
-                                dungeon[i][j] = ROOM_CELL;
+                                dungeon.map[i][j] = ROOM_CELL;
                             }
                         }
                     }

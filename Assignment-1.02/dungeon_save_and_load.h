@@ -6,7 +6,7 @@
 #include <math.h>
 #include <limits.h>
 #include <stdint.h>
-#include <machine/endian.h>
+#include <arpa/inet.h>
 
 #define DUNGEON_WIDTH 80
 #define DUNGEON_HEIGHT 21

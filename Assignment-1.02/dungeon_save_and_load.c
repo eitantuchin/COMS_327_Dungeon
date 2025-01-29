@@ -1,9 +1,12 @@
 #include "dungeon_save_and_load.h"
 
+// our dungeon 
 dungeon_t dungeon;
 int roomCounter = 0;
-// give rocks different hardnesses
 
+/*
+ Allows the user to choose between saving, loading, and creating dungeons
+ */
 int main(int argc, char *argv[])
 {
     srand((unsigned int) time(NULL));
@@ -12,6 +15,7 @@ int main(int argc, char *argv[])
     int numStairs = rand() % (MAX_NUM_STAIRS - MIN_NUM_STAIRS + 1) + MIN_NUM_STAIRS;
     dungeon.upwardStairs = (stair_t *)malloc(sizeof(stair_t) * numStairs);
     dungeon.downwardStairs = (stair_t *)malloc(sizeof(stair_t) * numStairs);
+    // make a dungeon but no saving or loading
     if(argv[1] == NULL)
     {
         initImmutableRock();
@@ -20,10 +24,12 @@ int main(int argc, char *argv[])
         addStairs(numStairs);
         initPCPosition();
     }
+    // load the dungeon from disk
     else if(strcmp(argv[1], "--load") == 0 && argv[2] == NULL)
     {
         loadFile();
     }
+    // make a dungeon and save it to disk
     else if(strcmp(argv[1], "--save") == 0 && argv[2] == NULL)
     {
         initImmutableRock();
@@ -33,6 +39,7 @@ int main(int argc, char *argv[])
         initPCPosition();
         saveFile();
     }
+    // load a dungeon from disk and save it
     else if((strcmp(argv[1], "--load") == 0) && (strcmp(argv[2], "--save") == 0))
     {
         loadFile();
@@ -42,11 +49,14 @@ int main(int argc, char *argv[])
     {
         printf("Unsupported command configuration: Please use either --load , --save, or --load --save.\n");
     }
-    
+    // print the dungeon everytime
     printDungeon();
     return 0;
 }
 
+/*
+ Loads a file from disk that contains data for the construction of a dungeon
+ */
 void loadFile(void){
     initImmutableRock();
     
@@ -204,9 +214,12 @@ void loadFile(void){
     return;
 }
 
-
+/*
+ Saves the current dungeon configuration to disk
+ */
 void saveFile(void) {
     
+    // Ready data in big-endian format
     uint32_t versionNum = 0;
     versionNum = htonl(versionNum);
     
@@ -258,6 +271,7 @@ void saveFile(void) {
         fwrite(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
     }
 
+    // Writes numer of upward and downward stairs
     fwrite(&numUpStrs, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numUpwardsStairs; ++i) {
         fwrite(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
@@ -273,6 +287,9 @@ void saveFile(void) {
     return;
 }
 
+/*
+ Prints the dungeon to the terminal
+ */
 void printDungeon(void)
 {
     printf("----------------------------------------------------------------------------------\n");
@@ -288,12 +305,16 @@ void printDungeon(void)
     printf("----------------------------------------------------------------------------------\n");
 }
 
+/*
+ Initializes all the immutable rock and regular rock
+ */
 void initImmutableRock(void)
 {
     for (int y = 0; y < DUNGEON_HEIGHT; y++)
     {
         for (int x = 0; x < DUNGEON_WIDTH; x++)
         {
+            // each rock has a different hardness level
             dungeon.map[y][x] = ROCK_CELL;
             int randomHardness = rand() % 205 + 50; // max hardness is 255 - 1
             dungeon.map[y][x].hardness = randomHardness;
@@ -314,15 +335,20 @@ void initImmutableRock(void)
     }
 }
 
+/*
+ Adds the corridors to the dungeon using Euclidean distance
+ */
 void addCorridors(void)
 {
     int roomCentroids[roomCounter][2];
     for (int i = 0; i < roomCounter; ++i)
     {
+        // init room centroids for all rooms
         roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].height / 2;
         roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].width / 2;
     }
 
+    // find smallest distance
     for (int i = 1; i < roomCounter; ++i)
     {
         int minDist = DUNGEON_HEIGHT * DUNGEON_WIDTH;
@@ -346,6 +372,9 @@ void addCorridors(void)
     }
 }
 
+/*
+ Creates a corridor on the dungeon map
+ */
 void carveCorridor(int startX, int startY, int endX, int endY)
 {
     int x = startX;
@@ -354,6 +383,7 @@ void carveCorridor(int startX, int startY, int endX, int endY)
 
     while (x != endX || y != endY)
     {
+        // xWentLast ensures that when we have diagonal movement that we insert a corridor in a cardinal direction
         if (!xWentLast)
         {
             if (x < endX)
@@ -378,6 +408,9 @@ void carveCorridor(int startX, int startY, int endX, int endY)
     }
 }
 
+/*
+ Adds the rooms to the dungeon
+ */
 void addRooms(void)
 {
     dungeon.numRooms = rand() % (MAX_NUM_ROOMS - MIN_NUM_ROOMS + 1) + MIN_NUM_ROOMS;
@@ -396,6 +429,7 @@ void addRooms(void)
             if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randWidth <= DUNGEON_WIDTH - 1)
             {
                 bool validRoomPositionFound = true;
+                // ensure that we don't create the room where immutable rock lies
                 for (int i = randX - 2; i < randX + randHeight + 2; ++i)
                 {
                     for (int j = randY - 2; j < randY + randWidth + 2; ++j)
@@ -409,7 +443,7 @@ void addRooms(void)
                     if (!validRoomPositionFound)
                         break;
                 }
-
+                // add the room to the dungeon
                 if (validRoomPositionFound)
                 {
                     dungeon.rooms[roomCounter].height = randHeight;
@@ -433,6 +467,9 @@ void addRooms(void)
     }
 }
 
+/*
+ Initializes the PC's position inside the dungeon
+ */
 void initPCPosition(void)
 {
     int randomRoomNum = rand() % dungeon.numRooms;
@@ -452,6 +489,9 @@ void initPCPosition(void)
     }
 }
 
+/*
+ Adds the staircases to the dungeon and ensures no room contains multiple stairs and that we have at least one type of each staircase
+ */
 void addStairs(int numStairs)
 {
     int randomRoomNums[MAX_NUM_STAIRS];
@@ -505,6 +545,9 @@ void addStairs(int numStairs)
     }
 }
 
+/*
+ Checks whether an element exists within given array
+ */
 bool contains(int *array, size_t size, int value) {
     for (size_t i = 0; i < size; i++) {
         if (array[i] == value) {

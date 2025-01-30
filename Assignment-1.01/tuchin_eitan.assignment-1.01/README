@@ -1,0 +1,22 @@
+Files:
+    Only dungeon_generation.c.
+
+Data Structures:
+    A cell struct is defined for every cell in the dungeon. A room struct is defined 
+    for every room in the dungeon. The dungeon is a 2d integer array of  different 
+    types of cells.  A rooms array contains all the rooms in the dungeon.
+
+Functions:
+    printDungeon: 
+        Prints out all of the cells in the dungeon with a border surrounding them.
+    initImmutableRock:
+        Initializes the first and last rows and columns as immutable rock cells.
+    addRoomsAndStairs:
+        Creates the rooms by checking for a valid placement position in 
+        the dungeon and then adds the room in a random location of 
+        random size. Then the stairs are added to the rooms randomly.
+    addCorridors:
+        Calculates the closest room tothe current room using Euclidean distance. 
+        Iterates through the rooms array to create connections between all rooms.
+    carveCorridor:
+        Creates the corridor between given rooms only replacing rock as it goes.

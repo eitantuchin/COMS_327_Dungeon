@@ -1,12 +1,13 @@
 #include "dungeon_path_finding.h"
 #include "save_and_load.h"
+#include "priority_queue.h"
 
 // our dungeon 
 dungeon_t dungeon;
 int roomCounter = 0;
 
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
-const cell_t ROCK_CELL = {' ', 100};
+const cell_t ROCK_CELL = {' ', 1};
 const cell_t ROOM_CELL = {'.', 0};
 const cell_t CORRIDOR_CELL = {'#', 0};
 const cell_t UPWARD_STAIRS_CELL = {'<', 0};
@@ -59,27 +60,115 @@ int main(int argc, char *argv[])
         printf("Unsupported command configuration: Please use either --load , --save, or --load --save.\n");
         return 0;
     }
-    // print the dungeon everytime
-    printDungeon();
+    // After dungeon is loaded/generated:
+    calculateDistances(0);  // Non-tunneling
+    calculateDistances(1);  // Tunneling
+
+    // Print all three views
+    printf("Standard View:\n");
+    printDungeon(0, 0);
+       
+    printf("\nNon-Tunneling Distance Map:\n");
+    printDungeon(1, 0);
+       
+    printf("\nTunneling Distance Map:\n");
+    printDungeon(1, 1);
+
+    cleanupDungeon();
     return 0;
 }
 
 /*
  Prints the dungeon to the terminal
  */
-void printDungeon(void)
-{
+void printDungeon(int showDist, int tunneling) {
     printf("----------------------------------------------------------------------------------\n");
-    for (int i = 0; i < DUNGEON_HEIGHT; ++i)
-    {
+    int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
+    
+    for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
         printf("|");
-        for (int j = 0; j < DUNGEON_WIDTH; ++j)
-        {
-            printf("%c", dungeon.map[i][j].ch);
+        for (int x = 0; x < DUNGEON_WIDTH; ++x) {
+            if (y == dungeon.pc.posX && x == dungeon.pc.posY) {
+                printf("@");
+            }
+            else if (showDist) {
+                if (dist[y][x] == INT_MAX) {
+                    printf(" ");
+                }
+                else {
+                    printf("%d", dist[y][x] % 10);  // Last digit of valid distances
+                }
+            }
+            else {
+                printf("%c", dungeon.map[y][x].ch);
+            }
         }
         printf("|\n");
     }
     printf("----------------------------------------------------------------------------------\n");
+}
+
+void calculateDistances(int tunneling) {
+    // using the priority queue and dijikstra's algorithm
+    priority_queue_t *pq = pq_create(DUNGEON_HEIGHT * DUNGEON_WIDTH);
+    int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
+
+    // Initialize distances
+    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
+        for (int x = 0; x < DUNGEON_WIDTH; x++) {
+            dist[y][x] = INT_MAX;
+        }
+    }
+
+    // Start with PC position
+    int pc_y = dungeon.pc.posY;
+    int pc_x = dungeon.pc.posX;
+    dist[pc_x][pc_y] = 0;
+    pq_insert(pq, pc_y, pc_x, 0);
+
+    while (!pq_is_empty(pq)) {
+        pq_node_t node = pq_extract_min(pq);
+        int x = node.x;
+        int y = node.y;
+
+        // Check all 8 neighbors
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+
+                int nx = x + dx;
+                int ny = y + dy;
+
+                // Bounds check
+                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
+
+                // Check passability
+                cell_t cell = dungeon.map[ny][nx];
+                if (!tunneling && cell.hardness > 0) continue;  // Non-tunneler can't pass through rock
+                if (cell.hardness == 255) continue;             // Immutable rock
+
+                // Calculate weight
+                int weight = 1;
+                if (tunneling && cell.hardness > 0) { // tunneler meets rock
+                    weight = 1 + (cell.hardness / 85);
+                }
+
+                // Update distance
+                int new_dist = dist[y][x] + weight;
+                if (new_dist < dist[ny][nx]) {
+                    dist[ny][nx] = new_dist;
+                    pq_insert(pq, nx, ny, new_dist);
+                }
+            }
+        }
+    }
+    pq_destroy(pq);
+}
+
+void cleanupDungeon(void) {
+    free(dungeon.rooms);
+    free(dungeon.upwardStairs);
+    free(dungeon.downwardStairs);
 }
 
 /*
@@ -93,7 +182,7 @@ void initImmutableRock(void)
         {
             // each rock has a different hardness level
             dungeon.map[y][x] = ROCK_CELL;
-            int randomHardness = rand() % 205 + 50; // max hardness is 255 - 1
+            int randomHardness = rand() % 254 + 1; // max hardness is 255 - 1
             dungeon.map[y][x].hardness = randomHardness;
         }
     }
@@ -178,8 +267,8 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             xWentLast = false;
         }
 
-        if (dungeon.map[x][y].ch == ROCK_CELL.ch && dungeon.map[x][y].hardness <= 254 && dungeon.map[x][y].hardness >= 50)
-        {
+        if (dungeon.map[x][y].ch == ROCK_CELL.ch &&
+            dungeon.map[x][y].hardness < 255) {
             dungeon.map[x][y] = CORRIDOR_CELL;
         }
     }

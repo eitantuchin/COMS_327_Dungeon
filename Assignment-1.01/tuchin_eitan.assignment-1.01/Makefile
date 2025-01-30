@@ -4,9 +4,9 @@ CFLAGS = -g -Wall
 
 LDFLAGS = -lm
 
-TARGET = dungeon_path_finding
+TARGET = dungeon_generation
 
-SRCS = dungeon_path_finding.c save_and_load.c priority_queue.c
+SRCS = dungeon_generation.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -20,4 +20,3 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
-

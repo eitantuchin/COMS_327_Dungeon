@@ -1,0 +1,26 @@
+New/Updated Files:
+   All logic is in dungeon_save_and_load.c
+   Structs, function prototypes, and constants are in dungeon_save_and_load.h
+
+New/Updated Data Structures:
+   Room: Only holds positional elements now.
+   Stair: Only holds positional elements now.
+   PC: Holds the poistion of the PC.
+   Dungeon: Contains necessary elements to save and load the dungeon.
+   Upward and downward stairs arrays added for loading and saving purposes.
+
+New/Updated Functions:
+    loadFile:
+        - Loads a dungeon from the user's home/username/.rlg327/dungeon file using the assignment format guidelines (big endian)
+    saveFile:
+        - Saves a dungeon to home/username/.rlg327/dungeon using the assignment format guidelines (big endian)
+    main:
+        - Updated to allow for CL options to save, load, and generate dungeon. Added --save and --load switches.
+    addStairs:
+        - Adds stairs to the dungeon and randomized rock hardness
+    addRooms:
+        - Removed stairs being added here
+    contains:
+        - Checks if an element is in an array
+    initPCPosition:
+        - Initializes the PC's position

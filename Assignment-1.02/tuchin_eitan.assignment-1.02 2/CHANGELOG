@@ -1,0 +1,78 @@
+--ASSIGNMENT 1.02 CHANGELOGS BELOW--
+
+01/29/2025
+Functionalities Added
+    - Added functionality to store and sort staircases into two seperate arrays
+    - Added checks along the way when loading and saving files for debugging
+Functionalities Changed
+    - Instead of using a stairs array we now use upwardStairs and downwardStairs arrays
+    - stair struct doesn't have direction field anymore
+    - addStairs function changed to reflect array change
+    - the simultaenous loading and saving option is now last in the if else block
+Bug Fixes
+    - Fixed segmentation faults or bus errors when trying any of the saving and loading options
+    - Fixed rooms generating in wrong areas after loading the file
+    - Fixed PC generating in wrong areas after loading file
+    - Fixed corridors not showing when loading file
+    - Fixed adding random dungeon cell hardness causes infinite loop upon generating dungeon
+    - Fixed position of PC not showing and being overriden by room cells
+Bugs Discovered
+    - Rooms generating in wrong areas after loading the file
+    - PC generating in wrong areas after loading file
+    - Corridors not showing when loading file
+    - Adding random dungeon cell hardness causes infinite loop upon generating dungeon
+    - Position of PC not showing and being overriden by room cells
+   
+01/28/2025
+Functionalities Added
+    - Added functions initPCPosition, loadFile, saveFile, addStairs, contains
+    - Added pc, dungeon, and stairs structs
+    - Added FILE_MARKER constant
+    - Added stairs array
+    - Added player cell type cell
+Functionalities Changed
+    - Changed function name of addRoomsAndStairs to addRooms
+    - Removed stairs functionality in addRooms
+    - Refactored code for loading and saving by putting all relevant data to be stored in structs
+Bug Fixes
+    - Fixed staircases generating in wrong areas of after refactoring code for loading and saving
+Bugs Discovered
+    - Segmentation faults or bus errors when trying any of the saving and loading options
+    - Staircases generating in wrong areas of after refactoring code for loading and saving
+    
+--ASSIGNMENT 1.01 CHANGELOGS BELOW--
+
+01/27/2025
+Functionalities Added
+    - Added functioning corridors
+    - Added hardness to different cells
+Functionalities Changed
+    - Added an additional 2 corridors to the dungeon to make more paths for the player
+    - Made each cell in the grid have a corresponding type. This was made to distinguish between
+        rock and immutable rock
+Bug Fixes
+    - Fixed corridors generating all over the place
+Bugs Discovered
+    - Corridors generating all over the place
+
+01/26/2025
+Functionalities Added
+    - Added dungeon_generation.c file
+    - Added room struct
+    - Added dungeon border
+    - Added rooms
+    - Added stairs
+Functionalities Changed
+    - Made there be at least 2 cells of spacing between rooms
+Bug Fixes
+    - Fixed dungeon border generating wrong
+    - Fixed rooms are not listening to the border requirement
+    - Fixed rooms are all trying to generate stairs
+    - Fixed illegal corridors are being generated
+Bugs Discovered
+    - Dungeon border generating wrong
+    - Rooms are not listening to the border requirement
+    - Rooms are all trying to generate stairs
+    - Illegal corridors are being generated
+
+--BEGIN CHANGELOG FOR DUNGEON ASSIGNMENT--

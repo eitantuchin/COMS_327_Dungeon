@@ -22,6 +22,8 @@
 #define MAX_NUM_ROOMS 7
 #define MIN_NUM_STAIRS 2
 #define MAX_NUM_STAIRS 3
+#define FILE_MARKER "RLG327-S2025"
+
 
 typedef struct room {
     uint8_t posX;
@@ -78,5 +80,7 @@ void initPCPosition(void);
 bool contains(int *array, size_t size, int value);
 void cleanupDungeon(void);
 void calculateDistances(int tunneling);
+void saveFile(void);
+void loadFile(void);
 
 #endif

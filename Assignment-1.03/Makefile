@@ -6,7 +6,7 @@ LDFLAGS = -lm
 
 TARGET = dungeon_path_finding
 
-SRCS = dungeon_path_finding.c save_and_load.c priority_queue.c
+SRCS = dungeon_path_finding.c priority_queue.c
 
 OBJS = $(SRCS:.c=.o)
 

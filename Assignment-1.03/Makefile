@@ -1,3 +1,4 @@
+
 CC = gcc
 
 CFLAGS = -g -Wall
@@ -20,4 +21,3 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
-

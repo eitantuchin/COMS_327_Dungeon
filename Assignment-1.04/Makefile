@@ -6,7 +6,7 @@ LDFLAGS = -lm -lncurses
 
 TARGET = dungeon_monsters
 
-SRCS = dungeon_monsters.c save_and_load.c priority_queue.c
+SRCS = dungeon_monsters.c priority_queue.c
 
 OBJS = $(SRCS:.c=.o)
 

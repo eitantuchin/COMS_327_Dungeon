@@ -1,5 +1,5 @@
-#ifndef dungeon_path_finding_h
-#define dungeon_path_finding_h
+#ifndef dungeon_monsters_h
+#define dungeon_monsters_h
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +28,8 @@
 #define PC_SPEED 10
 #define MAX_NUM_MONSTERS 10
 #define MIN_NUM_MONSTERS 6
+#define FILE_MARKER "RLG327-S2025"
+
 
 typedef struct room {
     uint8_t posX;
@@ -118,4 +120,6 @@ void processEvents(void);
 void scheduleEvent(event_type_t type, int monsterIndex, int currentTurn);
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, monster_t *m, bool isTunneling);
 bool hasLineOfSight(int x1, int y1, int x2, int y2);
+void saveFile(void);
+void loadFile(void);
 #endif

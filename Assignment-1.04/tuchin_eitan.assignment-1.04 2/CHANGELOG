@@ -72,6 +72,7 @@ Bug Fixes
     - Fixed distance map only generating partially for non-tunnelers
     - Fixed distance map for tunnelers not taking into account hardness
     - Fixed when trying path finding with saving and loading it won't work
+
 Bugs Discovered
     - Distance map only generating partially for non-tunnelers
     - Distance map for tunnelers not taking into account hardness

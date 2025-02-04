@@ -1,12 +1,12 @@
 CC = gcc
 
-CFLAGS = -g -Wall -ggdb
+CFLAGS = -g -Wall
 
 LDFLAGS = -lm -lncurses
 
-TARGET = dungeon_monsters
+TARGET = dungeon_UI
 
-SRCS = dungeon_monsters.c priority_queue.c
+SRCS = dungeon_UI.c priority_queue.c
 
 OBJS = $(SRCS:.c=.o)
 

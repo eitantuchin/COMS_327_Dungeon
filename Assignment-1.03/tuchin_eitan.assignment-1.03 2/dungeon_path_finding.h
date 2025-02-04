@@ -1,5 +1,5 @@
-#ifndef dungeon_monsters_h
-#define dungeon_monsters_h
+#ifndef dungeon_path_finding_h
+#define dungeon_path_finding_h
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,9 +10,6 @@
 #include <limits.h>
 #include <stdint.h>
 #include <arpa/inet.h>
-#include <ncurses.h>
-#include <unistd.h>
-#include <time.h>
 
 // Constants for our dungeon game
 #define DUNGEON_WIDTH 80
@@ -25,9 +22,6 @@
 #define MAX_NUM_ROOMS 7
 #define MIN_NUM_STAIRS 2
 #define MAX_NUM_STAIRS 3
-#define PC_SPEED 10
-#define MAX_NUM_MONSTERS 100
-#define MIN_NUM_MONSTERS 6
 #define FILE_MARKER "RLG327-S2025"
 
 
@@ -46,7 +40,6 @@ typedef struct stair {
 typedef struct pc {
     uint8_t posX;
     uint8_t posY;
-    uint8_t speed;
 } pc_t;
 
 typedef struct cell
@@ -63,29 +56,6 @@ extern const cell_t UPWARD_STAIRS_CELL;
 extern const cell_t DOWNWARD_STAIRS_CELL;
 extern const cell_t PLAYER_CELL;
 
-typedef struct monster
-{
-    uint8_t speed;
-    uint8_t posX;
-    uint8_t posY;
-    uint8_t monsterBits;
-    cell_t MONSTER_CELL;
-    bool alive;
-    char previousCharacter;
-    int lastSeenPCX;
-    int lastSeenPCY;
-} monster_t;
-
-typedef enum {
-    EVENT_MONSTER
-} event_type_t;
-
-typedef struct event {
-    int turn;
-    event_type_t type;
-    int monsterIndex;
-} event_t;
-
 typedef struct dungeon {
     cell_t map[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     room_t *rooms;
@@ -97,8 +67,6 @@ typedef struct dungeon {
     uint16_t numDownwardsStairs;
     int nonTunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
-    uint16_t numMonsters;
-    monster_t *monsters;
 } dungeon_t;
 
 // Function prototypes
@@ -112,14 +80,7 @@ void initPCPosition(void);
 bool contains(int *array, size_t size, int value);
 void cleanupDungeon(void);
 void calculateDistances(int tunneling);
-void initMonsters(void);
-void moveMonster(int index);
-void attemptMove(monster_t *m, int dx, int dy);
-void checkGameConditions(void);
-void processEvents(void);
-void scheduleEvent(event_type_t type, int monsterIndex, int currentTurn);
-void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, monster_t *m, bool isTunneling);
-bool hasLineOfSight(int x1, int y1, int x2, int y2);
 void saveFile(void);
 void loadFile(void);
+
 #endif

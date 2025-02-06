@@ -13,6 +13,7 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h> 
 
 // Constants for our dungeon game
 #define DUNGEON_WIDTH 80
@@ -27,9 +28,14 @@
 #define MAX_NUM_STAIRS 3
 #define PC_SPEED 10
 #define MAX_NUM_MONSTERS 100
-#define MIN_NUM_MONSTERS 6
+#define MIN_NUM_MONSTERS 7
 #define FILE_MARKER "RLG327-S2025"
 
+typedef struct message {
+    char message[200];
+    time_t startTime;
+    bool visible;
+} message_t;
 
 typedef struct room {
     uint8_t posX;
@@ -43,11 +49,23 @@ typedef struct stair {
     uint8_t posY;
 } stair_t;
 
+typedef enum {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    UP_LEFT,
+    UP_RIGHT,
+    DOWN_LEFT,
+    DOWN_RIGHT
+} direction_t;
+
 typedef struct pc {
     uint8_t posX;
     uint8_t posY;
     uint8_t speed;
     char previousCharacter;
+    direction_t currentDirection;
 } pc_t;
 
 typedef struct cell
@@ -105,7 +123,7 @@ typedef struct dungeon {
 
 // Function prototypes
 void addRooms(void);
-void addStairs(int numStairs);
+void addStairs(void);
 void printDungeon(int showDist, int tunneling);
 void addCorridors(void);
 void carveCorridor(int startX, int startY, int endX, int endY);
@@ -126,4 +144,11 @@ void saveFile(void);
 void loadFile(void);
 void movePlayer(int key);
 void checkKeyInput(void);
+bool checkMonsterPlacementToPC(int randX, int randY);
+void displayMessage(const char *message);
+void attack(int distance);
+void drawMessage(void);
+void changeDirection(bool clockwise, bool justChangeText);
+void generateDungeon(void);
+void useStairs(int key);
 #endif

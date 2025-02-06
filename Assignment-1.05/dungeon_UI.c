@@ -6,6 +6,13 @@ dungeon_t dungeon;
 int roomCounter = 0;
 priority_queue_t *event_queue;
 bool gameOver = false;
+struct timeval lastMoveTime;
+message_t gameMessage = {"", 0, false};
+message_t directionMessage = {"", 0, true};
+char *dirNames[] = {
+    "NORTH", "NORTH-EAST", "EAST", "SOUTH-EAST", "SOUTH", "SOUTH-WEST", "WEST", "NORTH-WEST"
+};
+bool playerToMove = false;
 
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
 const cell_t ROCK_CELL = {' ', 1};
@@ -20,16 +27,15 @@ const cell_t PLAYER_CELL = {'@', 0};
  */
 int main(int argc, char *argv[])
 {
-     
-    srand((unsigned int) time(NULL));
     dungeon.numRooms = MIN_NUM_ROOMS;
     dungeon.rooms = (room_t *)malloc(sizeof(room_t) * dungeon.numRooms);
-    int numStairs = rand() % (MAX_NUM_STAIRS - MIN_NUM_STAIRS + 1) + MIN_NUM_STAIRS;
-    dungeon.upwardStairs = (stair_t *)malloc(sizeof(stair_t) * numStairs);
-    dungeon.downwardStairs = (stair_t *)malloc(sizeof(stair_t) * numStairs);
+    dungeon.upwardStairs = (stair_t *)malloc(sizeof(stair_t) * 3);
+    dungeon.downwardStairs = (stair_t *)malloc(sizeof(stair_t) * 3);
     dungeon.pc.speed = PC_SPEED;
     dungeon.pc.previousCharacter = '.'; // PC always starts on floor
     dungeon.monsters = (monster_t *)malloc(sizeof(monster_t) * MAX_NUM_MONSTERS);
+     
+    srand((unsigned int) time(NULL));
     
     // Initialize ncurses
     initscr(); // Start ncurses mode
@@ -37,36 +43,23 @@ int main(int argc, char *argv[])
     noecho();  // Don't display typed characters
     keypad(stdscr, TRUE); // Enable special keys (like arrow keys)
     curs_set(0);  // Hide cursor
-    //nodelay(stdscr, TRUE);
-
+    nodelay(stdscr, TRUE);
     
     // make a dungeon but no saving or loading
     if (argv[1] == NULL) {
-        dungeon.numMonsters = rand() % (13 - MIN_NUM_MONSTERS + 1) + MIN_NUM_MONSTERS;
-        initImmutableRock();
-        addRooms();
-        addCorridors();
-        addStairs(numStairs);
-        initPCPosition();
-        initMonsters();
+        dungeon.numMonsters = rand() % (10 - MIN_NUM_MONSTERS + 1) + MIN_NUM_MONSTERS;
+        generateDungeon();
     }
     else if(strcmp(argv[1], "--nummon") == 0)
     {
         dungeon.numMonsters = atoi(argv[2]);
-        initImmutableRock();
-        addRooms();
-        addCorridors();
-        addStairs(numStairs);
-        initPCPosition();
-        initMonsters();
+        generateDungeon();
     }
     else {
         printf("Unsupported command configuration: Please use either --nummon or no switch.\n");
         return 0;
     }
 
-    
-    // After dungeon is loaded/generated:
     calculateDistances(0);  // Non-tunneling
     calculateDistances(1);  // Tunneling
 
@@ -76,21 +69,23 @@ int main(int argc, char *argv[])
     // schedule initial PC event
     scheduleEvent(EVENT_PC, -1, 0);
     
+    processEvents();
+    
     // Schedule initial monster events
     for (int i = 0; i < dungeon.numMonsters; i++) {
         scheduleEvent(EVENT_MONSTER, i, 0);
     }
-    // Initial draw of the dungeon
-    clear();
-    printDungeon(0, 0);
-    refresh();
+  
 
     // Main game loop
     gameOver = false;
     while (!gameOver) {
-        processEvents();
         checkKeyInput();
         checkGameConditions();
+        if (!playerToMove) processEvents();
+        clear();
+        printDungeon(0, 0);
+        refresh();
     }
 
     // Cleanup
@@ -99,61 +94,272 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void scheduleEvent(event_type_t type, int index, int currentTurn) {
+    event_t *newEvent = malloc(sizeof(event_t));
+    newEvent->type = type;
+    newEvent->index = index;
+    if (type == EVENT_PC) {
+        newEvent->turn = currentTurn + (1000 / PC_SPEED);
+    }
+    else {
+        newEvent->turn = currentTurn + (1000 / dungeon.monsters[index].speed);
+    }
+    pq_insert(event_queue, newEvent->index, 0, newEvent->turn);
+    free(newEvent);
+}
+
+void processEvents(void) {
+    char message[100];
+        pq_node_t node = pq_extract_min(event_queue); // extract the first value in the Q
+        if (node.x == -1) { // EVENT_PC
+            playerToMove = true; // this stops the processing of events until the player moves again
+            scheduleEvent(EVENT_PC, -1, node.priority);
+            snprintf(message, sizeof(message), "Your turn to move!");
+            displayMessage(message);
+        }
+        else if (dungeon.monsters[node.x].alive) {
+            moveMonster(node.x);
+            usleep(200000);
+            scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
+            snprintf(message, sizeof(message), "The monsters are moving...");
+            displayMessage(message);
+        }
+    
+}
+
+void generateDungeon(void) {
+    initImmutableRock();
+    addRooms();
+    addCorridors();
+    addStairs();
+    initPCPosition();
+    initMonsters();
+}
+
+void displayMessage(const char *message) {
+    if (strstr(message, "Facing:")) { // if the string contains "Facing:"
+        strncpy(directionMessage.message, message, sizeof(directionMessage.message) - 1); // Copy message safely
+        directionMessage.message[sizeof(directionMessage.message) - 1] = '\0'; // Ensure null termination
+    }
+    else {
+        strncpy(gameMessage.message, message, sizeof(gameMessage.message) - 1); // Copy message safely
+        gameMessage.message[sizeof(gameMessage.message) - 1] = '\0'; // Ensure null termination
+        gameMessage.startTime = time(NULL);
+        gameMessage.visible = true;
+    }
+}
+
+void drawMessage(void) {
+    if (gameMessage.visible) {
+        move(0, 0);
+        clrtoeol();
+        mvprintw(0, 0, "%s", gameMessage.message); // Print at the beginning of the line (left-aligned)
+    }
+    size_t len = strlen(directionMessage.message);
+    size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
+    mvprintw(0, (int) x, "%s", directionMessage.message); // Print right-aligned
+}
+
 void checkKeyInput(void) {
     int key = getch();
-
     switch(key) {
         case KEY_UP: // move up
         case '8':
         case 'k':
-            movePlayer(KEY_UP);
-            break;
         case KEY_DOWN: // move down
-        case '2':
+        //case '2':
         case 'j':
-            movePlayer(KEY_DOWN);
-            break;
         case KEY_LEFT: // move left
         case '4':
         case 'h':
-            movePlayer(KEY_LEFT);
-            break;
         case KEY_RIGHT: // move right
         case '6':
         case 'l':
-            movePlayer(KEY_RIGHT);
-            break;
         case KEY_HOME: // up-left
         case '7':
         case 'y':
-            movePlayer(KEY_HOME);
-            break;
         case KEY_PPAGE: // up-right
         case '9':
         case 'u':
-            movePlayer(KEY_PPAGE);
-            break;
         case KEY_NPAGE: // down-right
-        case '3':
+        //case '3':
         case 'n':
-            movePlayer(KEY_NPAGE);
-            break;
         case KEY_END: // down-left
-        case '1':
+        //case '1':
         case 'b':
-            movePlayer(KEY_END);
-            break;
         case KEY_B2: // rest
         case '5':
         case ' ':
-            movePlayer(KEY_B2);
+        case '.':
+            if (playerToMove) movePlayer(key);  // Move the player
             break;
         case 'q': // quit the game
         case 'Q':
-            gameOver = true; break;
+            gameOver = true;
+            endwin();
+            printf("\nYou quit the game!\n");
+            break;
+        case '2': // PC can attack 1 or 2 spaces away
+            attack(1); attack(2); break;
+        case '1': // counter-clockwise
+            changeDirection(false, false); break;
+        case '3': // clocckwise
+            changeDirection(true, false); break;
+        case '<':
+        case '>':
+            useStairs(key); break;
+    }
+}
+
+void useStairs(int key) {
+   if (dungeon.pc.previousCharacter == key) {
+        generateDungeon();
+        char message[100];
+        if (key == '<') snprintf(message, sizeof(message), "Moved up a dungeon level!");
+        else snprintf(message, sizeof(message), "Moved down a dungeon level!");
+        displayMessage(message);
+    }
+}
+
+void changeDirection(bool clockwise, bool justChangeText) {
+    // Define the order of directions (clockwise and counter-clockwise)
+    direction_t directions[] = {
+        UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT
+    };
+
+    int currentDirIndex = 0;
+    // Find the index of the current direction
+    for (int i = 0; i < 8; i++) {
+        if (dungeon.pc.currentDirection == directions[i]) {
+            currentDirIndex = i;
+            break;
+        }
     }
 
-    
+    char message[100];
+    if (!justChangeText) {
+        int newDirIndex = (currentDirIndex + (clockwise ? 1 : -1) + 8) % 8;
+        dungeon.pc.currentDirection = directions[newDirIndex];
+        snprintf(message, sizeof(message), "Facing: %s", dirNames[newDirIndex]);
+    }
+    else {
+        snprintf(message, sizeof(message), "Facing: %s", dirNames[currentDirIndex]);
+    }
+    displayMessage(message);
+}
+
+
+void attack(int distance) {
+    // Determine the direction the player is facing and the *adjacent* directions
+    int attackX = dungeon.pc.posX;
+    int attackY = dungeon.pc.posY;
+    int oldX = attackX;
+    int oldY = attackY;
+
+    direction_t directionsToCheck[3]; // Array to hold the directions to check
+
+    switch (dungeon.pc.currentDirection) {
+        case UP:
+            directionsToCheck[0] = UP;
+            directionsToCheck[1] = UP_LEFT;
+            directionsToCheck[2] = UP_RIGHT;
+            break;
+        case DOWN:
+            directionsToCheck[0] = DOWN;
+            directionsToCheck[1] = DOWN_LEFT;
+            directionsToCheck[2] = DOWN_RIGHT;
+            break;
+        case LEFT:
+            directionsToCheck[0] = LEFT;
+            directionsToCheck[1] = UP_LEFT;
+            directionsToCheck[2] = DOWN_LEFT;
+            break;
+        case RIGHT:
+            directionsToCheck[0] = RIGHT;
+            directionsToCheck[1] = UP_RIGHT;
+            directionsToCheck[2] = DOWN_RIGHT;
+            break;
+        case UP_LEFT:
+            directionsToCheck[0] = UP_LEFT;
+            directionsToCheck[1] = UP;
+            directionsToCheck[2] = LEFT;
+            break;
+        case UP_RIGHT:
+            directionsToCheck[0] = UP_RIGHT;
+            directionsToCheck[1] = UP;
+            directionsToCheck[2] = RIGHT;
+            break;
+        case DOWN_LEFT:
+            directionsToCheck[0] = DOWN_LEFT;
+            directionsToCheck[1] = DOWN;
+            directionsToCheck[2] = LEFT;
+            break;
+        case DOWN_RIGHT:
+            directionsToCheck[0] = DOWN_RIGHT;
+            directionsToCheck[1] = DOWN;
+            directionsToCheck[2] = RIGHT;
+            break;
+        default:
+            return; // Invalid direction
+    }
+
+    for (int i = 0; i < 3; i++) { // Check all three directions
+        attackX = dungeon.pc.posX; // Reset attack position for each direction
+        attackY = dungeon.pc.posY;
+
+        switch (directionsToCheck[i]) {
+            case UP:
+                attackX -= distance;
+                break;
+            case DOWN:
+                attackX += distance;
+                break;
+            case LEFT:
+                attackY -= distance;
+                break;
+            case RIGHT:
+                attackY += distance;
+                break;
+            case UP_LEFT:
+                attackX -= distance;
+                attackY -= distance;
+                break;
+            case UP_RIGHT:
+                attackX -= distance;
+                attackY += distance;
+                break;
+            case DOWN_LEFT:
+                attackX += distance;
+                attackY -= distance;
+                break;
+            case DOWN_RIGHT:
+                attackX += distance;
+                attackY += distance;
+                break;
+            default:
+                break; // Invalid direction (shouldn't happen)
+        }
+
+        // Check if the position is valid and contains a monster
+        if (attackX >= 0 && attackX < DUNGEON_HEIGHT && attackY >= 0 && attackY < DUNGEON_WIDTH) {
+            for (int j = 0; j < dungeon.numMonsters; j++) {
+                monster_t *monster = &dungeon.monsters[j];
+                if (monster->alive && monster->posX == attackY && monster->posY == attackX) {
+                    // Monster is killed (same logic as before)
+                    monster->alive = false;
+                    dungeon.map[attackX][attackY] = PLAYER_CELL;
+                    dungeon.map[oldX][oldY] = (cell_t){dungeon.pc.previousCharacter, 0};
+                    dungeon.pc.posX = attackX;
+                    dungeon.pc.posY = attackY;
+                    dungeon.pc.previousCharacter = monster->previousCharacter;
+                    char message[100];
+                    snprintf(message, sizeof(message), "You killed monster %c!", monster->MONSTER_CELL.ch);
+                    displayMessage(message);
+                    return;
+                }
+            }
+        }
+    }
 }
 
 void movePlayer(int key) {
@@ -163,23 +369,23 @@ void movePlayer(int key) {
     int oldX = newX;
     int oldY = newY;
     switch (key) {
-        case KEY_UP:
-            newX--; break;
-        case KEY_DOWN:
-            newX++; break;
-        case KEY_LEFT:
-            newY--; break;
-        case KEY_RIGHT:
-            newY++; break;
-        case KEY_HOME:
-            newY--; newX--; break;
-        case KEY_PPAGE:
-            newY++; newX--; break;
-        case KEY_NPAGE:
-            newY++; newX++; break;
-        case KEY_END:
-            newY--; newX++; break;
-        case KEY_B2:
+        case KEY_UP: case '8': case 'k':
+            newX--; dungeon.pc.currentDirection = UP;  break;
+        case KEY_DOWN: case '2': case 'j':
+            newX++; dungeon.pc.currentDirection = DOWN; break;
+        case KEY_LEFT: case '4': case 'h':
+            newY--; dungeon.pc.currentDirection = LEFT; break;
+        case KEY_RIGHT: case '6': case 'l':
+            newY++; dungeon.pc.currentDirection = RIGHT; break;
+        case KEY_HOME: case '7': case 'y':
+            newY--; newX--; dungeon.pc.currentDirection = UP_LEFT; break;
+        case KEY_PPAGE: case '9': case 'u':
+            newY++; newX--; dungeon.pc.currentDirection = UP_RIGHT; break;
+        case KEY_NPAGE: case '3': case 'n':
+            newY++; newX++; dungeon.pc.currentDirection = DOWN_RIGHT; break;
+        case KEY_END: case '1': case 'b':
+            newY--; newX++; dungeon.pc.currentDirection = DOWN_LEFT; break;
+        case KEY_B2: case '5': case ' ': case '.':
             // rest
             break;
     }
@@ -201,13 +407,19 @@ void movePlayer(int key) {
             case '>':
                dungeon.map[oldX][oldY] = DOWNWARD_STAIRS_CELL;
                break;
-       }
+        }
         
-       dungeon.pc.previousCharacter = dungeon.map[newX][newY].ch;
-        
-       dungeon.pc.posX = newX;
-       dungeon.pc.posY = newY;
-       dungeon.map[newX][newY] = PLAYER_CELL;
+        dungeon.pc.previousCharacter = dungeon.map[newX][newY].ch;
+        dungeon.pc.posX = newX;
+        dungeon.pc.posY = newY;
+        dungeon.map[newX][newY] = PLAYER_CELL;
+        changeDirection(false, true);
+        playerToMove = false;
+    }
+    else {
+        char message[100];
+        snprintf(message, sizeof(message), "There's a wall there!");
+        displayMessage(message);
     }
     calculateDistances(0); // recalculate pathfinding maps after moving player
     calculateDistances(1);
@@ -406,9 +618,6 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, mo
                 m->previousCharacter = dungeon.monsters[defenderIndex].previousCharacter;
             }
         }
-        clear();
-        printDungeon(0, 0);
-        refresh();
     }
 }
 
@@ -439,34 +648,9 @@ void checkGameConditions(void) {
         endwin();
         printf("\nCongratulations! All monsters have been defeated!\n");
     }
-}
-
-void scheduleEvent(event_type_t type, int index, int currentTurn) {
-    event_t *newEvent = malloc(sizeof(event_t));
-    newEvent->type = type;
-    newEvent->index = index;
-    if (type == EVENT_PC) {
-        // Use PC's speed
-        newEvent->turn = currentTurn + (1000 / dungeon.pc.speed);
-    }
-    else {
-        // Use monster's speed
-        newEvent->turn = currentTurn + (1000 / dungeon.monsters[index].speed);
-    }
-    pq_insert(event_queue, newEvent->index, 0, newEvent->turn);
-    free(newEvent);
-}
-
-void processEvents(void) {
-    pq_node_t node = pq_extract_min(event_queue); // extract the first value in the Q
-    if (node.x == -1) { // player index is -1
-        scheduleEvent(EVENT_PC, -1, node.priority); // keep moving the monster
-    }
-    else {
-        if (dungeon.monsters[node.x].alive) {
-            moveMonster(node.x);
-            scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
-        }
+    
+    if (gameMessage.visible && difftime(time(NULL), gameMessage.startTime) >= 4) {
+           gameMessage.visible = false;
     }
 }
 
@@ -500,7 +684,8 @@ void initMonsters(void) {
         while (!foundPosition) {
             int randY = rand() % DUNGEON_HEIGHT - 2;
             int randX = rand() % DUNGEON_WIDTH - 2;
-            if (dungeon.map[randY][randX].ch == '.' || dungeon.map[randY][randX].ch == '#') {
+            bool pcFarAwayEnough = checkMonsterPlacementToPC(randX, randY);
+            if ((dungeon.map[randY][randX].ch == '.' || dungeon.map[randY][randX].ch == '#') && pcFarAwayEnough) {
                 dungeon.monsters[i].posX = randX;
                 dungeon.monsters[i].posY = randY;
                 dungeon.monsters[i].previousCharacter = dungeon.map[randY][randX].ch;
@@ -512,25 +697,30 @@ void initMonsters(void) {
     
 }
 
-
-// Modified printDungeon function using ncurses
-void printDungeon(int showDist, int tunneling) {
-    for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
-        for (int x = 0; x < DUNGEON_WIDTH; ++x) {
-            // Draw borders
-            if (y == 0 || y == DUNGEON_HEIGHT - 1) {
-                mvaddch(y, x, '-');
-            }
-            else if (x == 0 || x == DUNGEON_WIDTH - 1) {
-                mvaddch(y, x, '|');
-            }
-            // Draw regular cells
-            else {
-                mvaddch(y, x, dungeon.map[y][x].ch);
+bool checkMonsterPlacementToPC(int randX, int randY) {
+    for (int i = randY - 2; i < randY + 2; ++i) {
+        for (int j = randX - 2; j < randX + 2; ++j) {
+            if (dungeon.map[i][j].ch == '@') {
+                return false;
             }
         }
     }
+    return true;
 }
+
+void printDungeon(int showDist, int tunneling) {
+    // Print the top border (now with space for the message)
+    move(1, 0); // Move cursor to the second row (leaving the first for the message)
+    for (int y = 1; y < DUNGEON_HEIGHT; ++y) { // Start from y = 1 to leave space for message
+        move(y + 1, 0); // Adjust row position for the message line
+        for (int x = 1; x < DUNGEON_WIDTH -1; ++x) {
+            addch(dungeon.map[y][x].ch);
+        }
+    }
+    drawMessage();
+    refresh();
+}
+
 
 void calculateDistances(int tunneling) {
     // using the priority queue and dijikstra's algorithm
@@ -719,7 +909,7 @@ void addRooms(void)
                 {
                     for (int j = randY - 2; j < randY + randWidth + 2; ++j)
                     {
-                        if (dungeon.map[i][j].ch != ROCK_CELL.ch)
+                        if (dungeon.map[i][j].ch != ROCK_CELL.ch || dungeon.map[i][j].hardness == 255)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -777,8 +967,9 @@ void initPCPosition(void)
 /*
  Adds the staircases to the dungeon and ensures no room contains multiple stairs and that we have at least one type of each staircase
  */
-void addStairs(int numStairs)
+void addStairs(void)
 {
+    int numStairs = rand() % (MAX_NUM_STAIRS - MIN_NUM_STAIRS + 1) + MIN_NUM_STAIRS;
     int randomRoomNums[MAX_NUM_STAIRS];
     while (dungeon.numUpwardsStairs + dungeon.numDownwardsStairs != numStairs) {
         // ensure at least one upwards stairs is inside the dungeon

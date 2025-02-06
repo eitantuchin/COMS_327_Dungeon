@@ -36,7 +36,6 @@ int main(int argc, char *argv[])
     dungeon.monsters = (monster_t *)malloc(sizeof(monster_t) * MAX_NUM_MONSTERS);
      
     srand((unsigned int) time(NULL));
-    
     // Initialize ncurses
     initscr(); // Start ncurses mode
     cbreak();  // Disable line buffering
@@ -83,6 +82,7 @@ int main(int argc, char *argv[])
         checkKeyInput();
         checkGameConditions();
         if (!playerToMove) processEvents();
+        checkGameConditions();
         clear();
         printDungeon(0, 0);
         refresh();
@@ -119,21 +119,12 @@ void processEvents(void) {
         }
         else if (dungeon.monsters[node.x].alive) {
             moveMonster(node.x);
-            usleep(200000);
+            usleep(100000);
             scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
             snprintf(message, sizeof(message), "The monsters are moving...");
             displayMessage(message);
         }
     
-}
-
-void generateDungeon(void) {
-    initImmutableRock();
-    addRooms();
-    addCorridors();
-    addStairs();
-    initPCPosition();
-    initMonsters();
 }
 
 void displayMessage(const char *message) {
@@ -213,13 +204,75 @@ void checkKeyInput(void) {
 
 void useStairs(int key) {
    if (dungeon.pc.previousCharacter == key) {
-        generateDungeon();
+        resetDungeonLevel();
         char message[100];
         if (key == '<') snprintf(message, sizeof(message), "Moved up a dungeon level!");
         else snprintf(message, sizeof(message), "Moved down a dungeon level!");
         displayMessage(message);
     }
 }
+
+void generateDungeon(void) {
+    initImmutableRock();
+    addRooms();
+    addCorridors();
+    addStairs();
+    initPCPosition();
+    initMonsters();
+}
+
+void resetDungeonLevel(void) {
+    // Free the memory allocated for the previous level if it was dynamically allocated.
+    if (dungeon.rooms) {
+        free(dungeon.rooms);
+        dungeon.rooms = NULL;
+    }
+    if (dungeon.monsters) {
+        free(dungeon.monsters);
+        dungeon.monsters = NULL;
+    }
+    if (dungeon.upwardStairs) {
+        free(dungeon.upwardStairs);
+        dungeon.upwardStairs = NULL;
+    }
+    if (dungeon.downwardStairs) {
+        free(dungeon.downwardStairs);
+        dungeon.downwardStairs = NULL;
+    }
+    // Reset counters and any global variables
+    roomCounter = 0;
+    dungeon.numRooms = MIN_NUM_ROOMS;
+    dungeon.rooms = (room_t *)malloc(sizeof(room_t) * dungeon.numRooms);
+    dungeon.upwardStairs = (stair_t *)malloc(sizeof(stair_t) * 3);
+    dungeon.numUpwardsStairs = 0;
+    dungeon.numDownwardsStairs = 0;
+    dungeon.downwardStairs = (stair_t *)malloc(sizeof(stair_t) * 3);
+    dungeon.pc.previousCharacter = '.'; // PC always starts on floor
+    dungeon.monsters = (monster_t *)malloc(sizeof(monster_t) * MAX_NUM_MONSTERS);
+    
+    // (If your dungeon.map is allocated dynamically, you might free it and reallocate it here as well.)
+    
+    pq_destroy(event_queue);
+    event_queue = pq_create(MAX_NUM_MONSTERS * 10);
+    // Now generate a new dungeon level
+    generateDungeon();
+    
+    // Recalculate pathfinding distances for both tunneling and non-tunneling monsters
+    calculateDistances(0);
+    calculateDistances(1);
+    
+    // Schedule events for the player and monsters as needed
+    scheduleEvent(EVENT_PC, -1, 0);
+    processEvents();
+    for (int i = 0; i < dungeon.numMonsters; i++) {
+        scheduleEvent(EVENT_MONSTER, i, 0);
+    }
+    char message[100];
+    snprintf(message, sizeof(message), "Your turn to move!");
+    displayMessage(message);
+}
+
+
 
 void changeDirection(bool clockwise, bool justChangeText) {
     // Define the order of directions (clockwise and counter-clockwise)
@@ -629,28 +682,39 @@ void checkGameConditions(void) {
             dungeon.monsters[i].posX == dungeon.pc.posY) {
             gameOver = true;
             endwin();
-            printf("\nGame Over - You were killed by a monster!\n");
+            printf("Game Over - You were killed by monster %c!", dungeon.monsters[i].MONSTER_CELL.ch);
             return;
         }
     }
     
     // Check remaining monsters
-    bool monsters_alive = false;
+    bool monstersAlive = false;
     for (int i = 0; i < dungeon.numMonsters; i++) {
         if (dungeon.monsters[i].alive) {
-            monsters_alive = true;
+            monstersAlive = true;
             break;
         }
     }
     
-    if (!monsters_alive) {
+    if (!monstersAlive) {
         gameOver = true;
         endwin();
         printf("\nCongratulations! All monsters have been defeated!\n");
     }
     
     if (gameMessage.visible && difftime(time(NULL), gameMessage.startTime) >= 4) {
-           gameMessage.visible = false;
+        if (strstr(gameMessage.message, "Your turn to move!")) {
+            return;
+        }
+        else if (strstr(gameMessage.message, "Game Over")) {
+            gameOver = true;
+            endwin();
+            printf("\nGame Over - You were killed by a monster!\n");
+            return;
+        }
+        else {
+            gameMessage.visible = false;
+        }
     }
 }
 

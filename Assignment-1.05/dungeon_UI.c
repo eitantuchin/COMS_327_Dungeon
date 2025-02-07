@@ -232,7 +232,7 @@ void checkKeyInput(void) {
         case '8':
         case 'k':
         case KEY_DOWN: // move down
-        //case '2':
+        case '2':
         case 'j':
         case KEY_LEFT: // move left
         case '4':
@@ -247,10 +247,10 @@ void checkKeyInput(void) {
         case '9':
         case 'u':
         case KEY_NPAGE: // down-right
-        //case '3':
+        case '3':
         case 'n':
         case KEY_END: // down-left
-        //case '1':
+        case '1':
         case 'b':
         case KEY_B2: // rest
         case '5':
@@ -276,11 +276,11 @@ void checkKeyInput(void) {
             endwin();
             printf("\nYou quit the game!\n");
             break;
-        case '2': // PC can attack 1 or 2 spaces away
+        case 'z': // PC can attack 1 or 2 spaces away
             attack(1); attack(2); break;
-        case '1': // counter-clockwise
+        case 'V': // counter-clockwise
             changeDirection(false, false); break;
-        case '3': // clocckwise
+        case 'v': // clocckwise
             changeDirection(true, false); break;
         case '<':
         case '>':
@@ -371,6 +371,7 @@ void resetDungeonLevel(void) {
 
 void changeDirection(bool clockwise, bool justChangeText) {
     // Define the order of directions (clockwise and counter-clockwise)
+    clear();
     direction_t directions[] = {
         UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT
     };
@@ -394,6 +395,7 @@ void changeDirection(bool clockwise, bool justChangeText) {
         snprintf(message, sizeof(message), "Facing: %s", dirNames[currentDirIndex]);
     }
     displayMessage(message);
+    refresh();
 }
 
 

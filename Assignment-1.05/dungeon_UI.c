@@ -6,13 +6,13 @@ dungeon_t dungeon;
 int roomCounter = 0;
 priority_queue_t *event_queue;
 bool gameOver = false;
-struct timeval lastMoveTime;
 message_t gameMessage = {"", 0, false};
 message_t directionMessage = {"", 0, true};
 char *dirNames[] = {
     "NORTH", "NORTH-EAST", "EAST", "SOUTH-EAST", "SOUTH", "SOUTH-WEST", "WEST", "NORTH-WEST"
 };
 bool playerToMove = false;
+int monsterListScrollOffset = 0;
 
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
 const cell_t ROCK_CELL = {' ', 1};
@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
     dungeon.pc.speed = PC_SPEED;
     dungeon.pc.previousCharacter = '.'; // PC always starts on floor
     dungeon.monsters = (monster_t *)malloc(sizeof(monster_t) * MAX_NUM_MONSTERS);
+    dungeon.modeType = PLAYER_CONTROL;
      
     srand((unsigned int) time(NULL));
     // Initialize ncurses
@@ -75,23 +76,96 @@ int main(int argc, char *argv[])
         scheduleEvent(EVENT_MONSTER, i, 0);
     }
   
-
     // Main game loop
     gameOver = false;
     while (!gameOver) {
         checkKeyInput();
+        if (dungeon.modeType == MONSTER_LIST) {
+            displayMonsterList();
+        }
+        else if (dungeon.modeType == PLAYER_CONTROL) {
+            clear();
+            printDungeon(0, 0);
+            refresh();
+        }
         checkGameConditions();
         if (!playerToMove) processEvents();
         checkGameConditions();
-        clear();
-        printDungeon(0, 0);
-        refresh();
     }
 
     // Cleanup
     endwin();
     pq_destroy(event_queue);
     return 0;
+}
+
+char* getMonsterPositionString(int monsterIndex) {
+    monster_t monster = dungeon.monsters[monsterIndex];
+    int deltaX = monster.posX - dungeon.pc.posY;
+    int deltaY = monster.posY - dungeon.pc.posX;
+
+    char* directionX = (deltaX > 0) ? "East" : "West";
+    char* directionY = (deltaY > 0) ? "South" : "North";
+
+    int absDeltaX = abs(deltaX);
+    int absDeltaY = abs(deltaY);
+
+    char* positionString = malloc(50 * sizeof(char)); // Allocate enough space for the string
+
+    if (absDeltaX == 0 && absDeltaY == 0) {
+        snprintf(positionString, 50, "next to you");
+    }
+    else if (absDeltaX == 0) {
+        snprintf(positionString, 50, "%d %s", absDeltaY, directionY);
+    }
+    else if (absDeltaY == 0) {
+        snprintf(positionString, 50, "%d %s", absDeltaX, directionX);
+    }
+    else {
+        snprintf(positionString, 50, "%d %s and %d %s", absDeltaX, directionX, absDeltaY, directionY);
+    }
+
+    return positionString;
+}
+
+void displayMonsterList(void) {
+    clear();
+
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth); // Get the size of the terminal window
+
+    mvprintw(0, 0, "Monster List:");
+    mvprintw(1, 0, "Symbol | Position");
+
+    int maxVisibleMonsters = screenHeight - 3; // Subtract 3 for header and instructions
+
+    // Ensure the scroll offset is within valid bounds
+    if (monsterListScrollOffset < 0) {
+        monsterListScrollOffset = 0;
+    }
+    int maxScrollOffset = dungeon.numMonsters - maxVisibleMonsters;
+    if (monsterListScrollOffset > maxScrollOffset) {
+        monsterListScrollOffset = maxScrollOffset;
+    }
+    if (maxScrollOffset < 0) {
+        monsterListScrollOffset = 0; // If the list fits entirely on the screen, reset the offset
+    }
+
+    for (int i = 0; i < maxVisibleMonsters && i + monsterListScrollOffset < dungeon.numMonsters; ++i) {
+        int monsterIndex = i + monsterListScrollOffset;
+        if (dungeon.monsters[monsterIndex].alive) {
+            char* positionString = getMonsterPositionString(monsterIndex);
+            mvprintw(i + 2, 0, "%c      | %s", dungeon.monsters[monsterIndex].MONSTER_CELL.ch, positionString);
+            free(positionString);
+        }
+        else {
+            mvprintw(i + 2, 0, "%c      | %s", dungeon.monsters[monsterIndex].MONSTER_CELL.ch, "Killed");
+        }
+    }
+
+    mvprintw(screenHeight - 1, 0, "Press ESC to return to the game. Use UP/DOWN arrows to scroll.");
+
+    refresh();
 }
 
 void scheduleEvent(event_type_t type, int index, int currentTurn) {
@@ -182,7 +256,17 @@ void checkKeyInput(void) {
         case '5':
         case ' ':
         case '.':
-            if (playerToMove) movePlayer(key);  // Move the player
+            if (playerToMove && dungeon.modeType == PLAYER_CONTROL) movePlayer(key);
+            if (dungeon.modeType == MONSTER_LIST) {
+                if (key == KEY_UP) {
+                    monsterListScrollOffset--;
+                    displayMonsterList();
+                }
+                else if (key == KEY_DOWN) {
+                    monsterListScrollOffset++;
+                    displayMonsterList();
+                }
+            }
             break;
         case 'q': // quit the game
         case 'Q':
@@ -199,7 +283,16 @@ void checkKeyInput(void) {
         case '<':
         case '>':
             useStairs(key); break;
+        case 'm':
+            dungeon.modeType = MONSTER_LIST; monsterListScrollOffset = 0; break;
+        case 27: // escape key
+            dungeon.modeType = PLAYER_CONTROL;
+            clear();
+            printDungeon(0, 0);
+            refresh();
+            break;
     }
+    
 }
 
 void useStairs(int key) {
@@ -605,7 +698,7 @@ bool hasLineOfSight(int x1, int y1, int x2, int y2) {
     int t = dx - dy;
 
     for (; n > 0; n--) {
-        if (dungeon.map[y][x].hardness > 0 && dungeon.map[y][x].hardness < 255) {
+        if (dungeon.map[y][x].hardness > 0 && dungeon.map[y][x].hardness < IMMUTABLE_ROCK_CELL.hardness) {
             return false; // Blocked by a wall
         }
         if (t > 0) {
@@ -643,7 +736,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, mo
             dungeon.map[newY][newX] = m->MONSTER_CELL;
 
         }
-        else if (!collision && dungeon.map[newY][newX].hardness > 0 && dungeon.map[newY][newX].hardness < 255 && isTunneling) { // we have met mutable rock and we are a tunneler
+        else if (!collision && dungeon.map[newY][newX].hardness > 0 && dungeon.map[newY][newX].hardness < IMMUTABLE_ROCK_CELL.hardness && isTunneling) { // we have met mutable rock and we are a tunneler
             dungeon.map[newY][newX].hardness -= 85; // mining rock
             calculateDistances(1);  // recalculate tunneling distances
             if (dungeon.map[newY][newX].hardness <= 0) {
@@ -676,20 +769,20 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, mo
 
 void checkGameConditions(void) {
     // Check PC death
-    for (int i = 0; i < dungeon.numMonsters; i++) {
+    for (int i = 0; i < dungeon.numMonsters; ++i) {
         if (dungeon.monsters[i].alive &&
             dungeon.monsters[i].posY == dungeon.pc.posX &&
             dungeon.monsters[i].posX == dungeon.pc.posY) {
             gameOver = true;
             endwin();
-            printf("Game Over - You were killed by monster %c!", dungeon.monsters[i].MONSTER_CELL.ch);
+            printf("\nGame Over - You were killed by monster %c!", dungeon.monsters[i].MONSTER_CELL.ch);
             return;
         }
     }
     
     // Check remaining monsters
     bool monstersAlive = false;
-    for (int i = 0; i < dungeon.numMonsters; i++) {
+    for (int i = 0; i < dungeon.numMonsters; ++i) {
         if (dungeon.monsters[i].alive) {
             monstersAlive = true;
             break;
@@ -823,7 +916,7 @@ void calculateDistances(int tunneling) {
                 // Check passability
                 cell_t cell = dungeon.map[ny][nx];
                 if (!tunneling && cell.hardness > 0) continue;  // Non-tunneler can't pass through rock
-                if (cell.hardness == 255) continue;             // Immutable rock
+                if (cell.hardness == IMMUTABLE_ROCK_CELL.hardness) continue;             // Immutable rock
 
                 // Calculate weight
                 int weight = 1;
@@ -941,7 +1034,7 @@ void carveCorridor(int startX, int startY, int endX, int endY)
         }
 
         if (dungeon.map[x][y].ch == ROCK_CELL.ch &&
-            dungeon.map[x][y].hardness < 255) {
+            dungeon.map[x][y].hardness < IMMUTABLE_ROCK_CELL.hardness) {
             dungeon.map[x][y] = CORRIDOR_CELL;
         }
     }
@@ -973,7 +1066,7 @@ void addRooms(void)
                 {
                     for (int j = randY - 2; j < randY + randWidth + 2; ++j)
                     {
-                        if (dungeon.map[i][j].ch != ROCK_CELL.ch || dungeon.map[i][j].hardness == 255)
+                        if (dungeon.map[i][j].ch != ROCK_CELL.ch || dungeon.map[i][j].hardness == IMMUTABLE_ROCK_CELL.hardness)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -1104,7 +1197,7 @@ void loadFile(void){
     initImmutableRock();
     
     // Construct file path
-    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + strlen("/.rlg327/dungeon") + 1));
+    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + strlen("/.rlg327/%s") + 1));
     if (path == NULL) {
         perror("Failed to allocate memory for file path");
         return;
@@ -1114,11 +1207,14 @@ void loadFile(void){
 
     // Open the file
     FILE *f = fopen(path, "r");
+    
+    /*
     if (f == NULL) {
         perror("Failed to open file");
         free(path);
         return;
     }
+    */
 
     // Read file type and version
     char fileType[13];
@@ -1145,22 +1241,14 @@ void loadFile(void){
 
     fread(&fileSize, sizeof(uint32_t), 1, f);
     fileSize = htonl(fileSize);
-    //printf("File size: %u bytes\n", fileSize);
+    printf("File size: %u bytes\n", fileSize);
 
     // Read player position
     fread(&dungeon.pc.posX, sizeof(uint8_t), 1, f);
     fread(&dungeon.pc.posY, sizeof(uint8_t), 1, f);
 
-    // Ensure player position is within bounds
-    if (dungeon.pc.posX >= DUNGEON_HEIGHT || dungeon.pc.posY >= DUNGEON_WIDTH) {
-        printf("Invalid player position\n");
-        printf("Player's X pos: %i\n", dungeon.pc.posX);
-        printf("Player's Y pos: %i\n", dungeon.pc.posY);
-        fclose(f);
-        free(path);
-        return;
-    }
-    dungeon.map[dungeon.pc.posX][dungeon.pc.posY] = PLAYER_CELL;
+    
+    dungeon.map[dungeon.pc.posY][dungeon.pc.posX] = PLAYER_CELL;
 
     // Load dungeon map hardness
     for (int y = 0; y < DUNGEON_HEIGHT; y++) {
@@ -1172,12 +1260,7 @@ void loadFile(void){
     // Read number of rooms and validate it
     fread(&dungeon.numRooms, sizeof(uint16_t), 1, f);
     dungeon.numRooms = htons(dungeon.numRooms);
-    if (dungeon.numRooms > MAX_NUM_ROOMS || dungeon.numRooms < MIN_NUM_ROOMS) {
-        printf("Invalid number of rooms: %u\n", dungeon.numRooms);
-        fclose(f);
-        free(path);
-        return;
-    }
+
 
     // Allocate memory for rooms
     dungeon.rooms = (room_t *)malloc(sizeof(room_t) * dungeon.numRooms);
@@ -1192,31 +1275,15 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numRooms; i++) {
         fread(&dungeon.rooms[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.rooms[i].posY, sizeof(uint8_t), 1, f);
-        fread(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
         fread(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
+        fread(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
 
-        // Validate room positions and sizes
-        if (dungeon.rooms[i].posY >= DUNGEON_WIDTH || dungeon.rooms[i].posX >= DUNGEON_HEIGHT ||
-            dungeon.rooms[i].posY + dungeon.rooms[i].width > DUNGEON_WIDTH ||
-            dungeon.rooms[i].posX + dungeon.rooms[i].height > DUNGEON_HEIGHT) {
-            printf("Invalid room position or size for room %d\n", i);
-            fclose(f);
-            free(path);
-            return;
-        }
 
         // Mark room cells on the map
         for (int n = dungeon.rooms[i].posX; n < dungeon.rooms[i].posX + dungeon.rooms[i].height; n++) {
             for (int m = dungeon.rooms[i].posY; m < dungeon.rooms[i].posY + dungeon.rooms[i].width; m++) {
-                /*if (n >= DUNGEON_WIDTH || m >= DUNGEON_HEIGHT) {
-                    printf("Room exceeds dungeon bounds: Room %d at (%d,%d)\n", i, n, m);
-                    fclose(f);
-                    free(path);
-                    return;
-                }
-                 */
-                if (dungeon.map[n][m].ch != '@') {
-                    dungeon.map[n][m] = ROOM_CELL;
+                if (dungeon.map[m][n].ch != '@') {
+                    dungeon.map[m][n] = ROOM_CELL;
                 }
             }
         }
@@ -1231,7 +1298,7 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numUpwardsStairs; i++) {
         fread(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.upwardStairs[i].posY, sizeof(uint8_t), 1, f);
-        dungeon.map[dungeon.upwardStairs[i].posX][dungeon.upwardStairs[i].posY] = UPWARD_STAIRS_CELL;
+        dungeon.map[dungeon.upwardStairs[i].posY][dungeon.upwardStairs[i].posX] = UPWARD_STAIRS_CELL;
     }
     
     fread(&dungeon.numDownwardsStairs, sizeof(uint16_t), 1, f);
@@ -1240,7 +1307,7 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numDownwardsStairs; i++) {
         fread(&dungeon.downwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.downwardStairs[i].posY, sizeof(uint8_t), 1, f);
-        dungeon.map[dungeon.downwardStairs[i].posX][dungeon.downwardStairs[i].posY] = DOWNWARD_STAIRS_CELL;
+        dungeon.map[dungeon.downwardStairs[i].posY][dungeon.downwardStairs[i].posX] = DOWNWARD_STAIRS_CELL;
     }
 
     // Rebuild corridors
@@ -1251,7 +1318,6 @@ void loadFile(void){
             }
         }
     }
-
     fclose(f);
     free(path);
     return;
@@ -1276,26 +1342,27 @@ void saveFile(void) {
     numUpStrs = htons(numUpStrs);
     uint16_t numDownStrs = dungeon.numDownwardsStairs;
     numDownStrs = htons(numDownStrs);
-
+    
     //Opens a path for the file
     char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) +strlen("/.rlg327/dungeon") + 1));
     strcat(path, getenv("HOME"));
     strcat(path, "/.rlg327/dungeon");
     FILE *f = NULL;
     f = fopen(path, "w");
+    
     if (f == NULL) {
         perror("Failed to open file");
         free(path);
         return;
     }
-
+    
     //Writes type of file, version, size, location of player, and hardness
     fwrite(&FILE_MARKER, 12, 1, f);
     fwrite(&versionNum, sizeof(uint32_t), 1, f);
     fwrite(&fileSize, sizeof(uint32_t), 1, f);
-
-    fwrite(&dungeon.pc.posX, sizeof(uint8_t), 1, f);
+    
     fwrite(&dungeon.pc.posY, sizeof(uint8_t), 1, f);
+    fwrite(&dungeon.pc.posX, sizeof(uint8_t), 1, f);
     
     for (int y = 0; y < DUNGEON_HEIGHT; y++)
     {
@@ -1308,25 +1375,24 @@ void saveFile(void) {
     //Writes number of rooms, locations and sizes
     fwrite(&numRooms, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numRooms; ++i){
-        fwrite(&dungeon.rooms[i].posX, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].posY, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.rooms[i].posX, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
     }
-
+    
     // Writes numer of upward and downward stairs
     fwrite(&numUpStrs, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numUpwardsStairs; ++i) {
-        fwrite(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.upwardStairs[i].posY, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
     }
     fwrite(&numDownStrs, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numDownwardsStairs; ++i) {
-        fwrite(&dungeon.downwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.downwardStairs[i].posY, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.downwardStairs[i].posX, sizeof(uint8_t), 1, f);
     }
     fclose(f);
     free(path);
     return;
 }
-

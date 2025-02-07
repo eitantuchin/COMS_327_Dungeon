@@ -13,7 +13,7 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <time.h>
-#include <sys/time.h> 
+#include <sys/time.h>
 
 // Constants for our dungeon game
 #define DUNGEON_WIDTH 80
@@ -106,6 +106,11 @@ typedef struct event {
     int index;
 } event_t;
 
+typedef enum {
+    PLAYER_CONTROL,
+    MONSTER_LIST
+} mode_type_t;
+
 typedef struct dungeon {
     cell_t map[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     room_t *rooms;
@@ -119,6 +124,7 @@ typedef struct dungeon {
     int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     uint16_t numMonsters;
     monster_t *monsters;
+    mode_type_t modeType;
 } dungeon_t;
 
 // Function prototypes
@@ -151,4 +157,7 @@ void drawMessage(void);
 void changeDirection(bool clockwise, bool justChangeText);
 void generateDungeon(void);
 void useStairs(int key);
+void resetDungeonLevel(void);
+char* getMonsterPositionString(int monsterIndex);
+void displayMonsterList(void);
 #endif

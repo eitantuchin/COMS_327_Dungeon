@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
             displayMonsterList();
         }
         else if (dungeon.modeType == PLAYER_CONTROL) {
-            clear();
+            //clear();
             printDungeon(0, 0);
             refresh();
         }
@@ -129,7 +129,7 @@ char* getMonsterPositionString(int monsterIndex) {
 }
 
 void displayMonsterList(void) {
-    clear();
+    //clear();
 
     int screenHeight, screenWidth;
     getmaxyx(stdscr, screenHeight, screenWidth); // Get the size of the terminal window
@@ -259,10 +259,12 @@ void checkKeyInput(void) {
             if (playerToMove && dungeon.modeType == PLAYER_CONTROL) movePlayer(key);
             if (dungeon.modeType == MONSTER_LIST) {
                 if (key == KEY_UP) {
+                    clear();
                     monsterListScrollOffset--;
                     displayMonsterList();
                 }
                 else if (key == KEY_DOWN) {
+                    clear();
                     monsterListScrollOffset++;
                     displayMonsterList();
                 }
@@ -284,12 +286,12 @@ void checkKeyInput(void) {
         case '>':
             useStairs(key); break;
         case 'm':
-            dungeon.modeType = MONSTER_LIST; monsterListScrollOffset = 0; break;
+            if (playerToMove) {
+                clear(); dungeon.modeType = MONSTER_LIST; monsterListScrollOffset = 0;
+            }
+            break;
         case 27: // escape key
-            dungeon.modeType = PLAYER_CONTROL;
-            clear();
-            printDungeon(0, 0);
-            refresh();
+            clear(); dungeon.modeType = PLAYER_CONTROL;
             break;
     }
     
@@ -875,7 +877,6 @@ void printDungeon(int showDist, int tunneling) {
         }
     }
     drawMessage();
-    refresh();
 }
 
 

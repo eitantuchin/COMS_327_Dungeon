@@ -18,7 +18,9 @@
 #include <string>
 #include <cmath>
 #include <array>
-#include "monster.h"
+#include "monster.hpp"
+
+using namespace std;
 
 
 // Constants for our dungeon game
@@ -55,18 +57,6 @@ typedef struct stair {
     uint8_t posY;
 } stair_t;
 
-typedef enum {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-    UP_LEFT,
-    UP_RIGHT,
-    DOWN_LEFT,
-    DOWN_RIGHT
-} direction_t;
-
-
 typedef struct cell
 {
     char ch;
@@ -80,6 +70,17 @@ extern const cell_t CORRIDOR_CELL;
 extern const cell_t UPWARD_STAIRS_CELL;
 extern const cell_t DOWNWARD_STAIRS_CELL;
 extern const cell_t PLAYER_CELL;
+
+typedef enum {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    UP_LEFT,
+    UP_RIGHT,
+    DOWN_LEFT,
+    DOWN_RIGHT
+} direction_t;
 
 typedef enum {
     EVENT_MONSTER,
@@ -96,7 +97,6 @@ typedef enum {
     PLAYER_CONTROL,
     MONSTER_LIST
 } mode_type_t;
-
 
 // Function prototypes
 void addRooms(void);

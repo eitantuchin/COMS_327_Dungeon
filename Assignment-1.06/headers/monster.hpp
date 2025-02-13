@@ -1,8 +1,11 @@
-#ifndef MONSTER_H
-#define MONSTER_H
+#ifndef MONSTER_HPP
+#define MONSTER_HPP
 
-#include "character.h"
-#include "dungeon_game.h"
+#include "character.hpp"
+#include "dungeon_game.hpp"
+
+using namespace std;
+
 
 class Monster : public Character {
 private:
@@ -27,7 +30,8 @@ public:
     void setLastSeenPCX(int x);
     void setLastSeenPCY(int y);
     void setAlive(bool isAlive);
-    uint8_t getPosX() const;
+   
+   /* uint8_t getPosX() const;
     uint8_t getPosY() const;
     char getPreviousCharacter() const;
     uint8_t getSpeed() const;
@@ -40,7 +44,9 @@ public:
     void setSpeed(uint8_t speed);
     void setCell(cell_t cell);
 
+    */
     // Additional methods specific to Monster can be added here
 };
 
 #endif // MONSTER_H
+

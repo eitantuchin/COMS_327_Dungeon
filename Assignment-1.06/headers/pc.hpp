@@ -1,8 +1,11 @@
-#ifndef PC_H
-#define PC_H
+#ifndef PC_HPP
+#define PC_HPP
 
-#include "character.h"
-#include "dungeon_game.h"
+#include "character.hpp"    // contains inherited methods
+#include "dungeon_game.hpp" // contains cell_t
+
+using namespace std;
+
 
 class PC : public Character {
 private:

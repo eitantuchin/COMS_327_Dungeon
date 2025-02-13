@@ -1,4 +1,6 @@
-#include "character.h"
+#include "../headers/character.hpp"
+
+using namespace std;
 
 // Constructor implementation
 Character::Character(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell)

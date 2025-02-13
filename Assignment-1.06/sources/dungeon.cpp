@@ -1,7 +1,10 @@
-#include "dungeon.h"
-#include "monster.h"
-#include "pc.h"
-#include "dungeon_game.h"
+#include "../headers/dungeon.hpp"
+#include "../headers/monster.hpp"
+#include "../headers/pc.hpp"
+#include "../headers/dungeon_game.hpp"
+
+using namespace std;
+
 
 // Constructor implementation
 Dungeon::Dungeon()
@@ -26,66 +29,66 @@ Dungeon::Dungeon()
 }
 
 // Getter for map
-const cell_t (&Dungeon::getMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
+cell_t (&Dungeon::getMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
     return map;
 }
 
 // Getter for rooms
-const std::vector<room_t>& Dungeon::getRooms() const {
+vector<room_t>& Dungeon::getRooms() {
     return rooms;
 }
 
-uint16_t Dungeon::getNumRooms() const {
+uint16_t Dungeon::getNumRooms() {
     return numRooms;
 }
 
 // Getter for PC
-const PC& Dungeon::getPC()  {
+PC& Dungeon::getPC() {
     return pc;
 }
 
 // Getter for upward stairs
-const std::vector<stair_t>& Dungeon::getUpwardStairs() const {
+vector<stair_t>& Dungeon::getUpwardStairs(){
     return upwardStairs;
 }
 
 // Getter for downward stairs
-const std::vector<stair_t>& Dungeon::getDownwardStairs() const {
+vector<stair_t>& Dungeon::getDownwardStairs(){
     return downwardStairs;
 }
 
 // Getter for numUpwardsStairs
-uint16_t Dungeon::getNumUpwardsStairs() const {
+uint16_t Dungeon::getNumUpwardsStairs()  {
     return numUpwardsStairs;
 }
 
 // Getter for numDownwardsStairs
-uint16_t Dungeon::getNumDownwardsStairs() const {
+uint16_t Dungeon::getNumDownwardsStairs()  {
     return numDownwardsStairs;
 }
 
 // Getter for nonTunnelingMap
-const int (&Dungeon::getNonTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
+int (&Dungeon::getNonTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
     return nonTunnelingMap;
 }
 
 // Getter for tunnelingMap
-const int (&Dungeon::getTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
+int (&Dungeon::getTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
     return tunnelingMap;
 }
 
 // Getter for monsters
-const std::vector<Monster>& Dungeon::getMonsters() const {
+vector<Monster>& Dungeon::getMonsters(){
     return monsters;
 }
 
 // Getter for numMonsters
-uint16_t Dungeon::getNumMonsters() const {
+uint16_t Dungeon::getNumMonsters() {
     return numMonsters;
 }
 
 // Getter for modeType
-mode_type_t Dungeon::getModeType() const {
+mode_type_t Dungeon::getModeType() {
     return modeType;
 }
 
@@ -99,7 +102,7 @@ void Dungeon::setMap(const cell_t newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]) {
 }
 
 // Setter for rooms
-void Dungeon::setRooms(const std::vector<room_t>& newRooms) {
+void Dungeon::setRooms(const vector<room_t>& newRooms) {
     rooms = newRooms;
 }
 
@@ -113,13 +116,13 @@ void Dungeon::setPC(const PC& newPC) {
 }
 
 // Setter for upward stairs
-void Dungeon::setUpwardStairs(const std::vector<stair_t>& newStairs) {
+void Dungeon::setUpwardStairs(const vector<stair_t>& newStairs) {
     upwardStairs = newStairs;
     numUpwardsStairs = upwardStairs.size();
 }
 
 // Setter for downward stairs
-void Dungeon::setDownwardStairs(const std::vector<stair_t>& newStairs) {
+void Dungeon::setDownwardStairs(const vector<stair_t>& newStairs) {
     downwardStairs = newStairs;
     numDownwardsStairs = downwardStairs.size();
 }
@@ -153,7 +156,7 @@ void Dungeon::setTunnelingMap(const int newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]) {
 }
 
 // Setter for monsters
-void Dungeon::setMonsters(const std::vector<Monster>& newMonsters) {
+void Dungeon::setMonsters(const vector<Monster>& newMonsters) {
     monsters = newMonsters;
     numMonsters = monsters.size();
 }

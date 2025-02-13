@@ -1,4 +1,4 @@
-#include "priority_queue.h"
+#include "../headers/priority_queue.h"
 
 bool pq_node_t::operator>(const pq_node_t& other) const {  // Definition of the comparison operator
      return priority > other.priority;

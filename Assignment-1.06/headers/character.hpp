@@ -1,7 +1,9 @@
-#ifndef CHARACTER_H
-#define CHARACTER_H
+#ifndef CHARACTER_HPP
+#define CHARACTER_HPP
 
-#include "dungeon_game.h"
+#include "dungeon_game.hpp"
+
+using namespace std;
 
 class Character {
 protected:
@@ -16,18 +18,18 @@ public:
     Character(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell);
 
     // Getters
-    virtual uint8_t getPosX() const;
-    virtual uint8_t getPosY() const;
-    virtual char getPreviousCharacter() const;
-    virtual uint8_t getSpeed() const;
-    virtual cell_t getCell() const;
+    uint8_t getPosX() const;
+    uint8_t getPosY() const;
+    char getPreviousCharacter() const;
+    uint8_t getSpeed() const;
+    cell_t getCell() const;
 
     // Setters
-    virtual void setPosX(uint8_t x);
-    virtual void setPosY(uint8_t y);
-    virtual void setPreviousCharacter(char prevChar);
-    virtual void setSpeed(uint8_t speed);
-    virtual void setCell(cell_t cell);
+    void setPosX(uint8_t x);
+    void setPosY(uint8_t y);
+    void setPreviousCharacter(char prevChar);
+    void setSpeed(uint8_t speed);
+    void setCell(cell_t cell);
 
     // Virtual destructor
     virtual ~Character() = default;

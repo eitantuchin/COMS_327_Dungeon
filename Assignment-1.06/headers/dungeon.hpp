@@ -1,5 +1,4 @@
-#ifndef DUNGEON_HPP
-#define DUNGEON_HPP
+#pragma once
 
 #include "character.hpp"
 #include "dungeon_game.hpp"
@@ -45,7 +44,6 @@ public:
     mode_type_t getModeType();
 
     // Setters
-    void setMap(const cell_t newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]);
     void setRooms(const vector<room_t>& newRooms);
     void setNumRooms(uint16_t num);
     void setPC(const PC& newPC);
@@ -53,18 +51,8 @@ public:
     void setDownwardStairs(const vector<stair_t>& newStairs);
     void setNumUpwardsStairs(uint16_t num);
     void setNumDownwardsStairs(uint16_t num);
-    void setNonTunnelingMap(const int newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]);
-    void setTunnelingMap(const int newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]);
     void setMonsters(const vector<Monster>& newMonsters);
     void setNumMonsters(uint16_t num);
     void setModeType(mode_type_t newModeType);
-
-    // Additional methods
-    void addRoom(const room_t& room);
-    void addUpwardStair(const stair_t& stair);
-    void addDownwardStair(const stair_t& stair);
-    void addMonster(const Monster& monster);
-    void removeMonster(size_t index);
 };
 
-#endif // DUNGEON_H

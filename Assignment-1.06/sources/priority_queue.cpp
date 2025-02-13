@@ -4,17 +4,17 @@ bool pq_node_t::operator>(const pq_node_t& other) const {  // Definition of the 
      return priority > other.priority;
 }
 
-priority_queue::priority_queue() {}
+my_priority_queue::my_priority_queue() {}
 
 std::vector<pq_node_t> nodes;
 
-void priority_queue::swap(pq_node_t& a, pq_node_t& b) {
+void my_priority_queue::swap(pq_node_t& a, pq_node_t& b) {
     pq_node temp = a;
     a = b;
     b = temp;
 }
 
-void priority_queue::heapify(int index) {
+void my_priority_queue::heapify(int index) {
     int left = 2 * index + 1;
     int right = 2 * index + 2;
     int smallest = index;
@@ -32,11 +32,11 @@ void priority_queue::heapify(int index) {
     }
 }
 
-bool priority_queue::is_empty()  {
+bool my_priority_queue::is_empty()  {
     return nodes.empty();
 }
 
-void priority_queue::insert(int x, int y, int priority) {
+void my_priority_queue::insert(int x, int y, int priority) {
     nodes.push_back({x, y, priority});
     size_t index = nodes.size() - 1;
 
@@ -46,12 +46,12 @@ void priority_queue::insert(int x, int y, int priority) {
     }
 }
 
-void priority_queue::clear() {
+void my_priority_queue::clear() {
     nodes.clear(); // This removes all elements from the vector.
                   // The vector's destructor will handle the memory.
 }
 
-pq_node_t priority_queue::extract_min() {
+pq_node_t my_priority_queue::extract_min() {
     if (is_empty()) {
         // Return a "dummy" node with max priority to indicate empty.  Handle this in calling code.
         return {0, 0, std::numeric_limits<int>::max()}; // Or throw an exception
@@ -64,7 +64,7 @@ pq_node_t priority_queue::extract_min() {
     return min_node;
 }
 
-void priority_queue::decrease_priority(int x, int y, int new_priority) {
+void my_priority_queue::decrease_priority(int x, int y, int new_priority) {
     for (size_t i = 0; i < nodes.size(); i++) {
         if (nodes[i].x == x && nodes[i].y == y) {
             if (new_priority >= nodes[i].priority) {

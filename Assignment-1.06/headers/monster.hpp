@@ -1,11 +1,9 @@
-#ifndef MONSTER_HPP
-#define MONSTER_HPP
+#pragma once
 
 #include "character.hpp"
 #include "dungeon_game.hpp"
 
 using namespace std;
-
 
 class Monster : public Character {
 private:
@@ -16,6 +14,9 @@ private:
     
 
 public:
+    
+    Monster()
+            : Character(0, 0, ' ', 0, cell_t()), monsterBits(0), lastSeenPCX(-1), lastSeenPCY(-1), alive(false) {}
     // Constructor
     Monster(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell, uint8_t bits, int lastSeenX, int lastSeenY, bool isAlive);
 
@@ -31,22 +32,8 @@ public:
     void setLastSeenPCY(int y);
     void setAlive(bool isAlive);
    
-   /* uint8_t getPosX() const;
-    uint8_t getPosY() const;
-    char getPreviousCharacter() const;
-    uint8_t getSpeed() const;
-    cell_t getCell() const;
-
-    // Setters
-    void setPosX(uint8_t x);
-    void setPosY(uint8_t y);
-    void setPreviousCharacter(char prevChar);
-    void setSpeed(uint8_t speed);
-    void setCell(cell_t cell);
-
-    */
     // Additional methods specific to Monster can be added here
 };
 
-#endif // MONSTER_H
+
 

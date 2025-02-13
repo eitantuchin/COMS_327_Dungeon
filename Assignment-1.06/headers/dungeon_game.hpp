@@ -1,5 +1,4 @@
-#ifndef dungeon_game_hpp
-#define dungeon_game_hpp
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,10 +17,9 @@
 #include <string>
 #include <cmath>
 #include <array>
-#include "monster.hpp"
 
 using namespace std;
-
+class Monster;
 
 // Constants for our dungeon game
 #define DUNGEON_WIDTH 80
@@ -131,4 +129,4 @@ void useStairs(int key);
 void resetDungeonLevel(void);
 std::string getMonsterPositionString(int monsterIndex);
 void displayMonsterList(void);
-#endif
+void updateFogMap(void);

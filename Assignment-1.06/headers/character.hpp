@@ -1,6 +1,4 @@
-#ifndef CHARACTER_HPP
-#define CHARACTER_HPP
-
+#pragma once
 #include "dungeon_game.hpp"
 
 using namespace std;
@@ -34,5 +32,3 @@ public:
     // Virtual destructor
     virtual ~Character() = default;
 };
-
-#endif // CHARACTER_H

@@ -1,4 +1,4 @@
-CC = clang++
+CC = g++
 CXXFLAGS = -g -Wall -std=c++11
 LDFLAGS = -lm -lncurses
 TARGET = dungeon_game

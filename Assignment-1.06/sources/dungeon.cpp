@@ -92,15 +92,6 @@ mode_type_t Dungeon::getModeType() {
     return modeType;
 }
 
-// Setter for map
-void Dungeon::setMap(const cell_t newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]) {
-    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
-        for (int x = 0; x < DUNGEON_WIDTH; x++) {
-            map[y][x] = newMap[y][x];
-        }
-    }
-}
-
 // Setter for rooms
 void Dungeon::setRooms(const vector<room_t>& newRooms) {
     rooms = newRooms;
@@ -137,24 +128,6 @@ void Dungeon::setNumDownwardsStairs(uint16_t num) {
     numDownwardsStairs = num;
 }
 
-// Setter for nonTunnelingMap
-void Dungeon::setNonTunnelingMap(const int newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]) {
-    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
-        for (int x = 0; x < DUNGEON_WIDTH; x++) {
-            nonTunnelingMap[y][x] = newMap[y][x];
-        }
-    }
-}
-
-// Setter for tunnelingMap
-void Dungeon::setTunnelingMap(const int newMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]) {
-    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
-        for (int x = 0; x < DUNGEON_WIDTH; x++) {
-            tunnelingMap[y][x] = newMap[y][x];
-        }
-    }
-}
-
 // Setter for monsters
 void Dungeon::setMonsters(const vector<Monster>& newMonsters) {
     monsters = newMonsters;
@@ -171,35 +144,4 @@ void Dungeon::setModeType(mode_type_t newModeType) {
     modeType = newModeType;
 }
 
-// Add a room to the dungeon
-void Dungeon::addRoom(const room_t& room) {
-    rooms.push_back(room);
-    numRooms++;
-}
-
-// Add an upward stair to the dungeon
-void Dungeon::addUpwardStair(const stair_t& stair) {
-    upwardStairs.push_back(stair);
-    numUpwardsStairs++;
-}
-
-// Add a downward stair to the dungeon
-void Dungeon::addDownwardStair(const stair_t& stair) {
-    downwardStairs.push_back(stair);
-    numDownwardsStairs++;
-}
-
-// Add a monster to the dungeon
-void Dungeon::addMonster(const Monster& monster) {
-    monsters.push_back(monster);
-    numMonsters++;
-}
-
-// Remove a monster from the dungeon
-void Dungeon::removeMonster(size_t index) {
-    if (index < monsters.size()) {
-        monsters.erase(monsters.begin() + index);
-        numMonsters--;
-    }
-}
 

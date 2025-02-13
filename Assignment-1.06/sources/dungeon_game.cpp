@@ -4,21 +4,21 @@
 #include "../headers/pc.hpp"
 #include "../headers/character.hpp"
 #include "../headers/priority_queue.h"
-#include <queue>
 #include <array>
 #include <string>
 #include <cstring>
 #include <ncurses.h>
 #include <sstream>
-#include <cmath> // For std::abs
+#include <cmath>
 
 using namespace std;
 
 // Global variables
 Dungeon dungeon; // Our dungeon
 int roomCounter = 0;
-priority_queue event_queue;
+my_priority_queue event_queue;
 bool gameOver = false;
+bool fogOfWar = true;
 message_t gameMessage = {"", 0, false};
 message_t directionMessage = {"", 0, true};
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     calculateDistances(1);  // Tunneling
 
     // Initialize event queue
-    event_queue = priority_queue();
+    event_queue = my_priority_queue();
 
     // Schedule initial PC event
     scheduleEvent(EVENT_PC, -1, 0);
@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
         checkGameConditions();
         if (!playerToMove) processEvents();
         checkGameConditions();
+        updateFogMap();
     }
 
     // Cleanup
@@ -112,23 +113,28 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void updateFogMap(void) {
+    
+    refresh();
+}
+
 string getMonsterPositionString(int monsterIndex) {
     // Get the monster and PC from the dungeon
     const Monster& monster = dungeon.getMonsters()[monsterIndex];
     // Calculate deltas
-    int deltaX = monster.getPosX() - dungeon.getPC().getPosX();
-    int deltaY = monster.getPosY() - dungeon.getPC().getPosY();
+    int deltaX = monster.getPosX() - dungeon.getPC().getPosY();
+    int deltaY = monster.getPosY() - dungeon.getPC().getPosX();
 
     // Determine directions
-    std::string directionX = (deltaX > 0) ? "East" : "West";
-    std::string directionY = (deltaY > 0) ? "South" : "North";
+    string directionX = (deltaX > 0) ? "East" : "West";
+    string directionY = (deltaY > 0) ? "South" : "North";
 
     // Calculate absolute deltas
-    int absDeltaX = std::abs(deltaX);
-    int absDeltaY = std::abs(deltaY);
+    int absDeltaX = abs(deltaX);
+    int absDeltaY = abs(deltaY);
 
     // Build the position string
-    std::stringstream ss;
+    stringstream ss;
 
     if (absDeltaX == 0 && absDeltaY == 0) {
         ss << "next to you";
@@ -174,7 +180,7 @@ void displayMonsterList(void) {
         const Monster& monster = dungeon.getMonsters()[monsterIndex];
 
         if (monster.isAlive()) {
-            std::string positionString = getMonsterPositionString(monsterIndex);
+            string positionString = getMonsterPositionString(monsterIndex);
             const char* positionCString = positionString.c_str();
             mvprintw(i + 2, 0, "%c      | %s", monster.getCell().ch, positionCString);
         }
@@ -189,7 +195,7 @@ void displayMonsterList(void) {
 }
 
 void scheduleEvent(event_type_t type, int index, int currentTurn) {
-    std::unique_ptr<event_t> newEvent(new event_t);
+    unique_ptr<event_t> newEvent(new event_t);
     newEvent->type = type;
     newEvent->index = index;
     if (type == EVENT_PC) {
@@ -312,6 +318,10 @@ void checkKeyInput(void) {
         case 27: // escape key
             clear(); dungeon.setModeType(PLAYER_CONTROL);
             break;
+        case 'f':
+            fogOfWar = !fogOfWar; // switch
+            break;
+            
     }
     
 }
@@ -337,27 +347,27 @@ void generateDungeon(void) {
 
 void resetDungeonLevel(void) {
     // Clear dungeon data
-    dungeon.setUpwardStairs(std::vector<stair_t>());
-    dungeon.setDownwardStairs(std::vector<stair_t>());
-    dungeon.setMonsters(std::vector<Monster>());
-    dungeon.setRooms(std::vector<room_t>());
+    dungeon.setUpwardStairs(vector<stair_t>());
+    dungeon.setDownwardStairs(vector<stair_t>());
+    dungeon.setMonsters(vector<Monster>());
+    dungeon.setRooms(vector<room_t>());
 
     // Reset counters and global variables
     roomCounter = 0;
     dungeon.setNumRooms(MIN_NUM_ROOMS);
-    dungeon.setRooms(std::vector<room_t>(dungeon.getNumRooms()));
-    dungeon.setUpwardStairs(std::vector<stair_t>(3));
-    dungeon.setDownwardStairs(std::vector<stair_t>(3));
+    dungeon.setRooms(vector<room_t>(dungeon.getNumRooms()));
+    dungeon.setUpwardStairs(vector<stair_t>(3));
+    dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
 
     // Reset PC's previous character
     Dungeon();
     // Reset monsters
-    dungeon.setMonsters(std::vector<Monster>(dungeon.getNumMonsters()));
+    dungeon.setMonsters(vector<Monster>(dungeon.getNumMonsters()));
 
     // Clear and reset the event queue
-    event_queue = priority_queue();
+    event_queue = my_priority_queue();
 
     // Generate a new dungeon level
     generateDungeon();
@@ -587,7 +597,7 @@ void movePlayer(int key) {
         dungeon.getPC().setPreviousCharacter(dungeon.getMap()[newX][newY].ch);
         dungeon.getPC().setPosX(newX);
         dungeon.getPC().setPosY(newY);
-        dungeon.getMap()[newY][newX] = PLAYER_CELL;
+        dungeon.getMap()[newX][newY] = PLAYER_CELL;
         changeDirection(false, true);
         playerToMove = false;
     }
@@ -842,7 +852,7 @@ void checkGameConditions(void) {
 
 void initMonsters(void) {
     // add monsters to array
-    std::vector<Monster> monsters(dungeon.getNumMonsters());
+    vector<Monster> monsters(dungeon.getNumMonsters());
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
         Monster monster;
         bool isErratic = rand() % 2 == 1;
@@ -898,10 +908,24 @@ bool checkMonsterPlacementToPC(int randX, int randY) {
 void printDungeon(int showDist, int tunneling) {
     // Print the top border (now with space for the message)
     move(1, 0); // Move cursor to the second row (leaving the first for the message)
-    for (int y = 1; y < DUNGEON_HEIGHT; ++y) { // Start from y = 1 to leave space for message
+    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
+        // Start from y = 1 to leave space for message
         move(y + 1, 0); // Adjust row position for the message line
-        for (int x = 1; x < DUNGEON_WIDTH -1; ++x) {
-            addch(dungeon.getMap()[y][x].ch);
+        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
+            if (fogOfWar) {
+                if  { // if it's been discovered before and distance is less than the light radius and fog of war is on
+                    addch(dungeon.getMap()[y][x].ch); // show the cell regardless
+                }
+                else if (dungeon.getPC().getFogMap()[y][x]) {
+                    addch(dungeon.getMap()[y][x].ch);
+                }
+                else {
+                    addch(' '); // can't be seen
+                }
+            }
+            else {
+                addch(dungeon.getMap()[y][x].ch); // if no fog of war just show the whole dungeon
+            }
         }
     }
     drawMessage();
@@ -910,7 +934,7 @@ void printDungeon(int showDist, int tunneling) {
 
 void calculateDistances(int tunneling) {
     // using the priority queue and dijikstra's algorithm
-    priority_queue pq = priority_queue();
+    my_priority_queue pq = my_priority_queue();
     int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.getTunnelingMap() : dungeon.getNonTunnelingMap();
 
     // Initialize distances
@@ -1158,6 +1182,8 @@ void addStairs(void)
 {
     int numStairs = rand() % (MAX_NUM_STAIRS - MIN_NUM_STAIRS + 1) + MIN_NUM_STAIRS;
     int randomRoomNums[MAX_NUM_STAIRS];
+    dungeon.setNumUpwardsStairs(0);
+    dungeon.setNumDownwardsStairs(0);
     while (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() != numStairs) {
         // ensure at least one upwards stairs is inside the dungeon
         int randomRoomNum;
@@ -1167,7 +1193,7 @@ void addStairs(void)
             if (contains(randomRoomNums, size, randomRoomNum)) {
                 continue;
             }
-            randomRoomNums[dungeon.getNumUpwardsStairs() + dungeon.getNumUpwardsStairs()] = randomRoomNum;
+            randomRoomNums[dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs()] = randomRoomNum;
             break;
         }
         room_t room = dungeon.getRooms()[randomRoomNum];
@@ -1178,14 +1204,14 @@ void addStairs(void)
         stair_t stair;
         stair.posX = randomX;
         stair.posY = randomY;
-        if (dungeon.getNumUpwardsStairs() + dungeon.getNumUpwardsStairs() == 0)
+        if (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() == 0)
         {
             dungeon.getMap()[randomX][randomY] = UPWARD_STAIRS_CELL;
             dungeon.getUpwardStairs()[dungeon.getNumUpwardsStairs()] = stair;
             dungeon.setNumUpwardsStairs(dungeon.getNumUpwardsStairs() + 1);
         }
         // ensure at least one downwards stairs is inside the dungeon
-        else if (dungeon.getNumUpwardsStairs() + dungeon.getNumUpwardsStairs() == 1)
+        else if (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() == 1)
         {
             dungeon.getMap()[randomX][randomY] = DOWNWARD_STAIRS_CELL;
             dungeon.getDownwardStairs()[dungeon.getNumDownwardsStairs()] = stair;

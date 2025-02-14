@@ -1,3 +1,157 @@
+--ASSIGNMENT 1.05 CHANGELOGS BELOW--
+
+02/07/2025
+Functionalities Added
+    - NA
+Functionalities Changed
+    - We only clear and refresh the terminal screen when needed instead of every second in the game loop
+    - Changed buttons used for changing direction and for attacking
+Bug Fixes
+    - Fixed the screen is visibily fading in and out at high speeds in the terminal in pyrite
+Bugs Discovered
+    - The screen is visibily fading in and out at high speeds in the terminal in pyrite
+
+02/06/2025
+Functionalities Added
+    - Stairs now are functional and can deliver the player from one dungeon to anther
+    - Added terminal messages when a player does certain things in the game
+    - Added generateDungeon, useStairs, and resetDungeonLevel methods
+    - Added monster list
+    - Added getMonsterPositionString, displayMonsterList functions
+    - Added scrolling through monster list function
+    - Added a mode type to the dungeon for what type of screen to display to the user
+    - Added a message struct
+    - Added drawMessage and displayMessage functions
+Functionalities Changed
+    - Dungeon struct now has a mode type field
+Bug Fixes
+    - Fixed monster list when displayed overlaps with the dungeon
+Bugs Discovered
+    - Monster list when displayed overlaps with the dungeon
+
+02/05/2025
+Functionalities Added
+    - Added direction changing and basic combat
+    - Added an enum for all 8 directions
+    - PC now carries an currentDirection attribute
+Functionalities Changed
+    - The player can now attack in 2 adjacent direction aswell and can attack from 2 spaces away
+    - The game now operates in required in turn based movement
+    - The player only can move when their node is removed from the PQ
+Bug Fixes
+    - Fixed PC position is not updating when key pressed
+    - Fixed the player's position on the screen is not being updated until way after moving
+
+Bugs Discovered
+    - The player's position on the screen is not being updated until way after moving
+
+02/04/2025
+Functionalities Added
+    - Added movePlayer, checkKeyInput, and checkMonsterPlacementToPC functions
+Functionalities Changed
+    - The player is now controlled by key input 
+    - Monsters can now only spawn 3 spaces at minimum away from the PC to give the PC from breathing room
+    - We no longer display the dungeon border
+Bug Fixes
+    - Fixed no key does anything when pressed
+Bugs Discovered
+    - PC position is not updating when key pressed
+    - No key does anything when pressed
+
+--ASSIGNMENT 1.04 CHANGELOGS BELOW--
+
+02/03/2025
+Functionalities Added
+    - Added moveMonsters, updateMonsterPosition, hasLineOfSight functions
+    - Added lastSeenPCX and lastSeenPCY params to the monster struct
+    - Monsters can kill each other
+Functionalities Changed
+    - moveMonsters doesn't use random movement anymore but actual monster movement logic
+    - Modified initMonsters to init new monster params
+    - updateMonterPosition now takes in isTunneling as a param
+Bug Fixes
+    - Fixed monsters aren't moving
+    - Fixed monsters are moving but are stopping after a couple moves
+    - Fixed Monsters are moving illegaly
+    - Fixed we are getting memory issues with the priority queue setup
+    - Fixed some monsters are moving and some aren't
+    - Fixed when a monster kills another monster the attacking monster's cell char is left behind in
+        the location it killed the monster in
+    - Fixed we don't cover unintelligent but telepathic monsters
+Bugs Discovered
+    - Some monsters are moving and some aren't
+    - When a monster kills another monster the attacking monster's cell char is left behind in
+        the location it killed the monster in
+    - We don't cover unintelligent but telepathic monsters
+
+02/02/2025
+Functionalities Added
+    - Added params monsterBits, MONSTER_CELL, alive, and previousCharacter to monster struct
+    - Added a game loop in main
+    - Added scheduleEvent, processEvents, checkGameConditions functions
+    - Added  a priority queue for monster movement later
+    - Added a loop to schedule initial game events for each monster
+    - Added an event struct
+    - Added a event_type enum
+Functionalities Changed
+    - Changed processEvents to use the x value for the monster index since it wasn't being used anyway
+Bug Fixes
+    - Fixed player doesn't die when a monster comes into contact with it
+Bugs Discovered
+    - Monsters aren't moving
+    - Monsters are moving but are stopping after a couple moves
+    - Monsters are moving illegaly
+    - We are getting memory issues with the priority queue setup
+    - Player doesn't die when a monster comes into contact with it
+
+02/01/2025
+Functionalities Added
+    - Added a monster struct 
+    - Added monsters array to dungeon
+    - Began working on initializing monsters
+    - Added ncurses library
+    - Added --nummon switch
+Functionalities Changed
+    - Removed any player movement 
+    - Modified player struct to have speed value
+Bug Fixes
+    - Fixed monster being inserted on invalid cell
+Bugs Discovered
+    - Monster being inserted on invalid cell
+
+--ASSIGNMENT 1.03 CHANGELOGS BELOW--
+
+01/31/2025
+Functionalities Added
+    - Added print statements for the different distance maps
+    - Made the calcuateDistances function to make the distance maps for both tunneling and non-tunneling monsters
+Functionalities Changed
+    - We use INT_MAX instead of INFINITY for initial Dijiktra values
+    - Calculate distances takes in a tunneling value to determine type of distance map
+Bug Fixes
+    - Fixed distance map only generating partially for non-tunnelers
+    - Fixed distance map for tunnelers not taking into account hardness
+    - Fixed when trying path finding with saving and loading it won't work
+Bugs Discovered
+    - Distance map only generating partially for non-tunnelers
+    - Distance map for tunnelers not taking into account hardness
+    - When trying path finding with saving and loading it won't work
+
+01/30/2025
+Functionalities Added
+    - Added the priority queue to be used in Dijikstra's
+    - Added priority queue header file
+Functionalities Changed
+    - None just working on PQ
+Bug Fixes
+    - Fixed node is not being bubbled up 
+    - Fixed wrong node is being extracted
+    - Fixed node is being inserted in the wrong position in the PQ
+Bugs Discovered
+    - Node is not being bubbled up 
+    - Wrong node is being extracted
+    - Node is being inserted in the wrong position in the PQ
+
 --ASSIGNMENT 1.02 CHANGELOGS BELOW--
 
 01/29/2025

@@ -113,9 +113,63 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void updateFogMap(void) {
+void teleportPlayer(void) {
     
+}
+
+void moveTargetingPointer(int key) {
+    
+}
+
+
+void updateFogMap(void) {
+    for (int y = dungeon.getPC().getPosX() - 2; y <= dungeon.getPC().getPosX() + 2; ++y) {
+        for (int x = dungeon.getPC().getPosY() - 2; x <= dungeon.getPC().getPosY() + 2; ++x) {
+            if (!dungeon.getPC().getFogMap()[y][x]) {
+                dungeon.getPC().getFogMap()[y][x] = true;
+            }
+        }
+    }
     refresh();
+}
+
+void printDungeon(int showDist, int tunneling) {
+    move(1, 0); // Move cursor to the second row (leaving the first for the message)
+    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
+        move(y + 1, 0);
+        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
+            printCharacter(x, y);
+        }
+    }
+    drawMessage();
+}
+
+void printCharacter(int x, int y) {
+    if (fogOfWar) {
+        if (x <= dungeon.getPC().getPosY() + 2 && x >= dungeon.getPC().getPosY() - 2 &&
+            y <= dungeon.getPC().getPosX() + 2 && y >= dungeon.getPC().getPosX() - 2) {
+            addch(dungeon.getMap()[y][x].ch);
+        }
+        else {
+            if (dungeon.getPC().getFogMap()[y][x] && dungeon.getMap()[y][x].hardness == -1) {
+                // add previous character since monster but shouldn't be seen
+                for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
+                    if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
+                        addch(dungeon.getMonsters()[i].getPreviousCharacter());
+                    }
+                }
+            }
+            else if (dungeon.getPC().getFogMap()[y][x]) {
+                addch(dungeon.getMap()[y][x].ch);
+            }
+            else {
+                addch(' '); // can't be seen
+            }
+        }
+    }
+    else {
+        addch(dungeon.getMap()[y][x].ch);
+    }
 }
 
 string getMonsterPositionString(int monsterIndex) {
@@ -149,8 +203,6 @@ string getMonsterPositionString(int monsterIndex) {
     return ss.str();
 }
 
-#include <string>
-#include <ncurses.h>
 
 void displayMonsterList(void) {
     //clear();
@@ -218,7 +270,7 @@ void processEvents(void) {
     }
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
-        usleep(100000);
+        usleep(100000); // intervals between when each monster moves
         scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
         snprintf(message, sizeof(message), "The monsters are moving...");
         displayMessage(message);
@@ -253,35 +305,17 @@ void drawMessage(void) {
 void checkKeyInput(void) {
     int key = getch();
     switch(key) {
-        case KEY_UP: // move up
-        case '8':
-        case 'k':
-        case KEY_DOWN: // move down
-        case '2':
-        case 'j':
-        case KEY_LEFT: // move left
-        case '4':
-        case 'h':
-        case KEY_RIGHT: // move right
-        case '6':
-        case 'l':
-        case KEY_HOME: // up-left
-        case '7':
-        case 'y':
-        case KEY_PPAGE: // up-right
-        case '9':
-        case 'u':
-        case KEY_NPAGE: // down-right
-        case '3':
-        case 'n':
-        case KEY_END: // down-left
-        case '1':
-        case 'b':
-        case KEY_B2: // rest
-        case '5':
-        case ' ':
-        case '.':
+        case KEY_UP: case 'k': case KEY_DOWN: // move down
+        case '2': case 'j': case KEY_LEFT: // move left
+        case '4': case 'h': case KEY_RIGHT: // move right
+        case '6': case 'l': case KEY_HOME: // up-left
+        case '7': case 'y': case KEY_PPAGE: // up-right
+        case '9': case 'u': case KEY_NPAGE: // down-right
+        case '3': case 'n': case KEY_END: // down-left
+        case '1': case 'b': case KEY_B2: // rest
+        case '5': case ' ': case '.':
             if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
+            if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
             if (dungeon.getModeType() == MONSTER_LIST) {
                 if (key == KEY_UP) {
                     clear();
@@ -301,8 +335,8 @@ void checkKeyInput(void) {
             endwin();
             printf("\nYou quit the game!\n");
             break;
-        case 'z': // PC can attack 1 or 2 spaces away
-            attack(1); attack(2); break;
+        case 'z': // PC can attack 1 space away
+            attack(1); break;
         case 'V': // counter-clockwise
             changeDirection(false, false); break;
         case 'v': // clocckwise
@@ -319,9 +353,22 @@ void checkKeyInput(void) {
             clear(); dungeon.setModeType(PLAYER_CONTROL);
             break;
         case 'f':
-            fogOfWar = !fogOfWar; // switch
+            fogOfWar = !fogOfWar; // fog of war switch
             break;
-            
+        case 'g': // goto/teleport mode activated
+            if (dungeon.getModeType() == PLAYER_TELEPORT) {
+                teleportPlayer();
+                dungeon.setModeType(PLAYER_CONTROL);
+                return;
+            }
+            dungeon.setModeType(PLAYER_TELEPORT);
+            break;
+        case 'r':
+            if (dungeon.getModeType() == PLAYER_TELEPORT) {
+                teleportPlayer();
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            break;
     }
     
 }
@@ -347,11 +394,7 @@ void generateDungeon(void) {
 
 void resetDungeonLevel(void) {
     // Clear dungeon data
-    dungeon.setUpwardStairs(vector<stair_t>());
-    dungeon.setDownwardStairs(vector<stair_t>());
-    dungeon.setMonsters(vector<Monster>());
-    dungeon.setRooms(vector<room_t>());
-
+    memset(dungeon.getPC().getFogMap(), false, sizeof(dungeon.getPC().getFogMap()));  // Set all values to false
     // Reset counters and global variables
     roomCounter = 0;
     dungeon.setNumRooms(MIN_NUM_ROOMS);
@@ -361,11 +404,8 @@ void resetDungeonLevel(void) {
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
 
-    // Reset PC's previous character
     Dungeon();
-    // Reset monsters
-    dungeon.setMonsters(vector<Monster>(dungeon.getNumMonsters()));
-
+                             
     // Clear and reset the event queue
     event_queue = my_priority_queue();
 
@@ -545,6 +585,10 @@ void attack(int distance) {
             }
         }
     }
+    // Display a message to the player if we get to the end and we didn't attack anything
+    char message[100];
+    snprintf(message, sizeof(message), "Attacked nothing! Get close to the monster and face them!");
+    displayMessage(message);
 }
 
 void movePlayer(int key) {
@@ -592,8 +636,11 @@ void movePlayer(int key) {
             case '>':
                dungeon.getMap()[oldX][oldY] = DOWNWARD_STAIRS_CELL;
                break;
+            case ' ':
+                dungeon.getMap()[oldX][oldY] = cell_t {' ',  rand() % 254 + 1};
+                break;
         }
-        
+        //dungeon.getMap()[oldX][oldY] = cell_t {dungeon.getPC().getPreviousCharacter(), 0};
         dungeon.getPC().setPreviousCharacter(dungeon.getMap()[newX][newY].ch);
         dungeon.getPC().setPosX(newX);
         dungeon.getPC().setPosY(newY);
@@ -866,7 +913,7 @@ void initMonsters(void) {
         if (isErratic) monsterBits |= (1 << 3);     // Set bit 3 for erratic behavior
         monster.setMonsterBits(monsterBits);
         monster.setSpeed(rand() % 16 + 5);
-        monster.setCell(cell_t {"0123456789abcdef"[monsterBits], 0});
+        monster.setCell(cell_t {"0123456789abcdef"[monsterBits], -1}); // monsters have hardness -1 which is unique to them
         monster.setAlive(true);
         monster.setLastSeenPCX(-1); // Initialize last seen position
         monster.setLastSeenPCY(-1);
@@ -903,32 +950,6 @@ bool checkMonsterPlacementToPC(int randX, int randY) {
         }
     }
     return true;
-}
-
-void printDungeon(int showDist, int tunneling) {
-    // Print the top border (now with space for the message)
-    move(1, 0); // Move cursor to the second row (leaving the first for the message)
-    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
-        // Start from y = 1 to leave space for message
-        move(y + 1, 0); // Adjust row position for the message line
-        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
-            if (fogOfWar) {
-                if  { // if it's been discovered before and distance is less than the light radius and fog of war is on
-                    addch(dungeon.getMap()[y][x].ch); // show the cell regardless
-                }
-                else if (dungeon.getPC().getFogMap()[y][x]) {
-                    addch(dungeon.getMap()[y][x].ch);
-                }
-                else {
-                    addch(' '); // can't be seen
-                }
-            }
-            else {
-                addch(dungeon.getMap()[y][x].ch); // if no fog of war just show the whole dungeon
-            }
-        }
-    }
-    drawMessage();
 }
 
 

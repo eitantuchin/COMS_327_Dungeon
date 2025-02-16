@@ -21,12 +21,12 @@ bool gameOver = false;
 bool fogOfWar = true;
 message_t gameMessage = {"", 0, false};
 message_t directionMessage = {"", 0, true};
-
 string dirNames[8] = {
     "NORTH", "NORTH-EAST", "EAST", "SOUTH-EAST", "SOUTH", "SOUTH-WEST", "WEST", "NORTH-WEST"
 };
 bool playerToMove = false;
 int monsterListScrollOffset = 0;
+cell_t targetingPointerPreviousCell = cell_t {' ', 0};
 
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
 const cell_t ROCK_CELL = {' ', 1};
@@ -35,6 +35,7 @@ const cell_t CORRIDOR_CELL = {'#', 0};
 const cell_t UPWARD_STAIRS_CELL = {'<', 0};
 const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
+const cell_t POINTER_CELL = {'*', 0};
 
 /*
  Allows the user to choose between saving, loading, and creating dungeons
@@ -97,7 +98,7 @@ int main(int argc, char *argv[])
         if (dungeon.getModeType() == MONSTER_LIST) {
             displayMonsterList();
         }
-        else if (dungeon.getModeType() == PLAYER_CONTROL) {
+        else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
             printDungeon(0, 0);
             refresh();
         }
@@ -113,8 +114,237 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void checkKeyInput(void) {
+    int key = getch();
+    switch(key) {
+        case KEY_UP: case 'k': case KEY_DOWN: // move down
+        case '2': case 'j': case KEY_LEFT: // move left
+        case '4': case 'h': case KEY_RIGHT: // move right
+        case '6': case 'l': case KEY_HOME: // up-left
+        case '7': case 'y': case KEY_PPAGE: // up-right
+        case '9': case 'u': case KEY_NPAGE: // down-right
+        case '3': case 'n': case KEY_END: // down-left
+        case '1': case 'b': case KEY_B2: // rest
+        case '5': case ' ': case '.':
+            if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
+            if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
+            if (dungeon.getModeType() == MONSTER_LIST) {
+                if (key == KEY_UP) {
+                    clear();
+                    monsterListScrollOffset--;
+                    displayMonsterList();
+                }
+                else if (key == KEY_DOWN) {
+                    clear();
+                    monsterListScrollOffset++;
+                    displayMonsterList();
+                }
+            }
+            break;
+        case 'q': // quit the game
+        case 'Q':
+            gameOver = true;
+            endwin();
+            printf("\nYou quit the game!\n");
+            break;
+        case 'z': // PC can attack 1 space away
+            attack(1); break;
+        case 'V': // counter-clockwise
+            changeDirection(false, false); break;
+        case 'v': // clocckwise
+            changeDirection(true, false); break;
+        case '<':
+        case '>':
+            useStairs(key); break;
+        case 'm':
+            if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) {
+                clear(); dungeon.setModeType(MONSTER_LIST); monsterListScrollOffset = 0;
+            }
+            else {
+                char message[100];
+                snprintf(message, sizeof(message), "You must be in player control mode to see the monster list!");
+                displayMessage(message);
+            }
+            break;
+        case 27: // escape key
+            clear(); dungeon.setModeType(PLAYER_CONTROL);
+            break;
+        case 'f':
+            if (dungeon.getModeType() == PLAYER_CONTROL) {
+                fogOfWar = !fogOfWar;
+            }// fog of war switch
+            else {
+                char message[100];
+                snprintf(message, sizeof(message), "Cannot use f key when not in player control mode!");
+                displayMessage(message);
+            }
+            break;
+        case 'g': // goto/teleport mode activated
+            if (dungeon.getModeType() == PLAYER_TELEPORT) {
+                teleportPlayer(false);
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            else if (dungeon.getModeType() == PLAYER_CONTROL){
+                dungeon.setModeType(PLAYER_TELEPORT);
+                initTargetingPointer();
+            }
+            else {
+                char message[100];
+                snprintf(message, sizeof(message), "You must have player control to use the GOTO command!");
+                displayMessage(message);
+            }
+            break;
+        case 'r':
+            if (dungeon.getModeType() == PLAYER_TELEPORT) {
+                teleportPlayer(true);
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            break;
+    }
+}
+
+void teleportPlayer(bool randomTeleport) {
+    char message[100];
+    pair<int, int> pointerPos = getPointerCellPosition();
+    int randY = rand() % DUNGEON_HEIGHT - 2;
+    int randX = rand() % DUNGEON_WIDTH - 2;
+    if (randomTeleport && (randY != dungeon.getPC().getPosY() || randX != dungeon.getPC().getPosX())) {
+        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = dungeon.getPC().getPreviousCell();
+        dungeon.getPC().setPreviousCell(dungeon.getMap()[randY][randX]);
+        dungeon.getPC().setPosX(randX);
+        dungeon.getPC().setPosY(randY);
+        dungeon.getMap()[randY][randX] = PLAYER_CELL;
+        // remove pointer from screen because it's not overriden
+        dungeon.getMap()[pointerPos.second][pointerPos.first] =  targetingPointerPreviousCell;
+        snprintf(message, sizeof(message), "You teleported randomly to X-coord: %i and Y-coord: %i!", randX, randY);
+        displayMessage(message);
+    }
+    else {
+        // change to saving previous cell for PC after Shabbat that way we can
+        // save hardness aswell
+        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
+        dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
+        dungeon.getPC().setPosX(pointerPos.first);
+        dungeon.getPC().setPosY(pointerPos.second);
+        dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
+        snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
+        displayMessage(message);
+    }
+    calculateDistances(0);
+    calculateDistances(1);
+}
+
+void initTargetingPointer(void) {
+    int pcX = dungeon.getPC().getPosX();
+    int pcY = dungeon.getPC().getPosY();
+    bool pointerPlaced = false;
+
+    for (int y = pcY - 1; y <= pcY + 1 && !pointerPlaced; ++y) {
+        for (int x = pcX - 1; x <= pcX + 1; ++x) {
+            if (dungeon.getMap()[y][x].hardness != IMMUTABLE_ROCK_CELL.hardness && x != pcX && y != pcY) {
+                targetingPointerPreviousCell = dungeon.getMap()[y][x];
+                dungeon.getMap()[y][x] = POINTER_CELL;
+                pointerPlaced = true;
+                break;
+            }
+        }
+    }
+    refresh();
+}
+
+pair<int, int> getPointerCellPosition(void) {
+    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
+        for (int x = 0; x < DUNGEON_WIDTH; x++) {
+            if (dungeon.getMap()[y][x].ch == POINTER_CELL.ch) {
+                return {x, y};
+            }
+        }
+    }
+    return {-1, -1};
+}
+
+void moveTargetingPointer(int key) {
+    pair<int, int> pointerPos = getPointerCellPosition();
+    int newX = pointerPos.first;
+    int newY = pointerPos.second;
+    int oldX = newX;
+    int oldY = newY;
+    switch (key) {
+        case KEY_UP: case '8': case 'k':
+            newY--; break;
+        case KEY_DOWN: case '2': case 'j':
+            newY++;  break;
+        case KEY_LEFT: case '4': case 'h':
+            newX--;  break;
+        case KEY_RIGHT: case '6': case 'l':
+            newX++;  break;
+        case KEY_HOME: case '7': case 'y':
+            newX--; newY--; break;
+        case KEY_PPAGE: case '9': case 'u':
+            newX++; newY--; break;
+        case KEY_NPAGE: case '3': case 'n':
+            newX++; newY++; break;
+        case KEY_END: case '1': case 'b':
+            newX--; newY++; break;
+    }
+    // as long as it's not immutable rock we can move the pointer there
+    if (dungeon.getMap()[newY][newX].hardness != IMMUTABLE_ROCK_CELL.hardness) {
+        dungeon.getMap()[oldY][oldX] = targetingPointerPreviousCell;
+        targetingPointerPreviousCell = dungeon.getMap()[newY][newX];
+        dungeon.getMap()[newY][newX] = POINTER_CELL;
+    }
+}
+
+
 void updateFogMap(void) {
-    
+    for (int y = dungeon.getPC().getPosY() - 2; y <= dungeon.getPC().getPosY() + 2; ++y) {
+        for (int x = dungeon.getPC().getPosX() - 2; x <= dungeon.getPC().getPosX() + 2; ++x) {
+            if (!dungeon.getPC().getFogMap()[y][x]) {
+                dungeon.getPC().getFogMap()[y][x] = true;
+            }
+        }
+    }
+    refresh();
+}
+
+void printDungeon(int showDist, int tunneling) {
+    move(1, 0); // Move cursor to the second row (leaving the first for the message)
+    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
+        move(y + 1, 0);
+        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
+            printCharacter(x, y);
+        }
+    }
+    drawMessage();
+}
+
+void printCharacter(int x, int y) {
+    if (fogOfWar) {
+        if (dungeon.getMap()[y][x].ch == '*')  addch(dungeon.getMap()[y][x].ch);
+        else if (x <= dungeon.getPC().getPosX() + 2 && x >= dungeon.getPC().getPosX() - 2 &&
+            y <= dungeon.getPC().getPosY() + 2 && y >= dungeon.getPC().getPosY() - 2) {
+            addch(dungeon.getMap()[y][x].ch);
+        }
+        else {
+            if (dungeon.getPC().getFogMap()[y][x] && dungeon.getMap()[y][x].hardness == -1) {
+                // add previous character since monster but shouldn't be seen
+                for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
+                    if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
+                        addch(dungeon.getMonsters()[i].getPreviousCell().ch);
+                    }
+                }
+            }
+            else if (dungeon.getPC().getFogMap()[y][x]) {
+                addch(dungeon.getMap()[y][x].ch);
+            }
+            else {
+                addch(' '); // can't be seen
+            }
+        }
+    }
+    else {
+        addch(dungeon.getMap()[y][x].ch);
+    }
     refresh();
 }
 
@@ -122,8 +352,8 @@ string getMonsterPositionString(int monsterIndex) {
     // Get the monster and PC from the dungeon
     const Monster& monster = dungeon.getMonsters()[monsterIndex];
     // Calculate deltas
-    int deltaX = monster.getPosX() - dungeon.getPC().getPosY();
-    int deltaY = monster.getPosY() - dungeon.getPC().getPosX();
+    int deltaX = monster.getPosX() - dungeon.getPC().getPosX();
+    int deltaY = monster.getPosY() - dungeon.getPC().getPosY();
 
     // Determine directions
     string directionX = (deltaX > 0) ? "East" : "West";
@@ -149,8 +379,6 @@ string getMonsterPositionString(int monsterIndex) {
     return ss.str();
 }
 
-#include <string>
-#include <ncurses.h>
 
 void displayMonsterList(void) {
     //clear();
@@ -218,7 +446,7 @@ void processEvents(void) {
     }
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
-        usleep(100000);
+        usleep(100000); // intervals between when each monster moves
         scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
         snprintf(message, sizeof(message), "The monsters are moving...");
         displayMessage(message);
@@ -250,84 +478,8 @@ void drawMessage(void) {
     mvprintw(0, (int) x, "%s", directionMessage.message); // Print right-aligned
 }
 
-void checkKeyInput(void) {
-    int key = getch();
-    switch(key) {
-        case KEY_UP: // move up
-        case '8':
-        case 'k':
-        case KEY_DOWN: // move down
-        case '2':
-        case 'j':
-        case KEY_LEFT: // move left
-        case '4':
-        case 'h':
-        case KEY_RIGHT: // move right
-        case '6':
-        case 'l':
-        case KEY_HOME: // up-left
-        case '7':
-        case 'y':
-        case KEY_PPAGE: // up-right
-        case '9':
-        case 'u':
-        case KEY_NPAGE: // down-right
-        case '3':
-        case 'n':
-        case KEY_END: // down-left
-        case '1':
-        case 'b':
-        case KEY_B2: // rest
-        case '5':
-        case ' ':
-        case '.':
-            if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
-            if (dungeon.getModeType() == MONSTER_LIST) {
-                if (key == KEY_UP) {
-                    clear();
-                    monsterListScrollOffset--;
-                    displayMonsterList();
-                }
-                else if (key == KEY_DOWN) {
-                    clear();
-                    monsterListScrollOffset++;
-                    displayMonsterList();
-                }
-            }
-            break;
-        case 'q': // quit the game
-        case 'Q':
-            gameOver = true;
-            endwin();
-            printf("\nYou quit the game!\n");
-            break;
-        case 'z': // PC can attack 1 or 2 spaces away
-            attack(1); attack(2); break;
-        case 'V': // counter-clockwise
-            changeDirection(false, false); break;
-        case 'v': // clocckwise
-            changeDirection(true, false); break;
-        case '<':
-        case '>':
-            useStairs(key); break;
-        case 'm':
-            if (playerToMove) {
-                clear(); dungeon.setModeType(MONSTER_LIST); monsterListScrollOffset = 0;
-            }
-            break;
-        case 27: // escape key
-            clear(); dungeon.setModeType(PLAYER_CONTROL);
-            break;
-        case 'f':
-            fogOfWar = !fogOfWar; // switch
-            break;
-            
-    }
-    
-}
-
 void useStairs(int key) {
-    if (dungeon.getPC().getPreviousCharacter() == key) {
+    if (dungeon.getPC().getPreviousCell().ch == key) {
         resetDungeonLevel();
         char message[100];
         if (key == '<') snprintf(message, sizeof(message), "Moved up a dungeon level!");
@@ -347,11 +499,7 @@ void generateDungeon(void) {
 
 void resetDungeonLevel(void) {
     // Clear dungeon data
-    dungeon.setUpwardStairs(vector<stair_t>());
-    dungeon.setDownwardStairs(vector<stair_t>());
-    dungeon.setMonsters(vector<Monster>());
-    dungeon.setRooms(vector<room_t>());
-
+    memset(dungeon.getPC().getFogMap(), false, sizeof(dungeon.getPC().getFogMap()));  // Set all values to false
     // Reset counters and global variables
     roomCounter = 0;
     dungeon.setNumRooms(MIN_NUM_ROOMS);
@@ -361,11 +509,8 @@ void resetDungeonLevel(void) {
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
 
-    // Reset PC's previous character
     Dungeon();
-    // Reset monsters
-    dungeon.setMonsters(vector<Monster>(dungeon.getNumMonsters()));
-
+                             
     // Clear and reset the event queue
     event_queue = my_priority_queue();
 
@@ -494,49 +639,51 @@ void attack(int distance) {
 
         switch (directionsToCheck[i]) {
             case UP:
-                attackX -= distance;
+                attackY -= distance;
                 break;
             case DOWN:
-                attackX += distance;
+                attackY += distance;
                 break;
             case LEFT:
-                attackY -= distance;
+                attackX -= distance;
                 break;
             case RIGHT:
-                attackY += distance;
+                attackX += distance;
                 break;
             case UP_LEFT:
-                attackX -= distance;
                 attackY -= distance;
+                attackX -= distance;
                 break;
             case UP_RIGHT:
-                attackX -= distance;
-                attackY += distance;
+                attackY -= distance;
+                attackX += distance;
                 break;
             case DOWN_LEFT:
-                attackX += distance;
-                attackY -= distance;
+                attackY += distance;
+                attackX -= distance;
                 break;
             case DOWN_RIGHT:
-                attackX += distance;
                 attackY += distance;
+                attackX += distance;
                 break;
             default:
                 break; // Invalid direction (shouldn't happen)
         }
 
         // Check if the position is valid and contains a monster
-        if (attackX >= 0 && attackX < DUNGEON_HEIGHT && attackY >= 0 && attackY < DUNGEON_WIDTH) {
+        if (attackY >= 0 && attackY < DUNGEON_HEIGHT && attackX >= 0 && attackX < DUNGEON_WIDTH) {
             for (int j = 0; j < dungeon.getNumMonsters(); j++) {
                 Monster *monster = &dungeon.getMonsters()[j];
-                if (monster->isAlive() && monster->getPosX() == attackY && monster->getPosY() == attackX) {
+               
+                if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
+                   
                     // Monster is killed (same logic as before)
                     monster->setAlive(false);
-                    dungeon.getMap()[attackX][attackY] = PLAYER_CELL;
-                    dungeon.getMap()[oldX][oldY] = (cell_t){dungeon.getPC().getPreviousCharacter(), 0};
+                    dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
+                    dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
                     dungeon.getPC().setPosX(attackX);
                     dungeon.getPC().setPosY(attackY);
-                    dungeon.getPC().setPreviousCharacter(monster->getPreviousCharacter());
+                    dungeon.getPC().setPreviousCell(monster->getPreviousCell());
                     char message[100];
                     snprintf(message, sizeof(message), "You killed monster %c!", monster->getCell().ch);
                     displayMessage(message);
@@ -545,6 +692,10 @@ void attack(int distance) {
             }
         }
     }
+    // Display a message to the player if we get to the end and we didn't attack anything
+    char message[100];
+    snprintf(message, sizeof(message), "Attacked nothing! Get close to a monster and face them!");
+    displayMessage(message);
 }
 
 void movePlayer(int key) {
@@ -555,55 +706,59 @@ void movePlayer(int key) {
     int oldY = newY;
     switch (key) {
         case KEY_UP: case '8': case 'k':
-            newX--; dungeon.getPC().setCurrentDirection(UP);  break;
+            newY--; dungeon.getPC().setCurrentDirection(UP);  break;
         case KEY_DOWN: case '2': case 'j':
-            newX++; dungeon.getPC().setCurrentDirection(DOWN); break;
+            newY++; dungeon.getPC().setCurrentDirection(DOWN); break;
         case KEY_LEFT: case '4': case 'h':
-            newY--; dungeon.getPC().setCurrentDirection(LEFT); break;
+            newX--; dungeon.getPC().setCurrentDirection(LEFT); break;
         case KEY_RIGHT: case '6': case 'l':
-            newY++; dungeon.getPC().setCurrentDirection(RIGHT); break;
+            newX++; dungeon.getPC().setCurrentDirection(RIGHT); break;
         case KEY_HOME: case '7': case 'y':
-            newY--; newX--; dungeon.getPC().setCurrentDirection(UP_LEFT); break;
+            newX--; newY--; dungeon.getPC().setCurrentDirection(UP_LEFT); break;
         case KEY_PPAGE: case '9': case 'u':
-            newY++; newX--; dungeon.getPC().setCurrentDirection(UP_RIGHT); break;
+            newX++; newY--; dungeon.getPC().setCurrentDirection(UP_RIGHT); break;
         case KEY_NPAGE: case '3': case 'n':
-            newY++; newX++; dungeon.getPC().setCurrentDirection(DOWN_RIGHT); break;
+            newX++; newY++; dungeon.getPC().setCurrentDirection(DOWN_RIGHT); break;
         case KEY_END: case '1': case 'b':
-            newY--; newX++; dungeon.getPC().setCurrentDirection(DOWN_LEFT); break;
+            newX--; newY++; dungeon.getPC().setCurrentDirection(DOWN_LEFT); break;
         case KEY_B2: case '5': case ' ': case '.':
             // rest
             break;
     }
     
-    if (newX >= 0 && newX < DUNGEON_HEIGHT &&
-        newY >= 0 && newY < DUNGEON_WIDTH &&
-        dungeon.getMap()[newX][newY].hardness == 0) {
+    if (newY >= 0 && newY < DUNGEON_HEIGHT &&
+        newX >= 0 && newX < DUNGEON_WIDTH &&
+        dungeon.getMap()[newY][newX].hardness == 0) {
         //gameOver = true;
-        switch(dungeon.getPC().getPreviousCharacter()) {
+        switch(dungeon.getPC().getPreviousCell().ch) {
             case '#':
-                dungeon.getMap()[oldX][oldY] = CORRIDOR_CELL;
+                dungeon.getMap()[oldY][oldX] = CORRIDOR_CELL;
                 break;
             case '.':
-               dungeon.getMap()[oldX][oldY] = ROOM_CELL;
+               dungeon.getMap()[oldY][oldX] = ROOM_CELL;
                break;
             case '<':
-               dungeon.getMap()[oldX][oldY] = UPWARD_STAIRS_CELL;
+               dungeon.getMap()[oldY][oldX] = UPWARD_STAIRS_CELL;
                break;
             case '>':
-               dungeon.getMap()[oldX][oldY] = DOWNWARD_STAIRS_CELL;
+               dungeon.getMap()[oldY][oldX] = DOWNWARD_STAIRS_CELL;
                break;
+            case ' ':
+                dungeon.getMap()[oldY][oldX] = targetingPointerPreviousCell;
+                break;
         }
         
-        dungeon.getPC().setPreviousCharacter(dungeon.getMap()[newX][newY].ch);
+        //dungeon.getMap()[oldX][oldY] = dungeon.getPC().getPreviousCell();
+        dungeon.getPC().setPreviousCell(dungeon.getMap()[newY][newX]);
         dungeon.getPC().setPosX(newX);
         dungeon.getPC().setPosY(newY);
-        dungeon.getMap()[newX][newY] = PLAYER_CELL;
+        dungeon.getMap()[newY][newX] = PLAYER_CELL;
         changeDirection(false, true);
         playerToMove = false;
     }
     else {
         char message[100];
-        snprintf(message, sizeof(message), "There's a wall there!");
+        snprintf(message, sizeof(message), "Uh oh! There's rock there!");
         displayMessage(message);
     }
     calculateDistances(0); // recalculate pathfinding maps after moving player
@@ -678,7 +833,7 @@ void moveMonster(int index) {
                 for (int dx = -1; dx <= 1; dx++) {
                     if (dx == 0 && dy == 0) continue;
                     int nx = m->getPosX() + dx;
-                    int ny = m->getPosY()+ dy;
+                    int ny = m->getPosY() + dy;
                     if (nx >= 1 && nx < DUNGEON_WIDTH - 1 && ny >= 1 && ny < DUNGEON_HEIGHT - 1) {
                         if (dist[ny][nx] < best_dist) {
                             best_dist = dist[ny][nx];
@@ -768,8 +923,8 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
            }
        }
         if (!collision && dungeon.getMap()[newY][newX].hardness == 0) { // no monster fighting and not a rock cell
-            dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0}; // Restore the old cell
-            m->setPreviousCharacter(dungeon.getMap()[newY][newX].ch);
+            dungeon.getMap()[oldY][oldX] = m->getPreviousCell(); // Restore the old cell
+            m->setPreviousCell(dungeon.getMap()[newY][newX]);
             m->setPosX(newX);
             m->setPosY(newY);
             dungeon.getMap()[newY][newX] = m->getCell();
@@ -785,8 +940,8 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
                 calculateDistances(1); // Recalculate tunneling distances
 
                 // After turning rock to corridor, the monster should move there
-                dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0};
-                m->setPreviousCharacter(dungeon.getMap()[newY][newX].ch);
+                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                m->setPreviousCell(dungeon.getMap()[newY][newX]);
                 m->setPosX(newX);
                 m->setPosY(newY);
                 dungeon.getMap()[newY][newX] = m->getCell();
@@ -797,10 +952,10 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             if (defenderIndex != -1) { // kill the defender
                 dungeon.getMonsters()[defenderIndex].setAlive(false);
                 dungeon.getMap()[newY][newX] = m->getCell();
-                dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0};
+                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
                 m->setPosX(newX);
                 m->setPosX(newY);
-                m->setPreviousCharacter(dungeon.getMonsters()[defenderIndex].getPreviousCharacter());
+                m->setPreviousCell(dungeon.getMonsters()[defenderIndex].getPreviousCell());
             }
         }
     }
@@ -810,8 +965,8 @@ void checkGameConditions(void) {
     // Check PC death
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
         if (dungeon.getMonsters()[i].isAlive() &&
-            dungeon.getMonsters()[i].getPosY() == dungeon.getPC().getPosX() &&
-            dungeon.getMonsters()[i].getPosX() == dungeon.getPC().getPosY()) {
+            dungeon.getMonsters()[i].getPosY() == dungeon.getPC().getPosY() &&
+            dungeon.getMonsters()[i].getPosX() == dungeon.getPC().getPosX()) {
             gameOver = true;
             endwin();
             printf("\nGame Over - You were killed by monster %c!", dungeon.getMonsters()[i].getCell().ch);
@@ -866,7 +1021,7 @@ void initMonsters(void) {
         if (isErratic) monsterBits |= (1 << 3);     // Set bit 3 for erratic behavior
         monster.setMonsterBits(monsterBits);
         monster.setSpeed(rand() % 16 + 5);
-        monster.setCell(cell_t {"0123456789abcdef"[monsterBits], 0});
+        monster.setCell(cell_t {"0123456789abcdef"[monsterBits], -1}); // monsters have hardness -1 which is unique to them
         monster.setAlive(true);
         monster.setLastSeenPCX(-1); // Initialize last seen position
         monster.setLastSeenPCY(-1);
@@ -886,7 +1041,7 @@ void initMonsters(void) {
             if ((dungeon.getMap()[randY][randX].ch == '.' || dungeon.getMap()[randY][randX].ch == '#') && pcFarAwayEnough) {
                 dungeon.getMonsters()[i].setPosX(randX);
                 dungeon.getMonsters()[i].setPosY(randY);
-                dungeon.getMonsters()[i].setPreviousCharacter(dungeon.getMap()[randY][randX].ch);
+                dungeon.getMonsters()[i].setPreviousCell(dungeon.getMap()[randY][randX]);
                 dungeon.getMap()[randY][randX] = dungeon.getMonsters()[i].getCell();
                 foundPosition = true;
             }
@@ -895,40 +1050,14 @@ void initMonsters(void) {
 }
 
 bool checkMonsterPlacementToPC(int randX, int randY) {
-    for (int i = randY - 2; i < randY + 2; ++i) {
-        for (int j = randX - 2; j < randX + 2; ++j) {
-            if (dungeon.getMap()[i][j].ch == '@') {
+    for (int y = randY - 2; y < randY + 2; ++y) {
+        for (int x = randX - 2; x < randX + 2; ++x) {
+            if (dungeon.getMap()[y][x].ch == '@') {
                 return false;
             }
         }
     }
     return true;
-}
-
-void printDungeon(int showDist, int tunneling) {
-    // Print the top border (now with space for the message)
-    move(1, 0); // Move cursor to the second row (leaving the first for the message)
-    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
-        // Start from y = 1 to leave space for message
-        move(y + 1, 0); // Adjust row position for the message line
-        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
-            if (fogOfWar) {
-                if  { // if it's been discovered before and distance is less than the light radius and fog of war is on
-                    addch(dungeon.getMap()[y][x].ch); // show the cell regardless
-                }
-                else if (dungeon.getPC().getFogMap()[y][x]) {
-                    addch(dungeon.getMap()[y][x].ch);
-                }
-                else {
-                    addch(' '); // can't be seen
-                }
-            }
-            else {
-                addch(dungeon.getMap()[y][x].ch); // if no fog of war just show the whole dungeon
-            }
-        }
-    }
-    drawMessage();
 }
 
 
@@ -947,7 +1076,7 @@ void calculateDistances(int tunneling) {
     // Start with PC position
     int pc_y = dungeon.getPC().getPosY();
     int pc_x = dungeon.getPC().getPosX();
-    dist[pc_x][pc_y] = 0;
+    dist[pc_y][pc_x] = 0;
     pq.insert(pc_y, pc_x, 0);
     
 
@@ -1030,8 +1159,8 @@ void addCorridors(void)
     for (int i = 0; i < roomCounter; ++i)
     {
         // init room centroids for all rooms
-        roomCentroids[i][0] = dungeon.getRooms()[i].posX + dungeon.getRooms()[i].height / 2;
-        roomCentroids[i][1] = dungeon.getRooms()[i].posY + dungeon.getRooms()[i].width / 2;
+        roomCentroids[i][0] = dungeon.getRooms()[i].posX + dungeon.getRooms()[i].width / 2;
+        roomCentroids[i][1] = dungeon.getRooms()[i].posY + dungeon.getRooms()[i].height / 2;
     }
 
     // find smallest distance
@@ -1087,9 +1216,9 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             xWentLast = false;
         }
 
-        if (dungeon.getMap()[x][y].ch == ROCK_CELL.ch &&
-            dungeon.getMap()[x][y].hardness < IMMUTABLE_ROCK_CELL.hardness) {
-            dungeon.getMap()[x][y] = CORRIDOR_CELL;
+        if (dungeon.getMap()[y][x].ch == ROCK_CELL.ch &&
+            dungeon.getMap()[y][x].hardness < IMMUTABLE_ROCK_CELL.hardness) {
+            dungeon.getMap()[y][x] = CORRIDOR_CELL;
         }
     }
 }
@@ -1107,20 +1236,20 @@ void addRooms(void)
         bool roomInserted = false;
         while (!roomInserted)
         {
-            int randX = rand() % (DUNGEON_HEIGHT - 2) + 1;
-            int randY = rand() % (DUNGEON_WIDTH - 2) + 1;
+            int randY = rand() % (DUNGEON_HEIGHT - 2) + 1;
+            int randX = rand() % (DUNGEON_WIDTH - 2) + 1;
             int randHeight = rand() % (MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT + 1) + MIN_ROOM_HEIGHT;
             int randWidth = rand() % (MAX_ROOM_WIDTH - MIN_ROOM_WIDTH + 1) + MIN_ROOM_WIDTH;
 
-            if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randWidth <= DUNGEON_WIDTH - 1)
+            if (randY + randHeight <= DUNGEON_HEIGHT - 1 && randX + randWidth <= DUNGEON_WIDTH - 1)
             {
                 bool validRoomPositionFound = true;
                 // ensure that we don't create the room where immutable rock lies
-                for (int i = randX - 2; i < randX + randHeight + 2; ++i)
+                for (int y = randY - 2; y < randY + randHeight + 2; ++y)
                 {
-                    for (int j = randY - 2; j < randY + randWidth + 2; ++j)
+                    for (int x = randX - 2; x < randX + randWidth + 2; ++x)
                     {
-                        if (dungeon.getMap()[i][j].ch != ROCK_CELL.ch || dungeon.getMap()[i][j].hardness == IMMUTABLE_ROCK_CELL.hardness)
+                        if (dungeon.getMap()[y][x].ch != ROCK_CELL.ch || dungeon.getMap()[y][x].hardness == IMMUTABLE_ROCK_CELL.hardness)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -1138,11 +1267,11 @@ void addRooms(void)
                     dungeon.getRooms()[roomCounter].posY = randY;
                     roomCounter++;
 
-                    for (int i = randX; i < randX + randHeight; ++i)
+                    for (int y = randY; y < randY + randHeight; ++y)
                     {
-                        for (int j = randY; j < randY + randWidth; ++j)
+                        for (int x = randX; x < randX + randWidth; ++x)
                         {
-                            dungeon.getMap()[i][j] = ROOM_CELL;
+                            dungeon.getMap()[y][x] = ROOM_CELL;
                         }
                     }
                     roomInserted = true;
@@ -1164,10 +1293,10 @@ void initPCPosition(void)
     int getY = room.posY;
     dungeon.getPC().setPosX(getX + 2);
     dungeon.getPC().setPosY(getY + 2);
-    if (dungeon.getMap()[getX + 2][getY + 2].ch != '<' ||
-        dungeon.getMap()[getX + 2][getY + 2].ch != '>')
+    if (dungeon.getMap()[getY + 2][getX + 2].ch != '<' ||
+        dungeon.getMap()[getY + 2][getX + 2].ch != '>')
     {
-        dungeon.getMap()[getX + 2][getY + 2] = PLAYER_CELL;
+        dungeon.getMap()[getY + 2][getX + 2] = PLAYER_CELL;
     }
     else
     {
@@ -1199,21 +1328,21 @@ void addStairs(void)
         room_t room = dungeon.getRooms()[randomRoomNum];
         //printf("Room width is: %i \n", room.width);
         //printf("Room height is: %i \n", room.height);
-        int randomX = room.posX + rand() % room.height;
-        int randomY = room.posY + rand() % room.width;
+        int randomX = room.posX + rand() % room.width;
+        int randomY = room.posY + rand() % room.height;
         stair_t stair;
         stair.posX = randomX;
         stair.posY = randomY;
         if (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() == 0)
         {
-            dungeon.getMap()[randomX][randomY] = UPWARD_STAIRS_CELL;
+            dungeon.getMap()[randomY][randomX] = UPWARD_STAIRS_CELL;
             dungeon.getUpwardStairs()[dungeon.getNumUpwardsStairs()] = stair;
             dungeon.setNumUpwardsStairs(dungeon.getNumUpwardsStairs() + 1);
         }
         // ensure at least one downwards stairs is inside the dungeon
         else if (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() == 1)
         {
-            dungeon.getMap()[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+            dungeon.getMap()[randomY][randomX] = DOWNWARD_STAIRS_CELL;
             dungeon.getDownwardStairs()[dungeon.getNumDownwardsStairs()] = stair;
             dungeon.setNumDownwardsStairs(dungeon.getNumDownwardsStairs() + 1);
         }
@@ -1221,12 +1350,12 @@ void addStairs(void)
         {
             int randomStairCaseDirection = rand() % 2 + 1;
             if (randomStairCaseDirection == 1) {
-                dungeon.getMap()[randomX][randomY] = UPWARD_STAIRS_CELL;
+                dungeon.getMap()[randomY][randomX] = UPWARD_STAIRS_CELL;
                 dungeon.getUpwardStairs()[dungeon.getNumUpwardsStairs()] = stair;
                 dungeon.setNumUpwardsStairs(dungeon.getNumUpwardsStairs() + 1);
             }
             else {
-                dungeon.getMap()[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+                dungeon.getMap()[randomY][randomX] = DOWNWARD_STAIRS_CELL;
                 dungeon.getDownwardStairs()[dungeon.getNumDownwardsStairs()] = stair;
                 dungeon.setNumDownwardsStairs(dungeon.getNumDownwardsStairs() + 1);
             }

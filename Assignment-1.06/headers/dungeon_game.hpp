@@ -68,6 +68,7 @@ extern const cell_t CORRIDOR_CELL;
 extern const cell_t UPWARD_STAIRS_CELL;
 extern const cell_t DOWNWARD_STAIRS_CELL;
 extern const cell_t PLAYER_CELL;
+extern const cell_t POINTER_CELL;
 
 typedef enum {
     UP,
@@ -93,7 +94,8 @@ typedef struct event {
 
 typedef enum {
     PLAYER_CONTROL,
-    MONSTER_LIST
+    MONSTER_LIST,
+    PLAYER_TELEPORT
 } mode_type_t;
 
 // Function prototypes
@@ -130,3 +132,8 @@ void resetDungeonLevel(void);
 std::string getMonsterPositionString(int monsterIndex);
 void displayMonsterList(void);
 void updateFogMap(void);
+void printCharacter(int x, int y);
+void teleportPlayer(bool randomTeleport);
+void moveTargetingPointer(int key);
+void initTargetingPointer(void);
+pair<int, int> getPointerCellPosition(void);

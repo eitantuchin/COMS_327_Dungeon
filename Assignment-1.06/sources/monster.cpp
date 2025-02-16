@@ -1,8 +1,8 @@
 #include "../headers/monster.hpp"
 using namespace std;
 // Constructor implementation
-Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint8_t bits, int lastSeenX, int lastSeenY, bool isAlive)
-: Character(x, y, previousCell, speed, cell), monsterBits(bits), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive) {}
+Monster::Monster(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell, uint8_t bits, int lastSeenX, int lastSeenY, bool isAlive)
+    : Character(x, y, prevChar, speed, cell), monsterBits(bits), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive) {}
 
 // Getter for monsterBits
 uint8_t Monster::getMonsterBits() const {

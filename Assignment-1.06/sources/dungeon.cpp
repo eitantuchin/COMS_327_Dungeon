@@ -8,7 +8,24 @@ using namespace std;
 
 // Constructor implementation
 Dungeon::Dungeon()
-: numUpwardsStairs(0), numDownwardsStairs(0), numRooms(0), numMonsters(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP){
+: numUpwardsStairs(0), numDownwardsStairs(0), numMonsters(0), numRooms(0), pc(0, 0, '.', PC_SPEED, PLAYER_CELL, UP){
+    // Initialize the map with default values
+    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
+        for (int x = 0; x < DUNGEON_WIDTH; x++) {
+            map[y][x] = ROCK_CELL; // Default to rock cells
+        }
+    }
+
+    // Initialize distance maps
+    for (int y = 0; y < DUNGEON_HEIGHT; y++) {
+        for (int x = 0; x < DUNGEON_WIDTH; x++) {
+            nonTunnelingMap[y][x] = INT_MAX; // Default to "infinity"
+            tunnelingMap[y][x] = INT_MAX;    // Default to "infinity"
+        }
+    }
+
+    // Initialize mode type
+    modeType = PLAYER_CONTROL;
 }
 
 // Getter for map

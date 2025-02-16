@@ -13,7 +13,7 @@ private:
 
 public:
     // Constructor
-    PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, direction_t direction);
+    PC(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell, direction_t direction);
 
     // Getters
     direction_t getCurrentDirection() const;

@@ -209,8 +209,8 @@ void teleportPlayer(bool randomTeleport) {
     int randY = rand() % DUNGEON_HEIGHT - 2;
     int randX = rand() % DUNGEON_WIDTH - 2;
     if (randomTeleport && (randY != dungeon.getPC().getPosY() || randX != dungeon.getPC().getPosX())) {
-        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = dungeon.getPC().getPreviousCell();
-        dungeon.getPC().setPreviousCell(dungeon.getMap()[randY][randX]);
+        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = cell_t {dungeon.getPC().getPreviousCharacter(), 0};
+        dungeon.getPC().setPreviousCharacter(dungeon.getMap()[randY][randX].ch);
         dungeon.getPC().setPosX(randX);
         dungeon.getPC().setPosY(randY);
         dungeon.getMap()[randY][randX] = PLAYER_CELL;
@@ -222,8 +222,8 @@ void teleportPlayer(bool randomTeleport) {
     else {
         // change to saving previous cell for PC after Shabbat that way we can
         // save hardness aswell
-        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
-        dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
+        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = cell_t {dungeon.getPC().getPreviousCharacter(), 0};
+        dungeon.getPC().setPreviousCharacter(targetingPointerPreviousCell.ch);
         dungeon.getPC().setPosX(pointerPos.first);
         dungeon.getPC().setPosY(pointerPos.second);
         dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
@@ -330,7 +330,7 @@ void printCharacter(int x, int y) {
                 // add previous character since monster but shouldn't be seen
                 for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
                     if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
-                        addch(dungeon.getMonsters()[i].getPreviousCell().ch);
+                        addch(dungeon.getMonsters()[i].getPreviousCharacter());
                     }
                 }
             }
@@ -479,7 +479,7 @@ void drawMessage(void) {
 }
 
 void useStairs(int key) {
-    if (dungeon.getPC().getPreviousCell().ch == key) {
+    if (dungeon.getPC().getPreviousCharacter() == key) {
         resetDungeonLevel();
         char message[100];
         if (key == '<') snprintf(message, sizeof(message), "Moved up a dungeon level!");
@@ -680,10 +680,10 @@ void attack(int distance) {
                     // Monster is killed (same logic as before)
                     monster->setAlive(false);
                     dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
-                    dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
+                    dungeon.getMap()[oldY][oldX] = (cell_t){dungeon.getPC().getPreviousCharacter(), 0};
                     dungeon.getPC().setPosX(attackX);
                     dungeon.getPC().setPosY(attackY);
-                    dungeon.getPC().setPreviousCell(monster->getPreviousCell());
+                    dungeon.getPC().setPreviousCharacter(monster->getPreviousCharacter());
                     char message[100];
                     snprintf(message, sizeof(message), "You killed monster %c!", monster->getCell().ch);
                     displayMessage(message);
@@ -730,7 +730,7 @@ void movePlayer(int key) {
         newX >= 0 && newX < DUNGEON_WIDTH &&
         dungeon.getMap()[newY][newX].hardness == 0) {
         //gameOver = true;
-        switch(dungeon.getPC().getPreviousCell().ch) {
+        switch(dungeon.getPC().getPreviousCharacter()) {
             case '#':
                 dungeon.getMap()[oldY][oldX] = CORRIDOR_CELL;
                 break;
@@ -747,9 +747,8 @@ void movePlayer(int key) {
                 dungeon.getMap()[oldY][oldX] = targetingPointerPreviousCell;
                 break;
         }
-        
-        //dungeon.getMap()[oldX][oldY] = dungeon.getPC().getPreviousCell();
-        dungeon.getPC().setPreviousCell(dungeon.getMap()[newY][newX]);
+        //dungeon.getMap()[oldX][oldY] = cell_t {dungeon.getPC().getPreviousCharacter(), 0};
+        dungeon.getPC().setPreviousCharacter(dungeon.getMap()[newY][newX].ch);
         dungeon.getPC().setPosX(newX);
         dungeon.getPC().setPosY(newY);
         dungeon.getMap()[newY][newX] = PLAYER_CELL;
@@ -923,8 +922,8 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
            }
        }
         if (!collision && dungeon.getMap()[newY][newX].hardness == 0) { // no monster fighting and not a rock cell
-            dungeon.getMap()[oldY][oldX] = m->getPreviousCell(); // Restore the old cell
-            m->setPreviousCell(dungeon.getMap()[newY][newX]);
+            dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0}; // Restore the old cell
+            m->setPreviousCharacter(dungeon.getMap()[newY][newX].ch);
             m->setPosX(newX);
             m->setPosY(newY);
             dungeon.getMap()[newY][newX] = m->getCell();
@@ -940,8 +939,8 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
                 calculateDistances(1); // Recalculate tunneling distances
 
                 // After turning rock to corridor, the monster should move there
-                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
-                m->setPreviousCell(dungeon.getMap()[newY][newX]);
+                dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0};
+                m->setPreviousCharacter(dungeon.getMap()[newY][newX].ch);
                 m->setPosX(newX);
                 m->setPosY(newY);
                 dungeon.getMap()[newY][newX] = m->getCell();
@@ -952,10 +951,10 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             if (defenderIndex != -1) { // kill the defender
                 dungeon.getMonsters()[defenderIndex].setAlive(false);
                 dungeon.getMap()[newY][newX] = m->getCell();
-                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                dungeon.getMap()[oldY][oldX] = (cell_t){m->getPreviousCharacter(), 0};
                 m->setPosX(newX);
                 m->setPosX(newY);
-                m->setPreviousCell(dungeon.getMonsters()[defenderIndex].getPreviousCell());
+                m->setPreviousCharacter(dungeon.getMonsters()[defenderIndex].getPreviousCharacter());
             }
         }
     }
@@ -1041,7 +1040,7 @@ void initMonsters(void) {
             if ((dungeon.getMap()[randY][randX].ch == '.' || dungeon.getMap()[randY][randX].ch == '#') && pcFarAwayEnough) {
                 dungeon.getMonsters()[i].setPosX(randX);
                 dungeon.getMonsters()[i].setPosY(randY);
-                dungeon.getMonsters()[i].setPreviousCell(dungeon.getMap()[randY][randX]);
+                dungeon.getMonsters()[i].setPreviousCharacter(dungeon.getMap()[randY][randX].ch);
                 dungeon.getMap()[randY][randX] = dungeon.getMonsters()[i].getCell();
                 foundPosition = true;
             }

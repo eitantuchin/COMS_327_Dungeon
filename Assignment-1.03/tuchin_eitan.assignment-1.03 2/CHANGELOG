@@ -1,3 +1,37 @@
+--ASSIGNMENT 1.03 CHANGELOGS BELOW--
+
+01/31/2025
+Functionalities Added
+    - Added print statements for the different distance maps
+    - Made the calcuateDistances function to make the distance maps for both tunneling and non-tunneling monsters
+Functionalities Changed
+    - We use INT_MAX instead of INFINITY for initial Dijiktra values
+    - Calculate distances takes in a tunneling value to determine type of distance map
+Bug Fixes
+    - Fixed distance map only generating partially for non-tunnelers
+    - Fixed distance map for tunnelers not taking into account hardness
+    - Fixed when trying path finding with saving and loading it won't work
+
+Bugs Discovered
+    - Distance map only generating partially for non-tunnelers
+    - Distance map for tunnelers not taking into account hardness
+    - When trying path finding with saving and loading it won't work
+
+01/30/2025
+Functionalities Added
+    - Added the priority queue to be used in Dijikstra's
+    - Added priority queue header file
+Functionalities Changed
+    - None just working on PQ
+Bug Fixes
+    - Fixed node is not being bubbled up 
+    - Fixed wrong node is being extracted
+    - Fixed node is being inserted in the wrong position in the PQ
+Bugs Discovered
+    - Node is not being bubbled up 
+    - Wrong node is being extracted
+    - Node is being inserted in the wrong position in the PQ
+
 --ASSIGNMENT 1.02 CHANGELOGS BELOW--
 
 01/29/2025

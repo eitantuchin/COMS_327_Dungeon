@@ -93,8 +93,7 @@ typedef struct event {
 
 typedef enum {
     PLAYER_CONTROL,
-    MONSTER_LIST,
-    PLAYER_TELEPORT
+    MONSTER_LIST
 } mode_type_t;
 
 // Function prototypes
@@ -131,6 +130,3 @@ void resetDungeonLevel(void);
 std::string getMonsterPositionString(int monsterIndex);
 void displayMonsterList(void);
 void updateFogMap(void);
-void printCharacter(int x, int y);
-void teleportPlayer(void);
-void moveTargetingPointer(int key);

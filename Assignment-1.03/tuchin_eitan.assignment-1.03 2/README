@@ -1,0 +1,38 @@
+New/Updated Files:
+    dungeon_path_finding.c contains all logic with added path finding.
+    dungeon_path_finding.h contains framework for dungeon_path_finding.c.
+    priority_queue.c contains all logic for the priority queue data structure.
+    priority_queue.h contains framework for priority_queue.c.
+
+New/Updated Data Structures:
+    priority queue:
+        - an implementation of a priority queue for path finding
+    nonTunnelingMap:
+        - 2d int array containing non-tunneling map distances
+    tunnelingMap:
+        - 2d int array containing tunneling map distances
+
+New/Updated Functions:
+    calculateDistances:
+        - Uses a priority queue together with Dijikstra's algorithm to calculate the distances 
+            using 8-way connectivity from any point on the map for both non-tunneling and
+            tunneling monsters to the PC.
+    main:
+        - Updated to print both distance maps and calculate distances.
+    pq_create:
+        - Creates the priority queue.
+    pq_destroy:
+        - Uninitializes the priority queue.
+    pq_is_empty:
+        - Checks if the PQ is empty.
+    pq_insert:
+        - Inserts a node into the PQ.
+    pq_extract_min:
+        - Extracts the node at the top of the Q.
+    pq_decrease_priority:
+        - Decreases the priority of a node.
+    pq_swap:
+        - Swaps two nodes in the PQ.
+    pq_heapify:
+        - Maintains the heap structure.
+

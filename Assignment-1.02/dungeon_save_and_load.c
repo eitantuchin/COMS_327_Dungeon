@@ -66,14 +66,13 @@ void loadFile(void){
     initImmutableRock();
     
     // Construct file path
-    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) +  strlen("/.rlg327/") + strlen(fileName) + 1));
+    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + strlen("/.rlg327/dungeon") + 1));
     if (path == NULL) {
         perror("Failed to allocate memory for file path");
         return;
     }
     strcat(path, getenv("HOME"));
-    strcat(path, "/.rlg327/");
-    strcat(path, fileName);
+    strcat(path, "/.rlg327/dungeon");
 
     // Open the file
     FILE *f = fopen(path, "r");
@@ -223,10 +222,9 @@ void saveFile(void) {
     numDownStrs = htons(numDownStrs);
 
     //Opens a path for the file
-    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) +  strlen("/.rlg327/") + strlen(fileName) + 1));
+    char *path = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) +strlen("/.rlg327/dungeon") + 1));
     strcat(path, getenv("HOME"));
-    strcat(path, "/.rlg327/");
-    strcat(path, fileName);
+    strcat(path, "/.rlg327/dungeon");
     FILE *f = NULL;
     f = fopen(path, "w");
     
@@ -276,7 +274,6 @@ void saveFile(void) {
     free(path);
     return;
 }
-
 /*
  Prints the dungeon to the terminal
  */

@@ -101,7 +101,7 @@ typedef enum {
 // Function prototypes
 void addRooms(void);
 void addStairs(void);
-void printDungeon(int showDist, int tunneling);
+void printDungeon(void);
 void addCorridors(void);
 void carveCorridor(int startX, int startY, int endX, int endY);
 void initImmutableRock(void);

@@ -26,7 +26,7 @@ string dirNames[8] = {
 };
 bool playerToMove = false;
 int monsterListScrollOffset = 0;
-cell_t targetingPointerPreviousCell = cell_t {' ', 0};
+cell_t targetingPointerPreviousCell = {' ', 0};
 
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
 const cell_t ROCK_CELL = {' ', 1};
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
             displayMonsterList();
         }
         else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
-            printDungeon(0, 0);
+            printDungeon();
             refresh();
         }
         checkGameConditions();
@@ -220,8 +220,6 @@ void teleportPlayer(bool randomTeleport) {
         displayMessage(message);
     }
     else {
-        // change to saving previous cell for PC after Shabbat that way we can
-        // save hardness aswell
         dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
         dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
         dungeon.getPC().setPosX(pointerPos.first);
@@ -307,7 +305,7 @@ void updateFogMap(void) {
     refresh();
 }
 
-void printDungeon(int showDist, int tunneling) {
+void printDungeon(void) {
     move(1, 0); // Move cursor to the second row (leaving the first for the message)
     for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
         move(y + 1, 0);
@@ -345,6 +343,7 @@ void printCharacter(int x, int y) {
     else {
         addch(dungeon.getMap()[y][x].ch);
     }
+
     refresh();
 }
 
@@ -765,121 +764,389 @@ void movePlayer(int key) {
     calculateDistances(1);
 }
 
+// Helper: returns the sign of x.
+inline int sign(int x) {
+    return (x > 0) - (x < 0);
+}
+
 void moveMonster(int index) {
-    if (!dungeon.getMonsters()[index].isAlive()) return;
+    // Do nothing if monster is not alive.
+    if (!dungeon.getMonsters()[index].isAlive())
+        return;
+        
     Monster *m = &dungeon.getMonsters()[index];
     int oldX = m->getPosX();
     int oldY = m->getPosY();
     int newX = oldX;
     int newY = oldY;
 
-    // Get monster attributes from bitfield
-    int isIntelligent = m->getMonsterBits() & (1 << 0);
-    int isTelepathic = m->getMonsterBits() & (1 << 1);
-    int isTunneling = m->getMonsterBits() & (1 << 2);
-    int isErratic = m->getMonsterBits() & (1 << 3);
-
-    // choose right distance map
-    int (*dist)[DUNGEON_WIDTH] = isTunneling ? dungeon.getTunnelingMap() : dungeon.getNonTunnelingMap();
-
-    bool randomErratic = rand() % 2 == 1;
-    // first we handle erraticness
-    if (isErratic && randomErratic) {// or 50% chance to move randomly if they are erratic
-        bool foundOpenCell = false;
-        while (!foundOpenCell) {
-            int randDY = rand() % 3 - 1; // either -1, 0, or 1 direction change to accomodate all 8 directions
-            int randDX = rand() % 3 - 1;
-            newY += randDY;
-            newX += randDX;
-            if (isTunneling) foundOpenCell = true;
-            else {
-                if (dungeon.getMap()[newY][newX].ch != ' ') { // we must put the non tunneling erratic monster randomly on non-rock
-                    foundOpenCell = true;
-                }
-            }
-        }
+    // For tunneling purposes.
+    bool isTunneling = (m->getMonsterBits() & (1 << 2)) != 0;
+    
+    // Get the monster's symbol.
+    char sym = m->getCell().ch;
+    
+    // For erratic monsters, we give a 50% chance to move randomly.
+    bool erraticRandom = false;
+    // (Check only for monsters whose symbol indicates erratic behavior.)
+    if (sym == '8' || sym == '9' || sym == 'a' || sym == 'b' ||
+        sym == 'c' || sym == 'd' || sym == 'e' || sym == 'f') {
+        erraticRandom = (rand() % 2 == 0);
     }
-    else {
-        // Intelligent/Unintelligent Movement
-        if (isIntelligent) {
-            // Intelligent Movement
+    
+    switch(sym) {
+        // --- Non-erratic monsters ---
+        case '0': {
+            // Characteristics: non-erratic, non-tunneling, non-telepathy, non-intelligent.
+            // Behavior: Move toward the PC ONLY if line-of-sight exists; move in a straight line.
+            if (!hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY()))
+                return;
+            newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+            newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            break;
+        }
+        case '1': {
+            // Characteristics: non-erratic, non-tunneling, non-telepathy, intelligent.
+            // Behavior: If line-of-sight exists, update last seen and use pathfinding (via non-tunneling map)
+            // to choose the neighbor with the lowest cost. Otherwise, if a last-seen position exists, use it.
             int targetX, targetY;
-
-            if (isTelepathic) {
-                // Telepathic: Always know PC's position
+            if (hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
                 targetX = dungeon.getPC().getPosX();
                 targetY = dungeon.getPC().getPosY();
+                m->setLastSeenPCX(targetX);
+                m->setLastSeenPCY(targetY);
             } else {
-                // Non-Telepathic: Check for line of sight
-                if (hasLineOfSight(m->getPosX(), m->getPosY(), dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
-                    targetX = dungeon.getPC().getPosX();
-                    targetY = dungeon.getPC().getPosY();
-                    m->setLastSeenPCX(targetX); // Update last seen position
-                    m->setLastSeenPCY(targetY);
+                if (m->getLastSeenPCX() != -1 && m->getLastSeenPCY() != -1) {
+                    targetX = m->getLastSeenPCX();
+                    targetY = m->getLastSeenPCY();
                 } else {
-                    // No line of sight: Move towards last seen position (if any)
-                    if (m->getLastSeenPCX() != -1 && m->getLastSeenPCY() != -1) { // Check if the last seen position is valid
-                        targetX = m->getLastSeenPCX();
-                        targetY = m->getLastSeenPCY();
-                    } else {
-                        return; // Don't update the monster position
-                    }
+                    return;
                 }
             }
-
-            // Pathfinding (using the appropriate distance map)
-            int best_dist = INT_MAX;
+            int best = INT_MAX;
+            // Use the non-tunneling distance map.
+            int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
             for (int dy = -1; dy <= 1; dy++) {
                 for (int dx = -1; dx <= 1; dx++) {
                     if (dx == 0 && dy == 0) continue;
-                    int nx = m->getPosX() + dx;
-                    int ny = m->getPosY() + dy;
-                    if (nx >= 1 && nx < DUNGEON_WIDTH - 1 && ny >= 1 && ny < DUNGEON_HEIGHT - 1) {
-                        if (dist[ny][nx] < best_dist) {
-                            best_dist = dist[ny][nx];
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    // Only consider passable cells.
+                    if (dungeon.getMap()[ny][nx].hardness > 0)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            break;
+        }
+        case '2': {
+            // Characteristics: non-erratic, non-tunneling, telepathy, non-intelligent.
+            // Behavior: Always knows PC's position; move straight-line (no LOS check).
+            newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+            newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            break;
+        }
+        case '3': {
+            // Characteristics: non-erratic, non-tunneling, telepathy, intelligent.
+            // Behavior: Always knows PC; use non-tunneling pathfinding (choose neighbor with lowest cost);
+            // update last seen.
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            m->setLastSeenPCX(dungeon.getPC().getPosX());
+            m->setLastSeenPCY(dungeon.getPC().getPosY());
+            break;
+        }
+        case '4': {
+            // Characteristics: non-erratic, tunneling, non-telepathy, non-intelligent.
+            // Behavior: Move in a straight line towards PC only if LOS exists.
+            if (!hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY()))
+                return;
+            newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+            newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            break;
+        }
+        case '5': {
+            // Characteristics: non-erratic, tunneling, non-telepathy, intelligent.
+            // Behavior: If LOS exists, update last seen and use tunneling pathfinding; else if last seen exists, use that.
+            int targetX, targetY;
+            if (hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
+                targetX = dungeon.getPC().getPosX();
+                targetY = dungeon.getPC().getPosY();
+                m->setLastSeenPCX(targetX);
+                m->setLastSeenPCY(targetY);
+            } else {
+                if (m->getLastSeenPCX() != -1 && m->getLastSeenPCY() != -1) {
+                    targetX = m->getLastSeenPCX();
+                    targetY = m->getLastSeenPCY();
+                } else {
+                    return;
+                }
+            }
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            break;
+        }
+        case '6': {
+            // Characteristics: non-erratic, tunneling, telepathy, non-intelligent.
+            // Behavior: Always knows PC; move straight-line.
+            newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+            newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            break;
+        }
+        case '7': {
+            // Characteristics: non-erratic, tunneling, telepathy, intelligent.
+            // Behavior: Always knows PC; use tunneling pathfinding; update last seen.
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            m->setLastSeenPCX(dungeon.getPC().getPosX());
+            m->setLastSeenPCY(dungeon.getPC().getPosY());
+            break;
+        }
+        // --- Erratic monsters (50% chance to move randomly) ---
+        case '8': {
+            // Characteristics: erratic, non-tunneling, non-telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '0'
+                if (!hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY()))
+                    return;
+                newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+                newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            }
+            break;
+        }
+        case '9': {
+            // Characteristics: erratic, non-tunneling, non-telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '1'
+                int targetX, targetY;
+                if (hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
+                    targetX = dungeon.getPC().getPosX();
+                    targetY = dungeon.getPC().getPosY();
+                    m->setLastSeenPCX(targetX);
+                    m->setLastSeenPCY(targetY);
+                } else {
+                    if (m->getLastSeenPCX() != -1 && m->getLastSeenPCY() != -1) {
+                        targetX = m->getLastSeenPCX();
+                        targetY = m->getLastSeenPCY();
+                    } else {
+                        return;
+                    }
+                }
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
                             newX = nx;
                             newY = ny;
                         }
                     }
                 }
             }
-
+            break;
         }
-        else {
-            int targetX = 0, targetY = 0;
-            bool canMove = false;
-
-            // Telepathic monsters always know PC location
-            if (isTelepathic) {
-                targetX = dungeon.getPC().getPosX();
-                targetY = dungeon.getPC().getPosY();
-                canMove = true;
-            }
-            
-            // Non-telepathic check line of sight
-            else if (hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
-                targetX = dungeon.getPC().getPosX();
-                targetY = dungeon.getPC().getPosY();
-                canMove = true;
-            }
-
-            if (canMove) {
-                // Straight-line movement logic
-                int dx = targetX - oldX;
-                int dy = targetY - oldY;
-
-                if (abs(dx) > abs(dy)) {
-                    newX += (dx > 0) ? 1 : -1;
-                } else {
-                    newY += (dy > 0) ? 1 : -1;
-                }
+        case 'a': {
+            // Characteristics: erratic, non-tunneling, telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
             } else {
-                return;
+                // Otherwise, act like monster '2'
+                newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+                newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
             }
+            break;
         }
+        case 'b': {
+            // Characteristics: erratic, non-tunneling, telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '3'
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+                m->setLastSeenPCX(dungeon.getPC().getPosX());
+                m->setLastSeenPCY(dungeon.getPC().getPosY());
+            }
+            break;
+        }
+        case 'c': {
+            // Characteristics: erratic, tunneling, non-telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '4'
+                if (!hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY()))
+                    return;
+                newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+                newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            }
+            break;
+        }
+        case 'd': {
+            // Characteristics: erratic, tunneling, non-telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '5'
+                int targetX, targetY;
+                if (hasLineOfSight(oldX, oldY, dungeon.getPC().getPosX(), dungeon.getPC().getPosY())) {
+                    targetX = dungeon.getPC().getPosX();
+                    targetY = dungeon.getPC().getPosY();
+                    m->setLastSeenPCX(targetX);
+                    m->setLastSeenPCY(targetY);
+                } else {
+                    if (m->getLastSeenPCX() != -1 && m->getLastSeenPCY() != -1) {
+                        targetX = m->getLastSeenPCX();
+                        targetY = m->getLastSeenPCY();
+                    } else {
+                        return;
+                    }
+                }
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case 'e': {
+            // Characteristics: erratic, tunneling, telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '6'
+                newX = oldX + sign(dungeon.getPC().getPosX() - oldX);
+                newY = oldY + sign(dungeon.getPC().getPosY() - oldY);
+            }
+            break;
+        }
+        case 'f': {
+            // Characteristics: erratic, tunneling, telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                // Otherwise, act like monster '7'
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+                m->setLastSeenPCX(dungeon.getPC().getPosX());
+                m->setLastSeenPCY(dungeon.getPC().getPosY());
+            }
+            break;
+        }
+        default:
+            return; // If symbol is not recognized, do nothing.
     }
+
+    // Finally, update the monster's position.
     updateMonsterPosition(index, oldX, oldY, newX, newY, m, isTunneling);
 }
+
 
 bool hasLineOfSight(int x1, int y1, int x2, int y2) {
     int dx = abs(x2 - x1);
@@ -1077,8 +1344,7 @@ void calculateDistances(int tunneling) {
     int pc_y = dungeon.getPC().getPosY();
     int pc_x = dungeon.getPC().getPosX();
     dist[pc_y][pc_x] = 0;
-    pq.insert(pc_y, pc_x, 0);
-    
+    pq.insert(pc_x, pc_y, 0);
 
     while (!pq.is_empty()) {
         pq_node_t node = pq.extract_min();
@@ -1099,7 +1365,7 @@ void calculateDistances(int tunneling) {
                 // Check passability
                 cell_t cell = dungeon.getMap()[ny][nx];
                 if (!tunneling && cell.hardness > 0) continue;  // Non-tunneler can't pass through rock
-                if (cell.hardness == IMMUTABLE_ROCK_CELL.hardness) continue;             // Immutable rock
+                if (cell.hardness == 255) continue;             // Immutable rock
 
                 // Calculate weight
                 int weight = 1;
@@ -1118,7 +1384,6 @@ void calculateDistances(int tunneling) {
     }
     pq.clear();
 }
-
 
 /*
  Initializes all the immutable rock and regular rock

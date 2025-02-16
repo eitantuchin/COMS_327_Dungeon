@@ -3,8 +3,8 @@
 using namespace std;
 
 // Constructor implementation
-Character::Character(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell)
-    : posX(x), posY(y), previousCharacter(prevChar), speed(speed), cell(cell) {}
+Character::Character(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell)
+: posX(x), posY(y), previousCell(previousCell), speed(speed), cell(cell) {}
 
 // Getter implementations
 uint8_t Character::getPosX() const {
@@ -15,8 +15,8 @@ uint8_t Character::getPosY() const {
     return posY;
 }
 
-char Character::getPreviousCharacter() const {
-    return previousCharacter;
+cell_t Character::getPreviousCell() const {
+    return previousCell;
 }
 
 uint8_t Character::getSpeed() const {
@@ -36,8 +36,8 @@ void Character::setPosY(uint8_t y) {
     posY = y;
 }
 
-void Character::setPreviousCharacter(char prevChar) {
-    previousCharacter = prevChar;
+void Character::setPreviousCell(cell_t prevCell) {
+    previousCell = prevCell;
 }
 
 void Character::setSpeed(uint8_t speed) {

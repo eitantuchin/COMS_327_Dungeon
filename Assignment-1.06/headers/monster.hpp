@@ -16,9 +16,9 @@ private:
 public:
     
     Monster()
-            : Character(0, 0, ' ', 0, cell_t()), monsterBits(0), lastSeenPCX(-1), lastSeenPCY(-1), alive(false) {}
+            : Character(0, 0, cell_t(), 0, cell_t()), monsterBits(0), lastSeenPCX(-1), lastSeenPCY(-1), alive(false) {}
     // Constructor
-    Monster(uint8_t x, uint8_t y, char prevChar, uint8_t speed, cell_t cell, uint8_t bits, int lastSeenX, int lastSeenY, bool isAlive);
+    Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint8_t bits, int lastSeenX, int lastSeenY, bool isAlive);
 
     // Getters
     uint8_t getMonsterBits() const;

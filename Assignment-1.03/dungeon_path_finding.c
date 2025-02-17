@@ -107,15 +107,17 @@ void printDungeon(int showDist, int tunneling) {
     printf("----------------------------------------------------------------------------------\n");
 }
 
-
+/*
+Use dijiktra's to calculate path finding
+*/
 void calculateDistances(int tunneling) {
     priority_queue_t *pq = pq_create(DUNGEON_HEIGHT * DUNGEON_WIDTH);
     int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
 
-    // Initialize distances.  Crucially, initialize to -1 to represent "infinity"
+    // Initialize distances.  initialize to -1 to represent "infinity"
     for (int y = 0; y < DUNGEON_HEIGHT; y++) {
         for (int x = 0; x < DUNGEON_WIDTH; x++) {
-            dist[y][x] = -1; // -1 now means infinity/unreachable
+            dist[y][x] = -1;
         }
     }
 
@@ -130,6 +132,9 @@ void calculateDistances(int tunneling) {
         int x = node.x;
         int y = node.y;
 
+        // Current cell
+        cell_t currentCell = dungeon.map[y][x]; 
+
         // Check all 8 neighbors
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
@@ -141,20 +146,20 @@ void calculateDistances(int tunneling) {
                 // Bounds check
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
 
-                // Check passability (same as before)
-                cell_t cell = dungeon.map[ny][nx];
-                if (!tunneling && cell.hardness > 0) continue;
-                if (cell.hardness == 255) continue;
+                // Check passability
+                cell_t neighborCell = dungeon.map[ny][nx];
+                if (!tunneling && neighborCell.hardness > 0) continue;
+                if (neighborCell.hardness == 255) continue;
 
-                // Calculate weight (same as before)
+                // Calculate weight 
                 int weight = 1;
-                if (tunneling && cell.hardness > 0) {
-                    weight = 1 + (cell.hardness / 85);
+                if (tunneling && currentCell.hardness > 0) { // Current cell's hardness
+                    weight = 1 + (currentCell.hardness / 85);
                 }
 
-                // Update distance.  The logic is now mirrored:
+                // Update distance.
                 int new_dist = dist[y][x] + weight;
-                if (dist[ny][nx] == -1 || new_dist < dist[ny][nx]) { // Check for "infinity" (-1)
+                if (dist[ny][nx] == -1 || new_dist < dist[ny][nx]) {
                     dist[ny][nx] = new_dist;
                     pq_insert(pq, nx, ny, new_dist);
                 }
@@ -163,6 +168,8 @@ void calculateDistances(int tunneling) {
     }
     pq_destroy(pq);
 }
+
+
 
 /*
  Initializes all the immutable rock and regular rock

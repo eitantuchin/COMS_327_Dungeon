@@ -10,6 +10,7 @@
 #include <ncurses.h>
 #include <sstream>
 #include <cmath>
+#include <memory>
 
 using namespace std;
 
@@ -109,6 +110,7 @@ int main(int argc, char *argv[])
     }
 
     // Cleanup
+    
     endwin();
     event_queue.clear();
     return 0;
@@ -507,7 +509,7 @@ void resetDungeonLevel(void) {
     dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
-
+    dungeon.getPC().setPreviousCell(ROOM_CELL);
     Dungeon();
                              
     // Clear and reset the event queue
@@ -589,47 +591,30 @@ void attack(int distance) {
 
     switch (dungeon.getPC().getCurrentDirection()) {
         case UP:
-            directionsToCheck[0] = UP;
-            directionsToCheck[1] = UP_LEFT;
-            directionsToCheck[2] = UP_RIGHT;
-            break;
+            directionsToCheck[0] = UP; directionsToCheck[1] = UP_LEFT;
+            directionsToCheck[2] = UP_RIGHT; break;
         case DOWN:
-            directionsToCheck[0] = DOWN;
-            directionsToCheck[1] = DOWN_LEFT;
-            directionsToCheck[2] = DOWN_RIGHT;
-            break;
+            directionsToCheck[0] = DOWN; directionsToCheck[1] = DOWN_LEFT;
+            directionsToCheck[2] = DOWN_RIGHT; break;
         case LEFT:
-            directionsToCheck[0] = LEFT;
-            directionsToCheck[1] = UP_LEFT;
-            directionsToCheck[2] = DOWN_LEFT;
-            break;
+            directionsToCheck[0] = LEFT; directionsToCheck[1] = UP_LEFT;
+            directionsToCheck[2] = DOWN_LEFT; break;
         case RIGHT:
-            directionsToCheck[0] = RIGHT;
-            directionsToCheck[1] = UP_RIGHT;
-            directionsToCheck[2] = DOWN_RIGHT;
-            break;
+            directionsToCheck[0] = RIGHT; directionsToCheck[1] = UP_RIGHT;
+            directionsToCheck[2] = DOWN_RIGHT; break;
         case UP_LEFT:
-            directionsToCheck[0] = UP_LEFT;
-            directionsToCheck[1] = UP;
-            directionsToCheck[2] = LEFT;
-            break;
+            directionsToCheck[0] = UP_LEFT; directionsToCheck[1] = UP;
+            directionsToCheck[2] = LEFT; break;
         case UP_RIGHT:
-            directionsToCheck[0] = UP_RIGHT;
-            directionsToCheck[1] = UP;
-            directionsToCheck[2] = RIGHT;
-            break;
+            directionsToCheck[0] = UP_RIGHT; directionsToCheck[1] = UP;
+            directionsToCheck[2] = RIGHT; break;
         case DOWN_LEFT:
-            directionsToCheck[0] = DOWN_LEFT;
-            directionsToCheck[1] = DOWN;
-            directionsToCheck[2] = LEFT;
-            break;
+            directionsToCheck[0] = DOWN_LEFT; directionsToCheck[1] = DOWN;
+            directionsToCheck[2] = LEFT; break;
         case DOWN_RIGHT:
-            directionsToCheck[0] = DOWN_RIGHT;
-            directionsToCheck[1] = DOWN;
-            directionsToCheck[2] = RIGHT;
-            break;
-        default:
-            return; // Invalid direction
+            directionsToCheck[0] = DOWN_RIGHT; directionsToCheck[1] = DOWN;
+            directionsToCheck[2] = RIGHT; break;
+        default: return; // Invalid direction
     }
 
     for (int i = 0; i < 3; i++) { // Check all three directions
@@ -638,35 +623,22 @@ void attack(int distance) {
 
         switch (directionsToCheck[i]) {
             case UP:
-                attackY -= distance;
-                break;
+                attackY -= distance; break;
             case DOWN:
-                attackY += distance;
-                break;
+                attackY += distance; break;
             case LEFT:
-                attackX -= distance;
-                break;
+                attackX -= distance; break;
             case RIGHT:
-                attackX += distance;
-                break;
+                attackX += distance; break;
             case UP_LEFT:
-                attackY -= distance;
-                attackX -= distance;
-                break;
+                attackY -= distance; attackX -= distance; break;
             case UP_RIGHT:
-                attackY -= distance;
-                attackX += distance;
-                break;
+                attackY -= distance; attackX += distance; break;
             case DOWN_LEFT:
-                attackY += distance;
-                attackX -= distance;
-                break;
+                attackY += distance; attackX -= distance; break;
             case DOWN_RIGHT:
-                attackY += distance;
-                attackX += distance;
-                break;
-            default:
-                break; // Invalid direction (shouldn't happen)
+                attackY += distance; attackX += distance; break;
+            default: break; // Invalid direction (shouldn't happen)
         }
 
         // Check if the position is valid and contains a monster
@@ -720,14 +692,12 @@ void movePlayer(int key) {
             newX++; newY++; dungeon.getPC().setCurrentDirection(DOWN_RIGHT); break;
         case KEY_END: case '1': case 'b':
             newX--; newY++; dungeon.getPC().setCurrentDirection(DOWN_LEFT); break;
-        case KEY_B2: case '5': case ' ': case '.':
-            // rest
-            break;
+        case KEY_B2: case '5': case ' ': case '.': break;
     }
     
     if (newY >= 0 && newY < DUNGEON_HEIGHT &&
         newX >= 0 && newX < DUNGEON_WIDTH &&
-        dungeon.getMap()[newY][newX].hardness == 0) {
+        dungeon.getMap()[newY][newX].hardness <= 0) {
         //gameOver = true;
         switch(dungeon.getPC().getPreviousCell().ch) {
             case '#':
@@ -764,7 +734,7 @@ void movePlayer(int key) {
     calculateDistances(1);
 }
 
-// Helper: returns the sign of x.
+
 inline int sign(int x) {
     return (x > 0) - (x < 0);
 }
@@ -1229,6 +1199,16 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
 }
 
 void checkGameConditions(void) {
+    char message[100];
+    // Check if we are standing on top of stairs
+    if (dungeon.getPC().getPreviousCell().ch == '<') {
+        snprintf(message, sizeof(message), "You are on upward stairs! Press < to go up a level!");
+        displayMessage(message);
+    }
+    else if (dungeon.getPC().getPreviousCell().ch == '>') {
+        snprintf(message, sizeof(message), "You are on downward stairs! Press > to go down a level!");
+        displayMessage(message);
+    }
     // Check PC death
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
         if (dungeon.getMonsters()[i].isAlive() &&
@@ -1350,6 +1330,9 @@ void calculateDistances(int tunneling) {
         pq_node_t node = pq.extract_min();
         int x = node.x;
         int y = node.y;
+        
+        
+        cell_t currentCell = dungeon.getMap()[y][x];
 
         // Check all 8 neighbors
         for (int dy = -1; dy <= 1; dy++) {
@@ -1363,14 +1346,14 @@ void calculateDistances(int tunneling) {
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
 
                 // Check passability
-                cell_t cell = dungeon.getMap()[ny][nx];
-                if (!tunneling && cell.hardness > 0) continue;  // Non-tunneler can't pass through rock
-                if (cell.hardness == 255) continue;             // Immutable rock
+                cell_t neighborCell = dungeon.getMap()[ny][nx];
+                if (!tunneling && neighborCell.hardness > 0) continue;  // Non-tunneler can't pass through rock
+                if (neighborCell.hardness == 255) continue;             // Immutable rock
 
                 // Calculate weight
                 int weight = 1;
-                if (tunneling && cell.hardness > 0) { // tunneler meets rock
-                    weight = 1 + (cell.hardness / 85);
+                if (tunneling && currentCell.hardness > 0) { // tunneler meets rock
+                    weight = 1 + (currentCell.hardness / 85);
                 }
 
                 // Update distance

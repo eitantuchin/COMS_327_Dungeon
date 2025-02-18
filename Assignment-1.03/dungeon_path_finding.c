@@ -122,10 +122,10 @@ void calculateDistances(int tunneling) {
     }
 
     // Start with PC position
-    int pc_y = dungeon.pc.posX;
-    int pc_x = dungeon.pc.posY;
-    dist[pc_x][pc_y] = 0;
-    pq_insert(pq, pc_y, pc_x, 0);
+    int pc_y = dungeon.pc.posY;
+    int pc_x = dungeon.pc.posX;
+    dist[pc_y][pc_x] = 0;
+    pq_insert(pq, pc_x, pc_y, 0);
 
     while (!pq_is_empty(pq)) {
         pq_node_t node = pq_extract_min(pq);
@@ -210,8 +210,8 @@ void addCorridors(void)
     for (int i = 0; i < roomCounter; ++i)
     {
         // init room centroids for all rooms
-        roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].height / 2;
-        roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].width / 2;
+        roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].width / 2;
+        roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].height / 2;
     }
 
     // find smallest distance
@@ -267,9 +267,9 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             xWentLast = false;
         }
 
-        if (dungeon.map[x][y].ch == ROCK_CELL.ch &&
-            dungeon.map[x][y].hardness < 255) {
-            dungeon.map[x][y] = CORRIDOR_CELL;
+        if (dungeon.map[y][x].ch == ROCK_CELL.ch &&
+            dungeon.map[y][x].hardness < 255) {
+            dungeon.map[y][x] = CORRIDOR_CELL;
         }
     }
 }
@@ -287,20 +287,20 @@ void addRooms(void)
         bool roomInserted = false;
         while (!roomInserted)
         {
-            int randX = rand() % (DUNGEON_HEIGHT - 2) + 1;
-            int randY = rand() % (DUNGEON_WIDTH - 2) + 1;
+            int randX = rand() % (DUNGEON_WIDTH - 2) + 1;
+            int randY = rand() % (DUNGEON_HEIGHT - 2) + 1;
             int randHeight = rand() % (MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT + 1) + MIN_ROOM_HEIGHT;
             int randWidth = rand() % (MAX_ROOM_WIDTH - MIN_ROOM_WIDTH + 1) + MIN_ROOM_WIDTH;
 
-            if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randWidth <= DUNGEON_WIDTH - 1)
+            if (randX + randWidth <= DUNGEON_WIDTH - 1 && randY + randHeight <= DUNGEON_HEIGHT - 1)
             {
                 bool validRoomPositionFound = true;
                 // ensure that we don't create the room where immutable rock lies
-                for (int i = randX - 2; i < randX + randHeight + 2; ++i)
+                for (int y = randY - 2; y < randY + randHeight + 2; ++y)
                 {
-                    for (int j = randY - 2; j < randY + randWidth + 2; ++j)
+                    for (int x = randX - 2; x < randX + randWidth + 2; ++x)
                     {
-                        if (dungeon.map[i][j].ch != ROCK_CELL.ch)
+                        if (dungeon.map[y][x].ch != ROCK_CELL.ch)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -318,11 +318,11 @@ void addRooms(void)
                     dungeon.rooms[roomCounter].posY = randY;
                     roomCounter++;
 
-                    for (int i = randX; i < randX + randHeight; ++i)
+                    for (int y = randY; y < randY + randHeight; ++y)
                     {
-                        for (int j = randY; j < randY + randWidth; ++j)
+                        for (int x = randX; x < randX + randWidth; ++x)
                         {
-                            dungeon.map[i][j] = ROOM_CELL;
+                            dungeon.map[y][x] = ROOM_CELL;
                         }
                     }
                     roomInserted = true;
@@ -344,10 +344,10 @@ void initPCPosition(void)
     int getY = room.posY;
     dungeon.pc.posX = getX + 2; // starting X position of the PC
     dungeon.pc.posY = getY + 2; // starting Y position of the PC
-    if (dungeon.map[dungeon.pc.posX][dungeon.pc.posY].ch != '<' ||
-        dungeon.map[dungeon.pc.posX][dungeon.pc.posY].ch != '>')
+    if (dungeon.map[dungeon.pc.posY][dungeon.pc.posX].ch != '<' ||
+        dungeon.map[dungeon.pc.posY][dungeon.pc.posX].ch != '>')
     {
-        dungeon.map[dungeon.pc.posX][dungeon.pc.posY] = PLAYER_CELL;
+        dungeon.map[dungeon.pc.posY][dungeon.pc.posX] = PLAYER_CELL;
     }
     else
     {
@@ -376,21 +376,21 @@ void addStairs(int numStairs)
         room_t room = dungeon.rooms[randomRoomNum];
         //printf("Room width is: %i \n", room.width);
         //printf("Room height is: %i \n", room.height);
-        int randomX = room.posX + rand() % room.height;
-        int randomY = room.posY + rand() % room.width;
+        int randomX = room.posX + rand() % room.width;
+        int randomY = room.posY + rand() % room.height;
         stair_t stair;
         stair.posX = randomX;
         stair.posY = randomY;
         if (dungeon.numUpwardsStairs + dungeon.numDownwardsStairs == 0)
         {
-            dungeon.map[randomX][randomY] = UPWARD_STAIRS_CELL;
+            dungeon.map[randomY][randomX] = UPWARD_STAIRS_CELL;
             dungeon.upwardStairs[dungeon.numUpwardsStairs] = stair;
             dungeon.numUpwardsStairs++;
         }
         // ensure at least one downwards stairs is inside the dungeon
         else if (dungeon.numUpwardsStairs + dungeon.numDownwardsStairs == 1)
         {
-            dungeon.map[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+            dungeon.map[randomY][randomX] = DOWNWARD_STAIRS_CELL;
             dungeon.downwardStairs[dungeon.numDownwardsStairs] = stair;
             dungeon.numDownwardsStairs++;
         }
@@ -398,12 +398,12 @@ void addStairs(int numStairs)
         {
             int randomStairCaseDirection = rand() % 2 + 1;
             if (randomStairCaseDirection == 1) {
-                dungeon.map[randomX][randomY] = UPWARD_STAIRS_CELL;
+                dungeon.map[randomY][randomX] = UPWARD_STAIRS_CELL;
                 dungeon.upwardStairs[dungeon.numUpwardsStairs] = stair;
                 dungeon.numUpwardsStairs++;
             }
             else {
-                dungeon.map[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+                dungeon.map[randomY][randomX] = DOWNWARD_STAIRS_CELL;
                 dungeon.downwardStairs[dungeon.numDownwardsStairs] = stair;
                 dungeon.numDownwardsStairs++;
             }
@@ -508,13 +508,13 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numRooms; i++) {
         fread(&dungeon.rooms[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.rooms[i].posY, sizeof(uint8_t), 1, f);
-        fread(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
         fread(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
+        fread(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
 
 
         // Mark room cells on the map
-        for (int n = dungeon.rooms[i].posX; n < dungeon.rooms[i].posX + dungeon.rooms[i].height; n++) {
-            for (int m = dungeon.rooms[i].posY; m < dungeon.rooms[i].posY + dungeon.rooms[i].width; m++) {
+        for (int y = dungeon.rooms[i].posY; y < dungeon.rooms[i].posY + dungeon.rooms[i].height; y++) {
+            for (int x = dungeon.rooms[i].posX; x < dungeon.rooms[i].posX + dungeon.rooms[i].width; x++) {
                 /*if (n >= DUNGEON_WIDTH || m >= DUNGEON_HEIGHT) {
                     printf("Room exceeds dungeon bounds: Room %d at (%d,%d)\n", i, n, m);
                     fclose(f);
@@ -522,8 +522,8 @@ void loadFile(void){
                     return;
                 }
                  */
-                if (dungeon.map[m][n].ch != '@') {
-                    dungeon.map[m][n] = ROOM_CELL;
+                if (dungeon.map[y][x].ch != '@') {
+                    dungeon.map[y][x] = ROOM_CELL;
                 }
             }
         }
@@ -603,8 +603,8 @@ void saveFile(void) {
     fwrite(&versionNum, sizeof(uint32_t), 1, f);
     fwrite(&fileSize, sizeof(uint32_t), 1, f);
 
-    fwrite(&dungeon.pc.posY, sizeof(uint8_t), 1, f);
     fwrite(&dungeon.pc.posX, sizeof(uint8_t), 1, f);
+    fwrite(&dungeon.pc.posY, sizeof(uint8_t), 1, f);
     
     for (int y = 0; y < DUNGEON_HEIGHT; y++)
     {
@@ -617,8 +617,8 @@ void saveFile(void) {
     //Writes number of rooms, locations and sizes
     fwrite(&numRooms, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numRooms; ++i){
-        fwrite(&dungeon.rooms[i].posY, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].posX, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.rooms[i].posY, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
     }
@@ -626,13 +626,13 @@ void saveFile(void) {
     // Writes numer of upward and downward stairs
     fwrite(&numUpStrs, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numUpwardsStairs; ++i) {
-        fwrite(&dungeon.upwardStairs[i].posY, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.upwardStairs[i].posY, sizeof(uint8_t), 1, f);
     }
     fwrite(&numDownStrs, sizeof(uint16_t), 1, f);
     for(int i = 0; i < dungeon.numDownwardsStairs; ++i) {
-        fwrite(&dungeon.downwardStairs[i].posY, sizeof(uint8_t), 1, f);
         fwrite(&dungeon.downwardStairs[i].posX, sizeof(uint8_t), 1, f);
+        fwrite(&dungeon.downwardStairs[i].posY, sizeof(uint8_t), 1, f);
     }
     fclose(f);
     free(path);

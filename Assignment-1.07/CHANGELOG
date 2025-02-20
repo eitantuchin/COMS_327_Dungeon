@@ -113,7 +113,7 @@ Bugs Discovered
 Functionalities Added
     - Added movePlayer, checkKeyInput, and checkMonsterPlacementToPC functions
 Functionalities Changed
-    - The player is now controlled by key input 
+    - The player is now controlled by key input
     - Monsters can now only spawn 3 spaces at minimum away from the PC to give the PC from breathing room
     - We no longer display the dungeon border
 Bug Fixes
@@ -170,13 +170,13 @@ Bugs Discovered
 
 02/01/2025
 Functionalities Added
-    - Added a monster struct 
+    - Added a monster struct
     - Added monsters array to dungeon
     - Began working on initializing monsters
     - Added ncurses library
     - Added --nummon switch
 Functionalities Changed
-    - Removed any player movement 
+    - Removed any player movement
     - Modified player struct to have speed value
 Bug Fixes
     - Fixed monster being inserted on invalid cell
@@ -208,11 +208,11 @@ Functionalities Added
 Functionalities Changed
     - None just working on PQ
 Bug Fixes
-    - Fixed node is not being bubbled up 
+    - Fixed node is not being bubbled up
     - Fixed wrong node is being extracted
     - Fixed node is being inserted in the wrong position in the PQ
 Bugs Discovered
-    - Node is not being bubbled up 
+    - Node is not being bubbled up
     - Wrong node is being extracted
     - Node is being inserted in the wrong position in the PQ
 

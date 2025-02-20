@@ -4,6 +4,7 @@
 #include "../headers/pc.hpp"
 #include "../headers/character.hpp"
 #include "../headers/priority_queue.h"
+#include "../headers/parse.hpp"
 #include <array>
 #include <string>
 #include <cstring>
@@ -49,17 +50,10 @@ int main(int argc, char *argv[])
     dungeon.setUpwardStairs(vector<stair_t>(3));
     dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setModeType(PLAYER_CONTROL);
-
+    
     srand((unsigned int) time(NULL));
-
-    // Initialize ncurses
-    initscr(); // Start ncurses mode
-    cbreak();  // Disable line buffering
-    noecho();  // Don't display typed characters
-    keypad(stdscr, TRUE); // Enable special keys (like arrow keys)
-    curs_set(0);  // Hide cursor
-    nodelay(stdscr, TRUE);
-
+    
+    
     // Make a dungeon but no saving or loading
     if (argv[1] == NULL) {
         int numMonsters = rand() % (10 - MIN_NUM_MONSTERS + 1) + MIN_NUM_MONSTERS;
@@ -67,16 +61,41 @@ int main(int argc, char *argv[])
         dungeon.setMonsters(vector<Monster>(dungeon.getNumMonsters()));
         generateDungeon();
     }
-    else if (strcmp(argv[1], "--nummon") == 0) {
+    else if (strcmp(argv[1], "--nummon") == 0 && argv[2] != NULL) {
         int numMonsters = atoi(argv[2]);
         dungeon.setNumMonsters(numMonsters);
         dungeon.setMonsters(vector<Monster>(dungeon.getNumMonsters()));
         generateDungeon();
     }
-    else {
-        printf("Unsupported command configuration: Please use either --nummon or no switch.\n");
+    else if (strcmp(argv[1], "--nummon") == 0 && argv[2] == NULL) {
+        printf("When using --nummon switch you must provide an integer amount for monsters like --nummon x, where x is an integer.\n");
         return 0;
     }
+    else if (strcmp(argv[1], "--parse") == 0 && strcmp(argv[2], "-m") == 0) {
+        readMonsters();
+        return 0;
+    }
+    else if (strcmp(argv[1], "--parse") == 0 && strcmp(argv[2], "-o") == 0) {
+        readObjects();
+        return 0;
+    }
+    else if (strcmp(argv[1], "--parse") == 0 && argv[2] == NULL) {
+        printf("When using --parse switch you must provide chars o or m, o for objects descriptions and m for monster descriptions. Usage is like --parse -o or --parse -m.\n");
+        return 0;
+    }
+    
+    else {
+        printf("Unsupported command configuration: Please use either --nummon, --parse {-o or -m}, or no switch.\n");
+        return 0;
+    }
+    
+    // Initialize ncurses
+    initscr(); // Start ncurses mode
+    cbreak();  // Disable line buffering
+    noecho();  // Don't display typed characters
+    keypad(stdscr, TRUE); // Enable special keys (like arrow keys)
+    curs_set(0);  // Hide cursor
+    nodelay(stdscr, TRUE);
 
     calculateDistances(0);  // Non-tunneling
     calculateDistances(1);  // Tunneling

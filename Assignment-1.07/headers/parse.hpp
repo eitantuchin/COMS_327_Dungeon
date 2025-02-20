@@ -39,7 +39,11 @@ typedef struct monsterDesc {
   string RRTY;
 } monsterDesc_t;
 
-
+bool isValidColor(const string& color);
+bool isValidAbility(const string& ability);
+bool isValidDiceFormat(const string& value);
+bool isInteger(const string& str);
+bool isValidType(const string& type);
 void printMonsterDesciption(monsterDesc_t *description);
 void readMonsters(void);
 bool isMonsterDescriptionValid(monsterDesc_t description);

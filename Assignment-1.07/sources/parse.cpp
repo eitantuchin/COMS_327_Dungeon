@@ -16,8 +16,55 @@
 #include <fstream>
 #include <cstring>
 #include <iostream>
+#include <regex>
+#include <sstream>
+#include <set>
 
 using namespace std;
+
+bool isValidColor(const string& color) {
+    static const set<string> validColors = {"RED", "GREEN", "BLUE", "CYAN", "YELLOW", "MAGENTA", "WHITE", "BLACK"};
+    stringstream ss(color);
+    string token;
+    while (ss >> token) {
+        if (validColors.find(token) == validColors.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isValidAbility(const string& ability) {
+    static const set<string> validAbilities = {"UNIQ", "ERRATIC", "DESTROY", "TUNNEL", "BOSS", "TELE", "SMART", "PICKUP", "PASS"};
+    stringstream ss(ability);
+    string token;
+    while (ss >> token) {
+        if (validAbilities.find(token) == validAbilities.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isValidDiceFormat(const string& value) {
+    return regex_match(value, regex(R"(^\d+\+\d+d\d+$)"));
+}
+
+bool isInteger(const string& str) {
+    return regex_match(str, regex(R"(^\d+$)"));
+}
+
+bool isValidType(const string& type) {
+    static const set<string> validTypes = {"WEAPON", "ARMOR", "BOOTS", "HELMET", "OFFHAND", "CLOAK", "RING", "GLOVES", "LIGHT", "AMULET"};
+    stringstream ss(type);
+    string token;
+    while (ss >> token) {
+        if (validTypes.find(token) == validTypes.end()) {
+            return false;
+        }
+    }
+    return true;
+}
 
 void printMonsterDesciption(monsterDesc_t desc) {
   cout << desc.NAME << '\n';
@@ -80,7 +127,7 @@ void readMonsters(void) {
                   }
                   else{
                       try {
-                          description.DESC = curLine.substr(0, 77) + '\n';
+                          description.DESC += curLine.substr(0, 77) + '\n';
                       }
                       catch (const out_of_range& e) {
                           continue;
@@ -95,7 +142,7 @@ void readMonsters(void) {
       else if(curLine.substr(0, 5) == "COLOR") {
         if(description.COLOR == ""){
             try {
-                description.COLOR = curLine.substr(5, curLine.length());
+                description.COLOR = curLine.substr(6, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -108,7 +155,7 @@ void readMonsters(void) {
       else if(curLine.substr(0, 5) == "SPEED") {
         if(description.SPEED == ""){
             try {
-                description.SPEED = curLine.substr(5, curLine.length());
+                description.SPEED = curLine.substr(6, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -134,7 +181,7 @@ void readMonsters(void) {
       else if(curLine.substr(0, 2) == "HP") {
         if(description.HP == ""){
             try {
-                description.HP = curLine.substr(5, curLine.length());
+                description.HP = curLine.substr(3, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -147,7 +194,7 @@ void readMonsters(void) {
       else if(curLine.substr(0, 3) == "DAM") {
         if(description.DAM == ""){
             try {
-                description.DAM = curLine.substr(5, curLine.length());
+                description.DAM = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -189,12 +236,44 @@ void readMonsters(void) {
 }
 
 bool isMonsterDescriptionValid(monsterDesc_t description) {
-    return !(description.NAME.empty() || description.DESC.empty() ||
-             description.ABIL.empty() || description.COLOR.empty() ||
-             description.DAM.empty()  || description.HP.empty() ||
-             description.RRTY.empty() || description.SPEED.empty() ||
-             description.SYMB.empty());
+    if (description.NAME.empty() || description.DESC.empty() ||
+        description.ABIL.empty() || description.COLOR.empty() ||
+        description.DAM.empty()  || description.HP.empty() ||
+        description.RRTY.empty() || description.SPEED.empty() ||
+        description.SYMB.empty()) {
+        return false;
+    }
+
+    // Ensure SYMB is only one character
+    if (description.SYMB.length() != 1) {
+        return false;
+    }
+
+    // Validate COLOR values
+    if (!isValidColor(description.COLOR)) {
+        return false;
+    }
+
+    // Validate SPEED, DAM, HP formats
+    if (!isValidDiceFormat(description.SPEED) ||
+        !isValidDiceFormat(description.DAM) ||
+        !isValidDiceFormat(description.HP)) {
+        return false;
+    }
+
+    // Validate ABILITY values
+    if (!isValidAbility(description.ABIL)) {
+        return false;
+    }
+
+    // Validate RRTY is an integer
+    if (!isInteger(description.RRTY)) {
+        return false;
+    }
+
+    return true;
 }
+
 
 void printObjectDesciption(objectDesc_t description) {
   cout << description.NAME << '\n';
@@ -262,7 +341,7 @@ void readObjects(void) {
                   }
                   else{
                       try {
-                          description.DESC = curLine.substr(0, 77) + '\n';
+                          description.DESC += curLine.substr(0, 77) + '\n';
                       }
                       catch (const out_of_range& e) {
                           continue;
@@ -290,7 +369,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 5) == "COLOR") {
         if(description.COLOR == ""){
             try {
-                description.COLOR = curLine.substr(5, curLine.length());
+                description.COLOR = curLine.substr(6, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -303,7 +382,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 3) == "HIT") {
         if(description.HIT == ""){
             try {
-                description.HIT = curLine.substr(5, curLine.length());
+                description.HIT = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -316,7 +395,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 3) == "DAM") {
         if(description.DAM == ""){
             try {
-                description.DAM = curLine.substr(5, curLine.length());
+                description.DAM = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -329,7 +408,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 5) == "DODGE") {
         if(description.DODGE == ""){
             try {
-                description.DODGE = curLine.substr(5, curLine.length());
+                description.DODGE = curLine.substr(6, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -342,7 +421,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 3) == "DEF") {
         if(description.DEF == ""){
             try {
-                description.DEF = curLine.substr(5, curLine.length());
+                description.DEF = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -355,7 +434,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 6) == "WEIGHT") {
         if(description.WEIGHT == ""){
             try {
-                description.WEIGHT = curLine.substr(5, curLine.length());
+                description.WEIGHT = curLine.substr(7, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -368,7 +447,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 5) == "SPEED") {
         if(description.SPEED == ""){
             try {
-                description.SPEED = curLine.substr(5, curLine.length());
+                description.SPEED = curLine.substr(6, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -394,7 +473,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 3) == "VAL") {
         if(description.VAL == ""){
             try {
-                description.VAL = curLine.substr(5, curLine.length());
+                description.VAL = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -407,7 +486,7 @@ void readObjects(void) {
       else if(curLine.substr(0, 3) == "ART") {
         if(description.ART == ""){
             try {
-                description.ART = curLine.substr(5, curLine.length());
+                description.ART = curLine.substr(4, curLine.length());
             }
             catch (const out_of_range& e) {
                 continue;
@@ -437,11 +516,44 @@ void readObjects(void) {
 }
 
 bool isObjectDescriptionValid(objectDesc_t description) {
-    return !(description.NAME.empty() || description.DESC.empty() ||
+   if (description.NAME.empty() || description.DESC.empty() ||
              description.TYPE.empty() || description.COLOR.empty() ||
              description.HIT.empty() || description.DAM.empty() ||
              description.DODGE.empty() || description.DEF.empty() ||
              description.WEIGHT.empty() || description.SPEED.empty() ||
              description.ATTR.empty() || description.VAL.empty() ||
-             description.ART.empty() || description.RRTY.empty());
+       description.ART.empty() || description.RRTY.empty()) {
+       return false;
+   }
+    
+
+    if (!isValidDiceFormat(description.SPEED) ||
+        !isValidDiceFormat(description.DAM) ||
+        !isValidDiceFormat(description.WEIGHT) ||
+        !isValidDiceFormat(description.HIT) ||
+        !isValidDiceFormat(description.ATTR) ||
+        !isValidDiceFormat(description.VAL) ||
+        !isValidDiceFormat(description.DODGE) ||
+        !isValidDiceFormat(description.DEF)) {
+        return false;
+    }
+
+    if (!isValidType(description.TYPE)) {
+        return false;
+    }
+    
+    if (!isValidColor(description.COLOR)) {
+        return false;
+    }
+
+    // Validate RRTY is an integer
+    if (!isInteger(description.RRTY)) {
+        return false;
+    }
+    
+    if (!(description.ART == "TRUE" || description.ART == "FALSE")) {
+        return false;
+    }
+    
+    return true;
 }

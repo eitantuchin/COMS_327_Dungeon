@@ -1,3 +1,32 @@
+--ASSIGNMENT 1.07 CHANGELOGS BELOW--
+
+02/20/2025
+Functionalities Added
+    - Added check for correct values for values in file
+    - Added check for duplicate or missing values
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed only the last line of the description is being printed out
+    - Fixed other values are not being printed out correctly after adding check for missing values
+Bugs Discovered
+    - Only the last line of the description is being printed out
+    - Other values are not being printed out correctly after adding check for missing values
+
+02/19/2025
+Functionalities Added
+    - Added monsterDedc and objectDesc structs for storing values of monsters and objects
+    - Added parse.cpp and parse.hpp 
+    - Added functionality to parse through the files and get the input and print it out
+Functionalities Changed
+    - main now has --parse -m and --parse -o input support 
+Bug Fixes
+    - Fixed only the first item is being printed out
+    - Fixed problems with printing out output
+Bugs Discovered
+    - Only the first item is being printed out
+    - Problems with printing out output
+
 --ASSIGNMENT 1.06 CHANGELOGS BELOW--
 
 02/18/2025

@@ -16,10 +16,10 @@ Bugs Discovered
 02/19/2025
 Functionalities Added
     - Added monsterDedc and objectDesc structs for storing values of monsters and objects
-    - Added parse.cpp and parse.hpp 
+    - Added parse.cpp and parse.hpp
     - Added functionality to parse through the files and get the input and print it out
 Functionalities Changed
-    - main now has --parse -m and --parse -o input support 
+    - main now has --parse -m and --parse -o input support
     - Makefile now has parse.cpp
 Bug Fixes
     - Fixed only the first item is being printed out
@@ -42,15 +42,15 @@ Bugs Discovered
 
 02/17/2025
 Functionalities Added
-    - Added random and deliberate teleporting 
+    - Added random and deliberate teleporting
 Functionalities Changed
     - N/A
 Bug Fixes
     - Fixed player is being teleported outside of dungeon
-    - Fixed when player is being teleported on top of monster it doesn't die 
+    - Fixed when player is being teleported on top of monster it doesn't die
 Bugs Discovered
     - Player is being teleported outside of dungeon
-    - When player is being teleported on top of monster it doesn't die 
+    - When player is being teleported on top of monster it doesn't die
 
 02/14/2025
 Functionalities Added
@@ -70,7 +70,7 @@ Bugs Discovered
 02/13/2025
 Functionalities Added
     - Created all of the getter and setters for the dungeon, pc, monster, and character classes
-    - Implemented inheritance 
+    - Implemented inheritance
     - Organized files into headers and sources folders
 Functionalities Changed
     - Updated Makefile for CPP
@@ -324,3 +324,4 @@ Bugs Discovered
     - Illegal corridors are being generated
 
 --BEGIN CHANGELOG FOR DUNGEON ASSIGNMENT--
+

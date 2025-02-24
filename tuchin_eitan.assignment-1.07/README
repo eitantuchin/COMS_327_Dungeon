@@ -1,0 +1,47 @@
+To run:
+    Use "make" to compile executable dungeon game.
+    Use "./dungeon_game --parse -m" to parse monster_desc.txt file and print out output.
+    Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
+    Use "./dungeon_game" to start a new dungeon game.
+    Use "./dungeon_game --nummon x" to start a new dungeon game with x amount of monsters.
+
+New/Updated Files:
+   parse.cpp:
+        -  contains all of the logic for parsing files and printing out output
+   parse.hpp:
+        -  is the framework for parse.cpp
+
+New/Updated Data Structures:
+    objectDesc:
+        - A struct that contains all the attributes of an object
+    monsterDesc:
+        - A struct that contains all the attributes of a monster
+
+New/Updated Functions:
+    main:
+        - Now includes support for --parse -o and --parse -m inputs in the command line
+    bool isValidColor(const string& color):
+        - Checks if the monster or object has a supported color
+    bool isValidAbility(const string& ability):
+        - Checks if the monster's abilities are all supported in the game
+    bool isValidDiceFormat(const string& value):    
+        - Checks if the format for attributes that use the dice system is correct
+    bool isInteger(const string& str):
+        - Checks if attributes that contain an integer value are indeed integers
+    bool isValidType(const string& type):
+        - Checks if the object's type is supported in the game
+    void printMonsterDesciption(monsterDesc_t *description):
+        - Prints out a description of a monster
+    void readMonsters(void):
+        - Parses the monsterDesc.txt file 
+    bool isMonsterDescriptionValid(monsterDesc_t description):
+        - Checks if the description of a monster is valid
+    void printObjectDesciption(objectDesc_t *description):
+        - Prints out a description of an object
+    void readObjects(void):
+        - Parses the objectDesc.txt file 
+    bool isObjectDescriptionValid(objectDesc_t description):
+        - Checks if the description of an object is valid
+
+
+    

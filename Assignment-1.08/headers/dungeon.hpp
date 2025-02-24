@@ -6,8 +6,22 @@
 #include "pc.hpp"
 #include "item.hpp"
 #include <vector>
+#include <unordered_map>
+#include <functional> // For std::hash
 
 using namespace std;
+
+// Specialize std::hash for std::pair<int, int>
+namespace std {
+    template <>
+    struct hash<pair<int, int>> {
+        std::size_t operator()(const pair<int, int>& p) const {
+            std::size_t h1 = std::hash<int>{}(p.first);
+            std::size_t h2 = std::hash<int>{}(p.second);
+            return h1 ^ (h2 << 1); // Combine hashes
+        }
+    };
+}
 
 class Dungeon {
 private:
@@ -21,10 +35,14 @@ private:
     uint16_t numDownwardsStairs;               // Number of downward stairs
     int nonTunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]; // Distance map for non-tunneling monsters
     int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];    // Distance map for tunneling monsters
+    int nonTunnelingPassMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];    // Distance map for tunneling monsters
     vector<Monster> monsters;             // List of monsters in the dungeon
     uint16_t numMonsters;                      // Number of monsters
     mode_type_t modeType;                      // Current mode of the dungeon (e.g., player control, monster list)
     vector<Item> dungeonItems;
+    unordered_map<pair<int, int>, vector<Item>> itemLocationsAndPriorities;
+    
+
 public:
     // Constructor
     Dungeon();
@@ -40,10 +58,12 @@ public:
     uint16_t getNumDownwardsStairs();
     int (&getNonTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     int (&getTunnelingMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
+    int (&getNonTunnelingPassMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     vector<Monster>& getMonsters();
     uint16_t getNumMonsters();
     mode_type_t getModeType();
     vector<Item>& getDungeonItems();
+    unordered_map<pair<int, int>, vector<Item>>& getItemLocationsAndPriorities();
 
     // Setters
     void setRooms(const vector<room_t>& newRooms);
@@ -59,3 +79,14 @@ public:
     void setDungeonItems(vector<Item> newItems);
 };
 
+void addRooms(void);
+void addStairs(void);
+void initItems(void);
+void addCorridors(void);
+void carveCorridor(int startX, int startY, int endX, int endY);
+void initImmutableRock(void);
+void initPCPosition(void);
+void initMonsters(void);
+void generateDungeon(void);
+void useStairs(int key);
+void resetDungeonLevel(void);

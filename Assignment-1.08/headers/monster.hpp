@@ -35,4 +35,8 @@ public:
 };
 
 string getMonsterPositionString(int monsterIndex);
-
+void displayMonsterList(void);
+bool checkMonsterPlacementToPC(int randX, int randY);
+void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling);
+void moveMonster(int index);
+bool hasLineOfSight(int x1, int y1, int x2, int y2);

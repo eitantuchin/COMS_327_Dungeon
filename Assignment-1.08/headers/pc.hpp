@@ -26,3 +26,7 @@ public:
     // Additional methods specific to PC can be added here
 };
 
+void teleportPlayer(bool randomTeleport);
+void changeDirection(bool clockwise, bool justChangeText);
+void attack(int distance);
+void movePlayer(int key);

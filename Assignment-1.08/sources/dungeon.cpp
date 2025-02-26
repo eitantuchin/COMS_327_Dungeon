@@ -160,16 +160,16 @@ void initItems(void) {
     while (itemsInserted != numItems) {
         int randIndex = rand() % items.size();
         int randRarity = rand() % 100;
-        char symbol = getSymbolFromType(items[randIndex].getType());
         if (items[randIndex].isEligible() && items[randIndex].getRarity() < randRarity) {
             if ((items[randIndex].isArtifact() && !contains(indexesOfItemArtifactsInserted, randIndex)) || !items[randIndex].isArtifact()) {
                 if (items[randIndex].isArtifact()) {
                     indexesOfItemArtifactsInserted.push_back(randIndex);
                 }
+                char symbol = getSymbolFromType(items[randIndex].getType());
                 dungeon.getMap()[items[randIndex].getPosY()][items[randIndex].getPosX()] = cell_t { symbol, -2 }; // -2 hardness is unique to objects
                 itemsInserted++;
                 dungeonItems.push_back(items[randIndex]);
-                
+                // add the coordinate to item vector pair to the hashmap
                 pair<int, int> itemLocation = {items[randIndex].getPosY(), items[randIndex].getPosX()};
                 vector<Item> temp;
                 temp.push_back(items[randIndex]);
@@ -181,47 +181,28 @@ void initItems(void) {
 }
 
 void initMonsters(void) {
-    // add monsters to array
-    vector<Monster> monsters(dungeon.getNumMonsters());
-    for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
-        Monster monster;
-        bool isErratic = rand() % 2 == 1;
-        bool isTunneling = rand() % 2 == 1;
-        bool isIntelligent = rand() % 2 == 1;
-        bool isTelepathic = rand() % 2 == 1;
-        uint8_t monsterBits = 0;
-        if (isIntelligent) monsterBits |= (1 << 0); // Set bit 0 for intelligence
-        if (isTelepathic) monsterBits |= (1 << 1);  // Set bit 1 for telepathy
-        if (isTunneling) monsterBits |= (1 << 2);   // Set bit 2 for tunneling
-        if (isErratic) monsterBits |= (1 << 3);     // Set bit 3 for erratic behavior
-        monster.setMonsterBits(monsterBits);
-        monster.setSpeed(rand() % 16 + 5);
-        monster.setCell(cell_t {"0123456789abcdef"[monsterBits], -1}); // monsters have hardness -1 which is unique to them
-        monster.setAlive(true);
-        monster.setLastSeenPCX(-1); // Initialize last seen position
-        monster.setLastSeenPCY(-1);
-        
-        monsters[i] = monster;
-    }
-    dungeon.setMonsters(monsters);
-    
-    // initialize positions of monsters
-    
-    for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
-        bool foundPosition = false;
-        while (!foundPosition) {
-            int randY = rand() % DUNGEON_HEIGHT - 2;
-            int randX = rand() % DUNGEON_WIDTH - 2;
-            bool pcFarAwayEnough = checkMonsterPlacementToPC(randX, randY);
-            if ((dungeon.getMap()[randY][randX].ch == '.' || dungeon.getMap()[randY][randX].ch == '#') && pcFarAwayEnough) {
-                dungeon.getMonsters()[i].setPosX(randX);
-                dungeon.getMonsters()[i].setPosY(randY);
-                dungeon.getMonsters()[i].setPreviousCell(dungeon.getMap()[randY][randX]);
-                dungeon.getMap()[randY][randX] = dungeon.getMonsters()[i].getCell();
-                foundPosition = true;
+    vector<Monster> monsters = monsterFactory();
+    vector<Monster> dungeonMonsters;
+    int monstersInserted = 0;
+    vector<int> indexesOfUniqueMonstersInserted;
+    while (monstersInserted != dungeon.getNumMonsters()) {
+        int randIndex = rand() % monsters.size();
+        int randRarity = rand() % 100;
+        if (monsters[randIndex].isEligible() && monsters[randIndex].getRarity() < randRarity) {
+            // if the monster is unique and hasn't been inserted yet or if the monster isn't unique
+            bool isUnique = contains(monsters[randIndex].getAbilities(), string("UNIQ"));
+            if ((isUnique && !contains(indexesOfUniqueMonstersInserted, randIndex)) || !isUnique) {
+                if (isUnique) {
+                    indexesOfUniqueMonstersInserted.push_back(randIndex);
+                }
+                dungeon.getMap()[monsters[randIndex].getPosY()][monsters[randIndex].getPosX()] = monsters[randIndex].getCell();
+                monstersInserted++;
+                dungeonMonsters.push_back(monsters[randIndex]);
             }
         }
+        
     }
+    dungeon.setMonsters(dungeonMonsters);
 }
 
 
@@ -340,8 +321,8 @@ void initImmutableRock(void)
  */
 void addCorridors(void)
 {
-    int roomCentroids[dungeon.getRooms().size()][2];
-    for (int i = 0; i < dungeon.getRooms().size(); ++i)
+    int roomCentroids[dungeon.getNumRooms()][2];
+    for (int i = 0; i < dungeon.getNumRooms(); ++i)
     {
         // init room centroids for all rooms
         roomCentroids[i][0] = dungeon.getRooms()[i].posX + dungeon.getRooms()[i].width / 2;
@@ -349,7 +330,7 @@ void addCorridors(void)
     }
 
     // find smallest distance
-    for (int i = 1; i < dungeon.getRooms().size(); ++i)
+    for (int i = 1; i < dungeon.getNumRooms(); ++i)
     {
         int minDist = DUNGEON_HEIGHT * DUNGEON_WIDTH;
         int closestRoomIndex = 0;
@@ -415,7 +396,6 @@ void addRooms(void)
 {
     dungeon.setNumRooms(rand() % (MAX_NUM_ROOMS - MIN_NUM_ROOMS + 1) + MIN_NUM_ROOMS);
     int counter = 0;
-
     while (counter != dungeon.getNumRooms())
     {
         bool roomInserted = false;
@@ -488,10 +468,9 @@ void resetDungeonLevel(void) {
     dungeon.setNumDownwardsStairs(0);
     dungeon.getPC().setPreviousCell(ROOM_CELL);
     dungeon.getItemLocationsAndPriorities().clear();
-    Dungeon();
     // Clear and reset the event queue
     event_queue = my_priority_queue();
-
+    
     // Generate a new dungeon level
     generateDungeon();
 
@@ -508,8 +487,6 @@ void resetDungeonLevel(void) {
     }
 
     // Display a message to the player
-    char message[100];
-    snprintf(message, sizeof(message), "Your turn to move!");
-    displayMessage(message);
+    gameMessage = "Your turn to move!";
 }
 

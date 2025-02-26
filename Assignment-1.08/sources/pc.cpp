@@ -36,7 +36,7 @@ void teleportPlayer(bool randomTeleport) {
         // remove pointer from screen because it's not overriden
         dungeon.getMap()[pointerPos.second][pointerPos.first] =  targetingPointerPreviousCell;
         snprintf(message, sizeof(message), "You teleported randomly to X-coord: %i and Y-coord: %i!", randX, randY);
-        displayMessage(message);
+        gameMessage = message; // Copy the message into the std::string
     }
     else {
         dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
@@ -45,7 +45,7 @@ void teleportPlayer(bool randomTeleport) {
         dungeon.getPC().setPosY(pointerPos.second);
         dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
         snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
-        displayMessage(message);
+        gameMessage = message;
     }
     calculateDistances(0);
     calculateDistances(1);
@@ -54,17 +54,14 @@ void teleportPlayer(bool randomTeleport) {
 
 void useStairs(int key) {
     if (dungeon.getPC().getPreviousCell().ch == key) {
+        if (key == '<') gameMessage = "Moved up a dungeon level!";
+        else gameMessage = "Moved down a dungeon level!";
         resetDungeonLevel();
-        char message[100];
-        if (key == '<') snprintf(message, sizeof(message), "Moved up a dungeon level!");
-        else snprintf(message, sizeof(message), "Moved down a dungeon level!");
-        displayMessage(message);
     }
 }
 
 void changeDirection(bool clockwise, bool justChangeText) {
     // Define the order of directions (clockwise and counter-clockwise)
-    clear();
     direction_t directions[] = {
         UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT
     };
@@ -93,15 +90,13 @@ void changeDirection(bool clockwise, bool justChangeText) {
 
         // Create the message
         snprintf(message, sizeof(message), "Facing: %s", dirNames[newDirIndex].c_str());
+        directionMessage = message;
     }
     else {
         // Create the message without changing the direction
         snprintf(message, sizeof(message), "Facing: %s", dirNames[currentDirIndex].c_str());
+        directionMessage = message;
     }
-
-    // Display the message
-    displayMessage(message);
-    refresh();
 }
 
 
@@ -175,23 +170,25 @@ void attack(int distance) {
                    
                     // Monster is killed (same logic as before)
                     monster->setAlive(false);
+                    // if the monster is unique then it can't be spawned anymore
+                    if (contains(monster->getAbilities(), string("UNIQ"))) {
+                        monster->setElgibile(false);
+                    }
                     dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
                     dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
                     dungeon.getPC().setPosX(attackX);
                     dungeon.getPC().setPosY(attackY);
                     dungeon.getPC().setPreviousCell(monster->getPreviousCell());
                     char message[100];
-                    snprintf(message, sizeof(message), "You killed monster %c!", monster->getCell().ch);
-                    displayMessage(message);
+                    snprintf(message, sizeof(message), "You killed monster %s!", monster->getName().c_str());
+                    gameMessage = message;
                     return;
                 }
             }
         }
     }
     // Display a message to the player if we get to the end and we didn't attack anything
-    char message[100];
-    snprintf(message, sizeof(message), "Attacked nothing! Get close to a monster and face them!");
-    displayMessage(message);
+    gameMessage = "Attacked nothing! Get close to a monster and face them!";
 }
 
 void movePlayer(int key) {
@@ -232,9 +229,7 @@ void movePlayer(int key) {
         playerToMove = false;
     }
     else {
-        char message[100];
-        snprintf(message, sizeof(message), "Uh oh! There's rock there!");
-        displayMessage(message);
+        gameMessage = "Uh oh! There's rock there!";
     }
     calculateDistances(0); // recalculate pathfinding maps after moving player
     calculateDistances(1);

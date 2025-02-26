@@ -79,37 +79,43 @@ void printMonsterDesciption(monsterDesc_t desc) {
   cout << '\n';
 }
 
-void readMonsters(bool printOutput) {
+vector<monsterDesc_t> readMonsters(bool printOutput) {
     
     string dir = getenv("HOME") ? getenv("HOME") : "";
     if (dir.empty()) {
         cerr << "HOME environment variable not set." << endl;
-        return;
+        return {};
     }
     string path = dir + "/.rlg327/monster_desc.txt";
     ifstream monsterDescriptions(path);
     if (!monsterDescriptions.is_open()) {
         cerr << "Failed to open file: " << path << endl;
-        return;
+        return {};
     }
 
     string title;
     getline(monsterDescriptions, title);
     if (title != "RLG327 MONSTER DESCRIPTION 1") {
         monsterDescriptions.close();
-        return;
+        return {};
     }
 
   monsterDesc_t description;
   string curLine;
   bool duplicateFound = false;
+    vector<monsterDesc_t> monsters;
     while(getline(monsterDescriptions, curLine)) {
       if(curLine == "BEGIN MONSTER" || curLine == "") {
         continue;
       }
       else if(curLine == "END"){
-          if (!duplicateFound && isMonsterDescriptionValid(description) && printOutput)
-            printMonsterDesciption(description);
+          if (!duplicateFound && isMonsterDescriptionValid(description) && printOutput) {
+              printMonsterDesciption(description);
+          }
+          else if ((!duplicateFound && isMonsterDescriptionValid(description))) {
+              monsters.push_back(description); // add description to array
+          }
+        
         description = {};
         duplicateFound = false;
       }
@@ -241,6 +247,7 @@ void readMonsters(bool printOutput) {
     }
 
     monsterDescriptions.close();
+    return monsters;
 }
 
 bool isMonsterDescriptionValid(monsterDesc_t description) {

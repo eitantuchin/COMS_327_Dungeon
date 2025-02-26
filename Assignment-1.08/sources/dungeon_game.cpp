@@ -22,8 +22,8 @@ my_priority_queue event_queue;
 bool gameOver = false;
 bool fogOfWar = true;
 bool playerToMove = true;
-message_t gameMessage = {"", 0, false};
-message_t directionMessage = {"", 0, true};
+string gameMessage = "";
+string directionMessage = "";
 string dirNames[8] = {
     "NORTH", "NORTH-EAST", "EAST", "SOUTH-EAST", "SOUTH", "SOUTH-WEST", "WEST", "NORTH-WEST"
 };
@@ -114,9 +114,8 @@ int main(int argc, char *argv[])
     // Initialize event queue
     event_queue = my_priority_queue();
 
-    char message[100];
-    snprintf(message, sizeof(message), "Your turn to move!");
-    displayMessage(message);
+    gameMessage = "Your turn to move!";
+    directionMessage = "Facing: UP";
     
     // Schedule initial PC event
     scheduleEvent(EVENT_PC, -1, 0);
@@ -134,7 +133,7 @@ int main(int argc, char *argv[])
             displayMonsterList();
         }
         else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
-            printDungeon();
+            printGame(0);
             refresh();
         }
         checkGameConditions();
@@ -162,6 +161,10 @@ void checkKeyInput(void) {
         case '3': case 'n': case KEY_END: // down-left
         case '1': case 'b': case KEY_B2: // rest
         case '5': case ' ': case '.':
+            if (dungeon.getModeType() == DISTANCE_MAPS && (key == '1' || key == '2' || key == '3')) {
+                clear();
+                printGame(key);
+            }
             if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
             if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
             if (dungeon.getModeType() == MONSTER_LIST) {
@@ -199,25 +202,27 @@ void checkKeyInput(void) {
             useStairs(key); break;
         case 'm':
             if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) {
-                clear(); dungeon.setModeType(MONSTER_LIST); monsterListScrollOffset = 0;
+                clear();
+                dungeon.setModeType(MONSTER_LIST);
+                monsterListScrollOffset = 0;
             }
             else {
-                char message[100];
-                snprintf(message, sizeof(message), "You must be in player control mode to see the monster list!");
-                displayMessage(message);
+                gameMessage = "You must be in player control mode to see the monster list!";
             }
             break;
         case 27: // escape key
-            clear(); dungeon.setModeType(PLAYER_CONTROL);
+            if (dungeon.getModeType() == MONSTER_LIST) {
+                clear();
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
             break;
         case 'f':
             if (dungeon.getModeType() == PLAYER_CONTROL) {
                 fogOfWar = !fogOfWar;
             }// fog of war switch
             else {
-                char message[100];
-                snprintf(message, sizeof(message), "Cannot use f key when not in player control mode!");
-                displayMessage(message);
+                gameMessage = "Cannot use f key when not in player control mode!";
+
             }
             break;
         case 'g': // goto/teleport mode activated
@@ -230,15 +235,37 @@ void checkKeyInput(void) {
                 initTargetingPointer();
             }
             else {
-                char message[100];
-                snprintf(message, sizeof(message), "You must have player control to use the GOTO command!");
-                displayMessage(message);
+                gameMessage = "You must have player control to use the GOTO command!";
             }
             break;
         case 'r':
             if (dungeon.getModeType() == PLAYER_TELEPORT) {
                 teleportPlayer(true);
                 dungeon.setModeType(PLAYER_CONTROL);
+            }
+            break;
+        case 'H': // display hardness map
+            clear();
+            if (dungeon.getModeType() == HARDNESS_MAP) {
+                gameMessage = "Your turn to move!";
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            else {
+                gameMessage = "Rock hardness map. Use H to return to player control.";
+                dungeon.setModeType(HARDNESS_MAP);
+                printGame(key);
+            }
+            break;
+        case 'D': // display distance map
+            clear();
+            if (dungeon.getModeType() == DISTANCE_MAPS) {
+                gameMessage = "Your turn to move!";
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            else {
+                gameMessage = "Use keys [1] Non-Tunneling Map [2] Tunneling Map [3] Pass Wall Map [D] return";
+                dungeon.setModeType(DISTANCE_MAPS);
+                printGame(key);
             }
             break;
     }
@@ -318,23 +345,88 @@ void updateFogMap(void) {
     refresh();
 }
 
-void printDungeon(void) {
+void printGame(int value) {
+    int (*dist)[DUNGEON_WIDTH] = nullptr;
+    if (value == '1') dist = dungeon.getNonTunnelingMap();
+    else if (value == '2') dist = dungeon.getTunnelingMap();
+    else if (value == '3') dist = dungeon.getNonTunnelingPassMap();
     move(1, 0); // Move cursor to the second row (leaving the first for the message)
-    for (int y = 1; y < DUNGEON_HEIGHT; ++y) {
+    for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
         move(y + 1, 0);
-        for (int x = 1; x < DUNGEON_WIDTH; ++x) {
-            printCharacter(x, y);
+        for (int x = 0; x < DUNGEON_WIDTH; ++x) {
+            switch (value) {
+                case 0: // print regular dungeon
+                    printCharacter(x, y);
+                    break;
+                case 'H':
+                    if (y == dungeon.getPC().getPosY() && x == dungeon.getPC().getPosX()) {
+                        addch('@');
+                    }
+                    else if (dungeon.getMap()[y][x].hardness == IMMUTABLE_ROCK_CELL.hardness) {
+                        addch('X');
+                    }
+                    else {
+                        double hardness = static_cast<double>(dungeon.getMap()[y][x].hardness);
+                        double result = ceil(hardness / 85.0);
+                        addch(static_cast<int>(result) + '0');
+                    }
+                    break;
+                case 'D':
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                    if (y == dungeon.getPC().getPosY() && x == dungeon.getPC().getPosX()) {
+                        addch('@');
+                    }
+                    else if (dist[y][x] == INT_MAX || dist[y][x] ==  -1) {
+                        addch(' ');
+                    }
+                    else {
+                        int digit = dist[y][x] % 10;
+                        addch(digit + '0');
+                    }
+                    break;
+            }
         }
     }
     drawMessage();
 }
 
 void printCharacter(int x, int y) {
+    // Static variables for color cycling
+    static struct timespec lastUpdate = {0, 0};
+    static int colorIndex = 0;
+    
+    // Get current time
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (lastUpdate.tv_sec == 0) { // First run
+        lastUpdate = now;
+    }
+
+    // Check if 0.5 seconds have passed
+    double elapsed = (now.tv_sec - lastUpdate.tv_sec) +
+                     (now.tv_nsec - lastUpdate.tv_nsec) / 1e9;
+    if (elapsed >= 0.5) { // 0.5-second delay
+        colorIndex++; // Move to next color
+        lastUpdate = now;
+    }
+    
     short color = 0;
+    // check for item
     for (auto entry: dungeon.getItemLocationsAndPriorities()) {
         vector<Item> items = entry.second;
         if (entry.first.first == y && entry.first.second == x && dungeon.getMap()[y][x].hardness == -2) {
             color = items[items.size() - 1].getColor()[0]; // last item in array is the topmost item
+            break;
+        }
+    }
+    // check for monster
+    for (Monster m: dungeon.getMonsters()) {
+        if (m.getPosY() == y && m.getPosX() == x && m.isAlive()) {
+            vector<short> colors = m.getColor();
+            color = colors[colorIndex % colors.size()];
             break;
         }
     }
@@ -384,58 +476,42 @@ void scheduleEvent(event_type_t type, int index, int currentTurn) {
 }
 
 void processEvents(void) {
-    char message[100];
     pq_node_t node = event_queue.extract_min(); // extract the first value in the Q
     if (node.x == -1) { // EVENT_PC
         playerToMove = true; // this stops the processing of events until the player moves again
         scheduleEvent(EVENT_PC, -1, node.priority);
-        snprintf(message, sizeof(message), "Your turn to move!");
-        displayMessage(message);
+        gameMessage = "Your turn to move!";
     }
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
-        usleep(50000); // intervals between when each monster moves
+        usleep(25000); // intervals between when each monster moves
         scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
-        snprintf(message, sizeof(message), "The monsters are moving...");
-        displayMessage(message);
-    }
-    
-}
-
-void displayMessage(const char *message) {
-    if (strstr(message, "Facing:")) { // if the string contains "Facing:"
-        strncpy(directionMessage.message, message, sizeof(directionMessage.message) - 1); // Copy message safely
-        directionMessage.message[sizeof(directionMessage.message) - 1] = '\0'; // Ensure null termination
-    }
-    else {
-        strncpy(gameMessage.message, message, sizeof(gameMessage.message) - 1); // Copy message safely
-        gameMessage.message[sizeof(gameMessage.message) - 1] = '\0'; // Ensure null termination
-        gameMessage.startTime = time(NULL);
-        gameMessage.visible = true;
+        gameMessage = "The monsters are moving...";
     }
 }
 
 void drawMessage(void) {
-    if (gameMessage.visible) {
-        move(0, 0);
-        clrtoeol();
-        mvprintw(0, 0, "%s", gameMessage.message); // Print at the beginning of the line (left-aligned)
+    move(0, 0);
+    clrtoeol();
+    attron(COLOR_PAIR(COLOR_CYAN));
+    mvprintw(0, 1, "%s", gameMessage.c_str()); // Print at the beginning of the line (left-aligned)
+    attroff(COLOR_PAIR(COLOR_CYAN));
+    if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
+        size_t len = strlen(directionMessage.c_str());
+        size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
+        attron(COLOR_PAIR(COLOR_GREEN));
+        mvprintw(0, (int) x, "%s", directionMessage.c_str()); // Print right-aligned
+        attroff(COLOR_PAIR(COLOR_GREEN));
     }
-    size_t len = strlen(directionMessage.message);
-    size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
-    mvprintw(0, (int) x, "%s", directionMessage.message); // Print right-aligned
 }
 
 void checkGameConditions(void) {
-    char message[100];
     // Check if we are standing on top of stairs
     if (dungeon.getPC().getPreviousCell().ch == '<') {
-        snprintf(message, sizeof(message), "You are on upward stairs! Press < to go up a level!");
-        displayMessage(message);
+        gameMessage = "You are on upward stairs! Press < to go up a level!";
     }
     else if (dungeon.getPC().getPreviousCell().ch == '>') {
-        snprintf(message, sizeof(message), "You are on downward stairs! Press > to go down a level!");
-        displayMessage(message);
+        gameMessage = "You are on downward stairs! Press > to go down a level!";
     }
     // Check PC death
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
@@ -444,39 +520,26 @@ void checkGameConditions(void) {
             dungeon.getMonsters()[i].getPosX() == dungeon.getPC().getPosX()) {
             gameOver = true;
             endwin();
-            printf("\nGame Over - You were killed by monster %c!", dungeon.getMonsters()[i].getCell().ch);
+            printf("\nGame Over - You were killed by monster %s!", dungeon.getMonsters()[i].getName().c_str());
             return;
         }
     }
     
-    // Check remaining monsters
-    bool monstersAlive = false;
+    // Check if a boss monster has been killed
+    bool bossKilled = false;
+    string bossName = "";
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
-        if (dungeon.getMonsters()[i].isAlive()) {
-            monstersAlive = true;
+        if (!dungeon.getMonsters()[i].isAlive() && contains(dungeon.getMonsters()[i].getAbilities(), string("BOSS"))) {
+            bossKilled = true;
+            bossName = dungeon.getMonsters()[i].getName();
             break;
         }
     }
     
-    if (!monstersAlive) {
+    if (bossKilled) {
         gameOver = true;
         endwin();
-        printf("\nCongratulations! All monsters have been defeated!\n");
-    }
-    
-    if (gameMessage.visible && difftime(time(NULL), gameMessage.startTime) >= 4) {
-        if (strstr(gameMessage.message, "Your turn to move!")) {
-            return;
-        }
-        else if (strstr(gameMessage.message, "Game Over")) {
-            gameOver = true;
-            endwin();
-            printf("\nGame Over - You were killed by a monster!\n");
-            return;
-        }
-        else {
-            gameMessage.visible = false;
-        }
+        printf("\nCongratulations! You won since you defeated boss %s!\n", bossName.c_str());
     }
 }
 
@@ -543,15 +606,5 @@ void calculateDistances(int mapNum) {
     pq.clear();
 }
 
-/*
- Checks whether an element exists within given array
- */
-bool contains(vector<int> array, int value) {
-    for (size_t i = 0; i < array.size(); i++) {
-        if (array[i] == value) {
-            return true; // Value found
-        }
-    }
-    return false; // Value not found
-}
-
+template bool contains<string>(const vector<string>& array, const string& value);
+template bool contains<int>(const vector<int>& array, const int& value);

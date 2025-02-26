@@ -45,7 +45,7 @@ bool isValidDiceFormat(const string& value);
 bool isInteger(const string& str);
 bool isValidType(const string& type);
 void printMonsterDesciption(monsterDesc_t *description);
-void readMonsters(bool printOutput);
+vector<monsterDesc_t> readMonsters(bool printOutput);
 bool isMonsterDescriptionValid(monsterDesc_t description);
 void printObjectDesciption(objectDesc_t *description);
 vector<objectDesc_t> readObjects(bool printOutput);

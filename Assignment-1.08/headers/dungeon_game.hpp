@@ -42,12 +42,6 @@ class my_priority_queue;
 #define MIN_NUM_ITEMS 10
 #define FILE_MARKER "RLG327-S2025"
 
-typedef struct message {
-    char message[200];
-    time_t startTime;
-    bool visible;
-} message_t;
-
 typedef struct room {
     uint8_t posX;
     uint8_t posY;
@@ -100,7 +94,9 @@ typedef struct event {
 typedef enum {
     PLAYER_CONTROL,
     MONSTER_LIST,
-    PLAYER_TELEPORT
+    PLAYER_TELEPORT,
+    DISTANCE_MAPS,
+    HARDNESS_MAP
 } mode_type_t;
 
 extern Dungeon dungeon;
@@ -108,21 +104,20 @@ extern my_priority_queue event_queue;
 extern bool gameOver;
 extern bool fogOfWar;
 extern bool playerToMove;
-extern message_t gameMessage;
-extern message_t directionMessage;
+extern string gameMessage;
+extern string directionMessage;
 extern string dirNames[8];
 extern int monsterListScrollOffset;
 extern cell_t targetingPointerPreviousCell;
 
 // Function prototypes
-void printDungeon(void);
-bool contains(vector<int> array, int value);
+
+void printGame(int value);
 void calculateDistances(int tunneling);
 void checkGameConditions(void);
 void processEvents(void);
 void scheduleEvent(event_type_t type, int monsterIndex, int currentTurn);
 void checkKeyInput(void);
-void displayMessage(const char *message);
 void drawMessage(void);
 void updateFogMap(void);
 void printCharacter(int x, int y);
@@ -130,3 +125,15 @@ void moveTargetingPointer(int key);
 void initTargetingPointer(void);
 pair<int, int> getPointerCellPosition(void);
 
+/*
+ Checks whether an element exists within given array
+ */
+template <typename T>
+bool contains(const vector<T>& array, const T& value) {
+    for (const T& element: array) {
+        if (element == value) {
+            return true;
+        }
+    }
+    return false;
+}

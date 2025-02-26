@@ -49,7 +49,7 @@ pair<int, int> getItemCoordinates(void) {
     return { randY, randX };
 }
 
-vector<short> getItemColors(const string &colorString) {
+vector<short> getColors(const string &colorString) {
     vector<short> colors;
     stringstream ss(colorString);
     string color;
@@ -88,7 +88,7 @@ vector<Item> itemFactory() {
         uint16_t attr = rollDice(objectDescription.ATTR);
         uint16_t val = rollDice(objectDescription.VAL);
         bool art = objectDescription.ART == "TRUE";
-        vector<short> colors = getItemColors(objectDescription.COLOR);
+        vector<short> colors = getColors(objectDescription.COLOR);
         items.push_back(Item(
             coordinates.second,
             coordinates.first,
@@ -136,7 +136,6 @@ char getSymbolFromType(string type) {
     else if (type == "STACK") return '&';
     return '*';
 }
-
 
 // Getters
 uint8_t Item::getPosX() const { return posX; }

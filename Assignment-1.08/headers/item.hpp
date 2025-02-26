@@ -79,3 +79,4 @@ public:
 int rollDice(const string &diceStr);
 vector<Item> itemFactory();
 char getSymbolFromType(string type);
+vector<short> getColors(const string &colorString);

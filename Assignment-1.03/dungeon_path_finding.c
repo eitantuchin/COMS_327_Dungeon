@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
     // After dungeon is loaded/generated:
     calculateDistances(0);  // Non-tunneling
     calculateDistances(1);  // Tunneling
+    calculateDistances(2);  // Non-tunneling pass
 
     // Print all three views
     printf("Standard View:\n");
@@ -74,16 +75,22 @@ int main(int argc, char *argv[])
     printf("\nTunneling Distance Map:\n");
     printDungeon(1, 1);
 
+    printf("\nNon-Tunneling Pass Distance Map:\n");
+    printDungeon(1, 2);
+
     return 0;
 }
 
 /*
  Prints the dungeon to the terminal
  */
-void printDungeon(int showDist, int tunneling) {
+void printDungeon(int showDist, int mapNum) {
     printf("----------------------------------------------------------------------------------\n");
-    int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
-    
+    int (*dist)[DUNGEON_WIDTH];
+    if (mapNum == 0) dist = dungeon.nonTunnelingMap;
+    else if (mapNum == 1) dist = dungeon.tunnelingMap;
+    else dist = dungeon.nonTunnelingPassMap;
+
     for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
         printf("|");
         for (int x = 0; x < DUNGEON_WIDTH; ++x) {
@@ -110,9 +117,12 @@ void printDungeon(int showDist, int tunneling) {
 /*
 Use dijiktra's to calculate path finding
 */
-void calculateDistances(int tunneling) {
+void calculateDistances(int mapNum) {
     priority_queue_t *pq = pq_create(DUNGEON_HEIGHT * DUNGEON_WIDTH);
-    int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
+    int (*dist)[DUNGEON_WIDTH];
+    if (mapNum == 0) dist = dungeon.nonTunnelingMap;
+    else if (mapNum == 1) dist = dungeon.tunnelingMap;
+    else dist = dungeon.nonTunnelingPassMap;
 
     // Initialize distances.  initialize to -1 to represent "infinity"
     for (int y = 0; y < DUNGEON_HEIGHT; y++) {
@@ -148,12 +158,12 @@ void calculateDistances(int tunneling) {
 
                 // Check passability
                 cell_t neighborCell = dungeon.map[ny][nx];
-                if (!tunneling && neighborCell.hardness > 0) continue;
+                if (mapNum == 0 && neighborCell.hardness > 0) continue;
                 if (neighborCell.hardness == 255) continue;
 
                 // Calculate weight 
                 int weight = 1;
-                if (tunneling && currentCell.hardness > 0) { // Current cell's hardness
+                if (mapNum == 1 && currentCell.hardness > 0) { // Current cell's hardness
                     weight = 1 + (currentCell.hardness / 85);
                 }
 

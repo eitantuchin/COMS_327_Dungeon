@@ -68,6 +68,7 @@ typedef struct dungeon {
     uint16_t numDownwardsStairs;
     int nonTunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
     int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
+    int nonTunnelingPassMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 } dungeon_t;
 
 // Function prototypes
@@ -79,7 +80,6 @@ void carveCorridor(int startX, int startY, int endX, int endY);
 void initImmutableRock(void);
 void initPCPosition(void);
 bool contains(int *array, size_t size, int value);
-void cleanupDungeon(void);
 void calculateDistances(int tunneling);
 void saveFile(void);
 void loadFile(void);

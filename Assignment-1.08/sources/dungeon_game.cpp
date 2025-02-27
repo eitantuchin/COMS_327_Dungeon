@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     event_queue = my_priority_queue();
 
     gameMessage = "Your turn to move!";
-    directionMessage = "Facing: UP";
+    directionMessage = "Facing: NORTH";
     
     // Schedule initial PC event
     scheduleEvent(EVENT_PC, -1, 0);
@@ -138,7 +138,6 @@ int main(int argc, char *argv[])
         }
         checkGameConditions();
         if (!playerToMove) processEvents();
-        checkGameConditions();
         updateFogMap();
     }
 
@@ -415,16 +414,13 @@ void printCharacter(int x, int y) {
     
     short color = 0;
     // check for item
-    for (auto entry: dungeon.getItemLocationsAndPriorities()) {
-        vector<Item> items = entry.second;
-        if (entry.first.first == y && entry.first.second == x && dungeon.getMap()[y][x].hardness == -2) {
-            color = items[items.size() - 1].getColor()[0]; // last item in array is the topmost item
-            break;
-        }
+    vector<Item> items = dungeon.getItemMap()[y][x];
+    if (!items.empty() && dungeon.getMap()[y][x].hardness == -2) {
+        color = items[items.size() - 1].getColor()[0];
     }
     // check for monster
     for (Monster m: dungeon.getMonsters()) {
-        if (m.getPosY() == y && m.getPosX() == x && m.isAlive()) {
+        if (m.getPosY() == y && m.getPosX() == x && m.isAlive() && dungeon.getMap()[y][x].hardness == -1) {
             vector<short> colors = m.getColor();
             color = colors[colorIndex % colors.size()];
             break;
@@ -442,7 +438,10 @@ void printCharacter(int x, int y) {
                 // add previous character since monster but shouldn't be seen
                 for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
                     if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
+                        attron(COLOR_PAIR(COLOR_WHITE));
                         addch(dungeon.getMonsters()[i].getPreviousCell().ch);
+                        attroff(COLOR_PAIR(COLOR_WHITE));
+
                     }
                 }
             }

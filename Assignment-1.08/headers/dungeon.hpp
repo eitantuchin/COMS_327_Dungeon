@@ -40,8 +40,7 @@ private:
     uint16_t numMonsters;                      // Number of monsters
     mode_type_t modeType;                      // Current mode of the dungeon (e.g., player control, monster list)
     vector<Item> dungeonItems;
-    unordered_map<pair<int, int>, vector<Item>> itemLocationsAndPriorities;
-    
+    vector<Item> itemMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 
 public:
     // Constructor
@@ -63,7 +62,7 @@ public:
     uint16_t getNumMonsters();
     mode_type_t getModeType();
     vector<Item>& getDungeonItems();
-    unordered_map<pair<int, int>, vector<Item>>& getItemLocationsAndPriorities();
+    vector<Item> (&getItemMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 
     // Setters
     void setRooms(const vector<room_t>& newRooms);

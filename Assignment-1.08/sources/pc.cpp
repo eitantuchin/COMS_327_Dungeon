@@ -27,30 +27,38 @@ void teleportPlayer(bool randomTeleport) {
     pair<int, int> pointerPos = getPointerCellPosition();
     int randY = (rand() % (DUNGEON_HEIGHT - 2) + 2) - 1;
     int randX = (rand() % (DUNGEON_WIDTH - 2) + 2) - 1;
+
     if (randomTeleport && (randY != dungeon.getPC().getPosY() || randX != dungeon.getPC().getPosX())) {
         dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = dungeon.getPC().getPreviousCell();
         dungeon.getPC().setPreviousCell(dungeon.getMap()[randY][randX]);
         dungeon.getPC().setPosX(randX);
         dungeon.getPC().setPosY(randY);
         dungeon.getMap()[randY][randX] = PLAYER_CELL;
-        // remove pointer from screen because it's not overriden
-        dungeon.getMap()[pointerPos.second][pointerPos.first] =  targetingPointerPreviousCell;
+        dungeon.getMap()[pointerPos.second][pointerPos.first] = targetingPointerPreviousCell;
         snprintf(message, sizeof(message), "You teleported randomly to X-coord: %i and Y-coord: %i!", randX, randY);
-        gameMessage = message; // Copy the message into the std::string
-    }
-    else {
-        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
-        dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
-        dungeon.getPC().setPosX(pointerPos.first);
-        dungeon.getPC().setPosY(pointerPos.second);
-        dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
-        snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
         gameMessage = message;
+    } else {
+        // Only teleport if the target is different
+        if (dungeon.getPC().getPosX() != pointerPos.first || dungeon.getPC().getPosY() != pointerPos.second) {
+            dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = dungeon.getPC().getPreviousCell();
+            dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
+            dungeon.getPC().setPosX(pointerPos.first);
+            dungeon.getPC().setPosY(pointerPos.second);
+            dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
+            snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
+            gameMessage = message;
+        } else {
+            // Teleporting to the same spot, don't change previous cell
+            dungeon.getMap()[pointerPos.second][pointerPos.first] = targetingPointerPreviousCell;
+            snprintf(message, sizeof(message), "You remained at X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
+            gameMessage = message;
+        }
     }
     calculateDistances(0);
     calculateDistances(1);
     calculateDistances(2);
 }
+
 
 void useStairs(int key) {
     if (dungeon.getPC().getPreviousCell().ch == key) {
@@ -167,15 +175,33 @@ void attack(int distance) {
                 Monster *monster = &dungeon.getMonsters()[j];
                
                 if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
-                   
                     // Monster is killed (same logic as before)
                     monster->setAlive(false);
                     // if the monster is unique then it can't be spawned anymore
                     if (contains(monster->getAbilities(), string("UNIQ"))) {
                         monster->setElgibile(false);
                     }
+                    vector<Item>& inventory = monster->getInventory();
+                    // if the monster has items in its inventory drop them
+                    while (!inventory.empty()) {
+                        // Move the last item to the floor
+                        dungeon.getItemMap()[oldY][oldX].push_back(inventory.back());
+                        inventory.pop_back(); // Remove the last item from the inventory
+                    }
+                    for (Item i: dungeon.getItemMap()[oldY][oldX]) {
+                        i.setPosX(oldX);
+                        i.setPosY(oldY);
+                        i.setPreviousCell(dungeon.getPC().getPreviousCell());
+                    }
                     dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
-                    dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
+                    vector<Item> items = dungeon.getItemMap()[oldY][oldX];
+                    if (!items.empty()) {
+                        char symbol = getSymbolFromType(items.back().getType());
+                        dungeon.getMap()[oldY][oldX] = cell_t {symbol, -2};
+                    }
+                    else {
+                        dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
+                    }
                     dungeon.getPC().setPosX(attackX);
                     dungeon.getPC().setPosY(attackY);
                     dungeon.getPC().setPreviousCell(monster->getPreviousCell());

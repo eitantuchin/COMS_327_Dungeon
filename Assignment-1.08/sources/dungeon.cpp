@@ -12,8 +12,9 @@ Dungeon::Dungeon()
 : numUpwardsStairs(0), numDownwardsStairs(0), numRooms(0), numMonsters(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP) {
 }
 
-unordered_map<pair<int, int>, vector<Item>>& Dungeon::getItemLocationsAndPriorities() {
-    return itemLocationsAndPriorities;
+// Getter for map
+vector<Item> (&Dungeon::getItemMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
+    return itemMap;
 }
 
 // Getter for map
@@ -169,11 +170,7 @@ void initItems(void) {
                 dungeon.getMap()[items[randIndex].getPosY()][items[randIndex].getPosX()] = cell_t { symbol, -2 }; // -2 hardness is unique to objects
                 itemsInserted++;
                 dungeonItems.push_back(items[randIndex]);
-                // add the coordinate to item vector pair to the hashmap
-                pair<int, int> itemLocation = {items[randIndex].getPosY(), items[randIndex].getPosX()};
-                vector<Item> temp;
-                temp.push_back(items[randIndex]);
-                dungeon.getItemLocationsAndPriorities().insert(make_pair(itemLocation, temp));
+                dungeon.getItemMap()[items[randIndex].getPosY()][items[randIndex].getPosX()].push_back(items[randIndex]);
             }
         }
     }
@@ -459,6 +456,7 @@ void generateDungeon(void) {
 void resetDungeonLevel(void) {
     // Clear dungeon data
     memset(dungeon.getPC().getFogMap(), false, sizeof(dungeon.getPC().getFogMap()));  // Set all values to false
+    memset(dungeon.getItemMap(), false, sizeof(dungeon.getItemMap()));
     // Reset counters and global variables
     dungeon.setNumRooms(MIN_NUM_ROOMS);
     dungeon.setRooms(vector<room_t>(dungeon.getNumRooms()));
@@ -467,7 +465,6 @@ void resetDungeonLevel(void) {
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
     dungeon.getPC().setPreviousCell(ROOM_CELL);
-    dungeon.getItemLocationsAndPriorities().clear();
     // Clear and reset the event queue
     event_queue = my_priority_queue();
     

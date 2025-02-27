@@ -109,102 +109,68 @@ void changeDirection(bool clockwise, bool justChangeText) {
 
 
 void attack(int distance) {
-    // Determine the direction the player is facing and the *adjacent* directions
     int attackX = dungeon.getPC().getPosX();
     int attackY = dungeon.getPC().getPosY();
     int oldX = attackX;
     int oldY = attackY;
 
-    direction_t directionsToCheck[3]; // Array to hold the directions to check
-
+    direction_t directionsToCheck[3];
     switch (dungeon.getPC().getCurrentDirection()) {
-        case UP:
-            directionsToCheck[0] = UP; directionsToCheck[1] = UP_LEFT;
-            directionsToCheck[2] = UP_RIGHT; break;
-        case DOWN:
-            directionsToCheck[0] = DOWN; directionsToCheck[1] = DOWN_LEFT;
-            directionsToCheck[2] = DOWN_RIGHT; break;
-        case LEFT:
-            directionsToCheck[0] = LEFT; directionsToCheck[1] = UP_LEFT;
-            directionsToCheck[2] = DOWN_LEFT; break;
-        case RIGHT:
-            directionsToCheck[0] = RIGHT; directionsToCheck[1] = UP_RIGHT;
-            directionsToCheck[2] = DOWN_RIGHT; break;
-        case UP_LEFT:
-            directionsToCheck[0] = UP_LEFT; directionsToCheck[1] = UP;
-            directionsToCheck[2] = LEFT; break;
-        case UP_RIGHT:
-            directionsToCheck[0] = UP_RIGHT; directionsToCheck[1] = UP;
-            directionsToCheck[2] = RIGHT; break;
-        case DOWN_LEFT:
-            directionsToCheck[0] = DOWN_LEFT; directionsToCheck[1] = DOWN;
-            directionsToCheck[2] = LEFT; break;
-        case DOWN_RIGHT:
-            directionsToCheck[0] = DOWN_RIGHT; directionsToCheck[1] = DOWN;
-            directionsToCheck[2] = RIGHT; break;
-        default: return; // Invalid direction
+        case UP: directionsToCheck[0] = UP; directionsToCheck[1] = UP_LEFT; directionsToCheck[2] = UP_RIGHT; break;
+        case DOWN: directionsToCheck[0] = DOWN; directionsToCheck[1] = DOWN_LEFT; directionsToCheck[2] = DOWN_RIGHT; break;
+        case LEFT: directionsToCheck[0] = LEFT; directionsToCheck[1] = UP_LEFT; directionsToCheck[2] = DOWN_LEFT; break;
+        case RIGHT: directionsToCheck[0] = RIGHT; directionsToCheck[1] = UP_RIGHT; directionsToCheck[2] = DOWN_RIGHT; break;
+        case UP_LEFT: directionsToCheck[0] = UP_LEFT; directionsToCheck[1] = UP; directionsToCheck[2] = LEFT; break;
+        case UP_RIGHT: directionsToCheck[0] = UP_RIGHT; directionsToCheck[1] = UP; directionsToCheck[2] = RIGHT; break;
+        case DOWN_LEFT: directionsToCheck[0] = DOWN_LEFT; directionsToCheck[1] = DOWN; directionsToCheck[2] = LEFT; break;
+        case DOWN_RIGHT: directionsToCheck[0] = DOWN_RIGHT; directionsToCheck[1] = DOWN; directionsToCheck[2] = RIGHT; break;
+        default: return;
     }
 
-    for (int i = 0; i < 3; i++) { // Check all three directions
+    for (int i = 0; i < 3; i++) {
         attackX = dungeon.getPC().getPosX();
         attackY = dungeon.getPC().getPosY();
 
         switch (directionsToCheck[i]) {
-            case UP:
-                attackY -= distance; break;
-            case DOWN:
-                attackY += distance; break;
-            case LEFT:
-                attackX -= distance; break;
-            case RIGHT:
-                attackX += distance; break;
-            case UP_LEFT:
-                attackY -= distance; attackX -= distance; break;
-            case UP_RIGHT:
-                attackY -= distance; attackX += distance; break;
-            case DOWN_LEFT:
-                attackY += distance; attackX -= distance; break;
-            case DOWN_RIGHT:
-                attackY += distance; attackX += distance; break;
-            default: break; // Invalid direction (shouldn't happen)
+            case UP: attackY -= distance; break;
+            case DOWN: attackY += distance; break;
+            case LEFT: attackX -= distance; break;
+            case RIGHT: attackX += distance; break;
+            case UP_LEFT: attackY -= distance; attackX -= distance; break;
+            case UP_RIGHT: attackY -= distance; attackX += distance; break;
+            case DOWN_LEFT: attackY += distance; attackX -= distance; break;
+            case DOWN_RIGHT: attackY += distance; attackX += distance; break;
+            default: break;
         }
 
-        // Check if the position is valid and contains a monster
         if (attackY >= 0 && attackY < DUNGEON_HEIGHT && attackX >= 0 && attackX < DUNGEON_WIDTH) {
             for (int j = 0; j < dungeon.getNumMonsters(); j++) {
-                Monster *monster = &dungeon.getMonsters()[j];
-               
+                Monster* monster = &dungeon.getMonsters()[j];
                 if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
-                    // Monster is killed (same logic as before)
                     monster->setAlive(false);
-                    // if the monster is unique then it can't be spawned anymore
                     if (contains(monster->getAbilities(), string("UNIQ"))) {
                         monster->setElgibile(false);
                     }
                     vector<Item>& inventory = monster->getInventory();
-                    // if the monster has items in its inventory drop them
-                    while (!inventory.empty()) {
-                        // Move the last item to the floor
-                        dungeon.getItemMap()[oldY][oldX].push_back(inventory.back());
-                        inventory.pop_back(); // Remove the last item from the inventory
+                    cell_t monsterOriginalCell = monster->getPreviousCell(); // Original cell under monster
+                    for (Item& item : inventory) {
+                        item.setPosX(oldX);
+                        item.setPosY(oldY);
+                        item.setPreviousCell(monsterOriginalCell); // Set to what was under the monster
+                        dungeon.getItemMap()[oldY][oldX].push_back(item);
                     }
-                    for (Item i: dungeon.getItemMap()[oldY][oldX]) {
-                        i.setPosX(oldX);
-                        i.setPosY(oldY);
-                        i.setPreviousCell(dungeon.getPC().getPreviousCell());
-                    }
-                    dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
-                    vector<Item> items = dungeon.getItemMap()[oldY][oldX];
+                    inventory.clear();
+                    dungeon.getMap()[attackX][attackY] = PLAYER_CELL;
+                    vector<Item>& items = dungeon.getItemMap()[oldY][oldX];
                     if (!items.empty()) {
                         char symbol = getSymbolFromType(items.back().getType());
-                        dungeon.getMap()[oldY][oldX] = cell_t {symbol, -2};
-                    }
-                    else {
+                        dungeon.getMap()[oldY][oldX] = cell_t{symbol, -2};
+                    } else {
                         dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
                     }
                     dungeon.getPC().setPosX(attackX);
                     dungeon.getPC().setPosY(attackY);
-                    dungeon.getPC().setPreviousCell(monster->getPreviousCell());
+                    dungeon.getPC().setPreviousCell(monsterOriginalCell);
                     char message[100];
                     snprintf(message, sizeof(message), "You killed monster %s!", monster->getName().c_str());
                     gameMessage = message;
@@ -213,7 +179,6 @@ void attack(int distance) {
             }
         }
     }
-    // Display a message to the player if we get to the end and we didn't attack anything
     gameMessage = "Attacked nothing! Get close to a monster and face them!";
 }
 

@@ -609,26 +609,19 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1) {
         vector<Item> items = dungeon.getItemMap()[newY][newX];
-        if (contains(m->getAbilities(), string("DESTROY"))) { // ability to destroy items
+        if (contains(m->getAbilities(), string("DESTROY")) || contains(m->getAbilities(), string("PICKUP"))) { // ability to destroy items
             // destroy the topmost item in the stack
             if (!items.empty()) { // Check if the vector is not empty
                 Item i = items.back();
                 items.pop_back(); // Remove the last item
-                if (items.empty()) {
-                    m->setPreviousCell(i.getPreviousCell());
+                if (contains(m->getAbilities(), string("PICKUP"))) {
+                    m->getInventory().push_back(i); // add the item to the monster's inventory
                 }
-                cellSet = true;
-            }
-        }
-        else if (contains(m->getAbilities(), string("PICKUP"))) { // ability to pickup items
-            if (!items.empty()) {
-                Item i = items.back(); // get the item
-                items.pop_back(); // remove the item from the dungeon floor
-                m->getInventory().push_back(i); // add the item to the monster's inventory
                 if (items.empty()) {
+                    dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
                     m->setPreviousCell(i.getPreviousCell());
+                    cellSet = true;
                 }
-                cellSet = true;
             }
         }
         dungeon.getItemMap()[newY][newX] = items; // update item map
@@ -646,14 +639,20 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
         }
         if (!collision && (dungeon.getMap()[newY][newX].hardness < IMMUTABLE_ROCK_CELL.hardness && canPass)) {
             dungeon.getMap()[oldY][oldX] = m->getPreviousCell(); // Restore the old cell
-            if (!cellSet) m->setPreviousCell(dungeon.getMap()[newY][newX]);
+            if (!cellSet) {
+                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                m->setPreviousCell(dungeon.getMap()[newY][newX]);
+            }
             m->setPosX(newX);
             m->setPosY(newY);
             dungeon.getMap()[newY][newX] = m->getCell();
         }
         else if (!collision && (dungeon.getMap()[newY][newX].hardness <= 0)) { // no monster fighting and not a rock cell
-            dungeon.getMap()[oldY][oldX] = m->getPreviousCell(); // Restore the old cell
-            if (!cellSet) m->setPreviousCell(dungeon.getMap()[newY][newX]);
+            // Problem here
+            if (!cellSet) {
+                dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                m->setPreviousCell(dungeon.getMap()[newY][newX]);
+            }// Restore the old cell
             m->setPosX(newX);
             m->setPosY(newY);
             dungeon.getMap()[newY][newX] = m->getCell();
@@ -670,7 +669,10 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
 
                 // After turning rock to corridor, the monster should move there
                 dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
-                if (!cellSet) m->setPreviousCell(dungeon.getMap()[newY][newX]);
+                if (!cellSet) {
+                    dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                    m->setPreviousCell(dungeon.getMap()[newY][newX]);
+                }
                 m->setPosX(newX);
                 m->setPosY(newY);
                 dungeon.getMap()[newY][newX] = m->getCell();

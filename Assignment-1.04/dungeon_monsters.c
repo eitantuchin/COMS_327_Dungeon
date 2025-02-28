@@ -115,119 +115,362 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+int sign(int x) {
+    return (x > 0) - (x < 0);
+}
+
 void moveMonster(int index) {
-    if (!dungeon.monsters[index].alive) return;
+    // Do nothing if monster is not alive.
+    if (!dungeon.monsters[index].alive)
+        return;
+        
     monster_t *m = &dungeon.monsters[index];
     int oldX = m->posX;
     int oldY = m->posY;
     int newX = oldX;
     int newY = oldY;
 
-    // Get monster attributes from bitfield
-    int isIntelligent = m->monsterBits & (1 << 0);
-    int isTelepathic = m->monsterBits & (1 << 1);
-    int isTunneling = m->monsterBits & (1 << 2);
-    int isErratic = m->monsterBits & (1 << 3);
-
-    // choose right distance map
-    int (*dist)[DUNGEON_WIDTH] = isTunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
-
-    bool randomErratic = rand() % 2 == 1;
-    // first we handle erraticness
-    if (isErratic && randomErratic) {// or 50% chance to move randomly if they are erratic
-        bool foundOpenCell = false;
-        while (!foundOpenCell) {
-            int randDY = rand() % 3 - 1; // either -1, 0, or 1 direction change to accomodate all 8 directions
-            int randDX = rand() % 3 - 1;
-            newY += randDY;
-            newX += randDX;
-            if (isTunneling) foundOpenCell = true;
-            else {
-                if (dungeon.map[newY][newX].ch != ' ') { // we must put the non tunneling erratic monster randomly on non-rock
-                    foundOpenCell = true;
-                }
-            }
-        }
+    // For tunneling purposes.
+    bool isTunneling = (m->monsterBits & (1 << 2)) != 0;
+    
+    // Get the monster's symbol.
+    char sym = m->MONSTER_CELL.ch;
+    
+    // For erratic monsters, we give a 50% chance to move randomly.
+    bool erraticRandom = false;
+    if (sym == '8' || sym == '9' || sym == 'a' || sym == 'b' ||
+        sym == 'c' || sym == 'd' || sym == 'e' || sym == 'f') {
+        erraticRandom = (rand() % 2 == 0);
     }
-    else {
-        // Intelligent/Unintelligent Movement
-        if (isIntelligent) {
-            // Intelligent Movement
+    
+    switch(sym) {
+        case '0': {
+            // Non-erratic, non-tunneling, non-telepathy, non-intelligent.
+            if (!hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY))
+                return;
+            newX = oldX + sign(dungeon.pc.posX - oldX);
+            newY = oldY + sign(dungeon.pc.posY - oldY);
+            break;
+        }
+        case '1': {
+            // Non-erratic, non-tunneling, non-telepathy, intelligent.
             int targetX, targetY;
-
-            if (isTelepathic) {
-                // Telepathic: Always know PC's position
+            if (hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY)) {
                 targetX = dungeon.pc.posX;
                 targetY = dungeon.pc.posY;
+                m->lastSeenPCX = targetX;
+                m->lastSeenPCY = targetY;
             } else {
-                // Non-Telepathic: Check for line of sight
-                if (hasLineOfSight(m->posX, m->posY, dungeon.pc.posX, dungeon.pc.posY)) {
-                    targetX = dungeon.pc.posX;
-                    targetY = dungeon.pc.posY;
-                    m->lastSeenPCX = targetX; // Update last seen position
-                    m->lastSeenPCY = targetY;
+                if (m->lastSeenPCX != -1 && m->lastSeenPCY != -1) {
+                    targetX = m->lastSeenPCX;
+                    targetY = m->lastSeenPCY;
                 } else {
-                    // No line of sight: Move towards last seen position (if any)
-                    if (m->lastSeenPCX != -1 && m->lastSeenPCY != -1) { // Check if the last seen position is valid
-                        targetX = m->lastSeenPCX;
-                        targetY = m->lastSeenPCY;
-                    } else {
-                        return; // Don't update the monster position
-                    }
+                    return;
                 }
             }
-
-            // Pathfinding (using the appropriate distance map)
-            int best_dist = INT_MAX;
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.nonTunnelingMap;
             for (int dy = -1; dy <= 1; dy++) {
                 for (int dx = -1; dx <= 1; dx++) {
                     if (dx == 0 && dy == 0) continue;
-                    int nx = m->posX + dx;
-                    int ny = m->posY + dy;
-                    if (nx >= 1 && nx < DUNGEON_WIDTH - 1 && ny >= 1 && ny < DUNGEON_HEIGHT - 1) {
-                        if (dist[ny][nx] < best_dist) {
-                            best_dist = dist[ny][nx];
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dungeon.map[ny][nx].hardness > 0)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            break;
+        }
+        case '2': {
+            // Non-erratic, non-tunneling, telepathy, non-intelligent.
+            newX = oldX + sign(dungeon.pc.posX - oldX);
+            newY = oldY + sign(dungeon.pc.posY - oldY);
+            break;
+        }
+        case '3': {
+            // Non-erratic, non-tunneling, telepathy, intelligent.
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.nonTunnelingMap;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            m->lastSeenPCX = dungeon.pc.posX;
+            m->lastSeenPCY = dungeon.pc.posY;
+            break;
+        }
+        case '4': {
+            // Non-erratic, tunneling, non-telepathy, non-intelligent.
+            if (!hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY))
+                return;
+            newX = oldX + sign(dungeon.pc.posX - oldX);
+            newY = oldY + sign(dungeon.pc.posY - oldY);
+            break;
+        }
+        case '5': {
+            // Non-erratic, tunneling, non-telepathy, intelligent.
+            int targetX, targetY;
+            if (hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY)) {
+                targetX = dungeon.pc.posX;
+                targetY = dungeon.pc.posY;
+                m->lastSeenPCX = targetX;
+                m->lastSeenPCY = targetY;
+            } else {
+                if (m->lastSeenPCX != -1 && m->lastSeenPCY != -1) {
+                    targetX = m->lastSeenPCX;
+                    targetY = m->lastSeenPCY;
+                } else {
+                    return;
+                }
+            }
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.tunnelingMap;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            break;
+        }
+        case '6': {
+            // Non-erratic, tunneling, telepathy, non-intelligent.
+            newX = oldX + sign(dungeon.pc.posX - oldX);
+            newY = oldY + sign(dungeon.pc.posY - oldY);
+            break;
+        }
+        case '7': {
+            // Non-erratic, tunneling, telepathy, intelligent.
+            int best = INT_MAX;
+            int (*dist)[DUNGEON_WIDTH] = dungeon.tunnelingMap;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = oldX + dx;
+                    int ny = oldY + dy;
+                    if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                        continue;
+                    if (dist[ny][nx] < best) {
+                        best = dist[ny][nx];
+                        newX = nx;
+                        newY = ny;
+                    }
+                }
+            }
+            m->lastSeenPCX = dungeon.pc.posX;
+            m->lastSeenPCY = dungeon.pc.posY;
+            break;
+        }
+        case '8': {
+            // Erratic, non-tunneling, non-telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                if (!hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY))
+                    return;
+                newX = oldX + sign(dungeon.pc.posX - oldX);
+                newY = oldY + sign(dungeon.pc.posY - oldY);
+            }
+            break;
+        }
+        case '9': {
+            // Erratic, non-tunneling, non-telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                int targetX, targetY;
+                if (hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY)) {
+                    targetX = dungeon.pc.posX;
+                    targetY = dungeon.pc.posY;
+                    m->lastSeenPCX = targetX;
+                    m->lastSeenPCY = targetY;
+                } else {
+                    if (m->lastSeenPCX != -1 && m->lastSeenPCY != -1) {
+                        targetX = m->lastSeenPCX;
+                        targetY = m->lastSeenPCY;
+                    } else {
+                        return;
+                    }
+                }
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.nonTunnelingMap;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
                             newX = nx;
                             newY = ny;
                         }
                     }
                 }
             }
-
+            break;
         }
-        else {
-            int targetX = 0, targetY = 0;
-            bool canMove = false;
-
-            // Telepathic monsters always know PC location
-            if (isTelepathic) {
-                targetX = dungeon.pc.posX;
-                targetY = dungeon.pc.posY;
-                canMove = true;
-            }
-            
-            // Non-telepathic check line of sight
-            else if (hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY)) {
-                targetX = dungeon.pc.posX;
-                targetY = dungeon.pc.posY;
-                canMove = true;
-            }
-
-            if (canMove) {
-                // Straight-line movement logic
-                int dx = targetX - oldX;
-                int dy = targetY - oldY;
-
-                if (abs(dx) > abs(dy)) {
-                    newX += (dx > 0) ? 1 : -1;
-                } else {
-                    newY += (dy > 0) ? 1 : -1;
-                }
+        case 'a': {
+            // Erratic, non-tunneling, telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
             } else {
-                return;
+                newX = oldX + sign(dungeon.pc.posX - oldX);
+                newY = oldY + sign(dungeon.pc.posY - oldY);
             }
+            break;
         }
+        case 'b': {
+            // Erratic, non-tunneling, telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.nonTunnelingMap;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+                m->lastSeenPCX = dungeon.pc.posX;
+                m->lastSeenPCY = dungeon.pc.posY;
+            }
+            break;
+        }
+        case 'c': {
+            // Erratic, tunneling, non-telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                if (!hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY))
+                    return;
+                newX = oldX + sign(dungeon.pc.posX - oldX);
+                newY = oldY + sign(dungeon.pc.posY - oldY);
+            }
+            break;
+        }
+        case 'd': {
+            // Erratic, tunneling, non-telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                int targetX, targetY;
+                if (hasLineOfSight(oldX, oldY, dungeon.pc.posX, dungeon.pc.posY)) {
+                    targetX = dungeon.pc.posX;
+                    targetY = dungeon.pc.posY;
+                    m->lastSeenPCX = targetX;
+                    m->lastSeenPCY = targetY;
+                } else {
+                    if (m->lastSeenPCX != -1 && m->lastSeenPCY != -1) {
+                        targetX = m->lastSeenPCX;
+                        targetY = m->lastSeenPCY;
+                    } else {
+                        return;
+                    }
+                }
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.tunnelingMap;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case 'e': {
+            // Erratic, tunneling, telepathy, non-intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                newX = oldX + sign(dungeon.pc.posX - oldX);
+                newY = oldY + sign(dungeon.pc.posY - oldY);
+            }
+            break;
+        }
+        case 'f': {
+            // Erratic, tunneling, telepathy, intelligent.
+            if (erraticRandom) {
+                newX = oldX + ((rand() % 3) - 1);
+                newY = oldY + ((rand() % 3) - 1);
+            } else {
+                int best = INT_MAX;
+                int (*dist)[DUNGEON_WIDTH] = dungeon.tunnelingMap;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = oldX + dx;
+                        int ny = oldY + dy;
+                        if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT)
+                            continue;
+                        if (dist[ny][nx] < best) {
+                            best = dist[ny][nx];
+                            newX = nx;
+                            newY = ny;
+                        }
+                    }
+                }
+                m->lastSeenPCX = dungeon.pc.posX;
+                m->lastSeenPCY = dungeon.pc.posY;
+            }
+            break;
+        }
+        default:
+            return; // If symbol is not recognized, do nothing.
     }
+
+    // Finally, update the monster's position.
     updateMonsterPosition(index, oldX, oldY, newX, newY, m, isTunneling);
 }
 
@@ -318,8 +561,8 @@ void checkGameConditions(void) {
     // Check PC death
     for (int i = 0; i < dungeon.numMonsters; i++) {
         if (dungeon.monsters[i].alive &&
-            dungeon.monsters[i].posY == dungeon.pc.posX &&
-            dungeon.monsters[i].posX == dungeon.pc.posY) {
+            dungeon.monsters[i].posY == dungeon.pc.posY &&
+            dungeon.monsters[i].posX == dungeon.pc.posX) {
             gameOver = true;
             endwin();
             printf("\nGame Over - You were killed by a monster!\n");
@@ -424,28 +667,36 @@ void printDungeon(int showDist, int tunneling) {
     }
 }
 
-void calculateDistances(int tunneling) {
-    // using the priority queue and dijikstra's algorithm
-    priority_queue_t *pq = pq_create(DUNGEON_HEIGHT * DUNGEON_WIDTH);
-    int (*dist)[DUNGEON_WIDTH] = tunneling ? dungeon.tunnelingMap : dungeon.nonTunnelingMap;
 
-    // Initialize distances
+/*
+Use dijiktra's to calculate path finding
+*/
+void calculateDistances(int mapNum) {
+    priority_queue_t *pq = pq_create(DUNGEON_HEIGHT * DUNGEON_WIDTH);
+    int (*dist)[DUNGEON_WIDTH];
+    if (mapNum == 0) dist = dungeon.nonTunnelingMap;
+    else if (mapNum == 1) dist = dungeon.tunnelingMap;
+
+    // Initialize distances.  initialize to -1 to represent "infinity"
     for (int y = 0; y < DUNGEON_HEIGHT; y++) {
         for (int x = 0; x < DUNGEON_WIDTH; x++) {
-            dist[y][x] = INT_MAX;
+            dist[y][x] = -1;
         }
     }
 
     // Start with PC position
     int pc_y = dungeon.pc.posY;
     int pc_x = dungeon.pc.posX;
-    dist[pc_x][pc_y] = 0;
-    pq_insert(pq, pc_y, pc_x, 0);
+    dist[pc_y][pc_x] = 0;
+    pq_insert(pq, pc_x, pc_y, 0);
 
     while (!pq_is_empty(pq)) {
         pq_node_t node = pq_extract_min(pq);
         int x = node.x;
         int y = node.y;
+
+        // Current cell
+        cell_t currentCell = dungeon.map[y][x]; 
 
         // Check all 8 neighbors
         for (int dy = -1; dy <= 1; dy++) {
@@ -459,19 +710,19 @@ void calculateDistances(int tunneling) {
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
 
                 // Check passability
-                cell_t cell = dungeon.map[ny][nx];
-                if (!tunneling && cell.hardness > 0) continue;  // Non-tunneler can't pass through rock
-                if (cell.hardness == 255) continue;             // Immutable rock
+                cell_t neighborCell = dungeon.map[ny][nx];
+                if (mapNum == 0 && neighborCell.hardness > 0) continue;
+                if (neighborCell.hardness == 255) continue;
 
-                // Calculate weight
+                // Calculate weight 
                 int weight = 1;
-                if (tunneling && cell.hardness > 0) { // tunneler meets rock
-                    weight = 1 + (cell.hardness / 85);
+                if (mapNum == 1 && currentCell.hardness > 0) { // Current cell's hardness
+                    weight = 1 + (currentCell.hardness / 85);
                 }
 
-                // Update distance
+                // Update distance.
                 int new_dist = dist[y][x] + weight;
-                if (new_dist < dist[ny][nx]) {
+                if (dist[ny][nx] == -1 || new_dist < dist[ny][nx]) {
                     dist[ny][nx] = new_dist;
                     pq_insert(pq, nx, ny, new_dist);
                 }
@@ -480,7 +731,6 @@ void calculateDistances(int tunneling) {
     }
     pq_destroy(pq);
 }
-
 
 /*
  Initializes all the immutable rock and regular rock
@@ -521,8 +771,8 @@ void addCorridors(void)
     for (int i = 0; i < roomCounter; ++i)
     {
         // init room centroids for all rooms
-        roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].height / 2;
-        roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].width / 2;
+        roomCentroids[i][0] = dungeon.rooms[i].posX + dungeon.rooms[i].width / 2;
+        roomCentroids[i][1] = dungeon.rooms[i].posY + dungeon.rooms[i].height / 2;
     }
 
     // find smallest distance
@@ -578,9 +828,9 @@ void carveCorridor(int startX, int startY, int endX, int endY)
             xWentLast = false;
         }
 
-        if (dungeon.map[x][y].ch == ROCK_CELL.ch &&
-            dungeon.map[x][y].hardness < 255) {
-            dungeon.map[x][y] = CORRIDOR_CELL;
+        if (dungeon.map[y][x].ch == ROCK_CELL.ch &&
+            dungeon.map[y][x].hardness < 255) {
+            dungeon.map[y][x] = CORRIDOR_CELL;
         }
     }
 }
@@ -598,20 +848,20 @@ void addRooms(void)
         bool roomInserted = false;
         while (!roomInserted)
         {
-            int randX = rand() % (DUNGEON_HEIGHT - 2) + 1;
-            int randY = rand() % (DUNGEON_WIDTH - 2) + 1;
+            int randX = rand() % (DUNGEON_WIDTH - 2) + 1;
+            int randY = rand() % (DUNGEON_HEIGHT - 2) + 1;
             int randHeight = rand() % (MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT + 1) + MIN_ROOM_HEIGHT;
             int randWidth = rand() % (MAX_ROOM_WIDTH - MIN_ROOM_WIDTH + 1) + MIN_ROOM_WIDTH;
 
-            if (randX + randHeight <= DUNGEON_HEIGHT - 1 && randY + randWidth <= DUNGEON_WIDTH - 1)
+            if (randX + randWidth <= DUNGEON_WIDTH - 1 && randY + randHeight <= DUNGEON_HEIGHT - 1)
             {
                 bool validRoomPositionFound = true;
                 // ensure that we don't create the room where immutable rock lies
-                for (int i = randX - 2; i < randX + randHeight + 2; ++i)
+                for (int y = randY - 2; y < randY + randHeight + 2; ++y)
                 {
-                    for (int j = randY - 2; j < randY + randWidth + 2; ++j)
+                    for (int x = randX - 2; x < randX + randWidth + 2; ++x)
                     {
-                        if (dungeon.map[i][j].ch != ROCK_CELL.ch)
+                        if (dungeon.map[y][x].ch != ROCK_CELL.ch)
                         {
                             validRoomPositionFound = false;
                             break;
@@ -629,11 +879,11 @@ void addRooms(void)
                     dungeon.rooms[roomCounter].posY = randY;
                     roomCounter++;
 
-                    for (int i = randX; i < randX + randHeight; ++i)
+                    for (int y = randY; y < randY + randHeight; ++y)
                     {
-                        for (int j = randY; j < randY + randWidth; ++j)
+                        for (int x = randX; x < randX + randWidth; ++x)
                         {
-                            dungeon.map[i][j] = ROOM_CELL;
+                            dungeon.map[y][x] = ROOM_CELL;
                         }
                     }
                     roomInserted = true;
@@ -655,10 +905,10 @@ void initPCPosition(void)
     int getY = room.posY;
     dungeon.pc.posX = getX + 2; // starting X position of the PC
     dungeon.pc.posY = getY + 2; // starting Y position of the PC
-    if (dungeon.map[dungeon.pc.posX][dungeon.pc.posY].ch != '<' ||
-        dungeon.map[dungeon.pc.posX][dungeon.pc.posY].ch != '>')
+    if (dungeon.map[dungeon.pc.posY][dungeon.pc.posX].ch != '<' ||
+        dungeon.map[dungeon.pc.posY][dungeon.pc.posX].ch != '>')
     {
-        dungeon.map[dungeon.pc.posX][dungeon.pc.posY] = PLAYER_CELL;
+        dungeon.map[dungeon.pc.posY][dungeon.pc.posX] = PLAYER_CELL;
     }
     else
     {
@@ -687,21 +937,21 @@ void addStairs(int numStairs)
         room_t room = dungeon.rooms[randomRoomNum];
         //printf("Room width is: %i \n", room.width);
         //printf("Room height is: %i \n", room.height);
-        int randomX = room.posX + rand() % room.height;
-        int randomY = room.posY + rand() % room.width;
+        int randomX = room.posX + rand() % room.width;
+        int randomY = room.posY + rand() % room.height;
         stair_t stair;
         stair.posX = randomX;
         stair.posY = randomY;
         if (dungeon.numUpwardsStairs + dungeon.numDownwardsStairs == 0)
         {
-            dungeon.map[randomX][randomY] = UPWARD_STAIRS_CELL;
+            dungeon.map[randomY][randomX] = UPWARD_STAIRS_CELL;
             dungeon.upwardStairs[dungeon.numUpwardsStairs] = stair;
             dungeon.numUpwardsStairs++;
         }
         // ensure at least one downwards stairs is inside the dungeon
         else if (dungeon.numUpwardsStairs + dungeon.numDownwardsStairs == 1)
         {
-            dungeon.map[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+            dungeon.map[randomY][randomX] = DOWNWARD_STAIRS_CELL;
             dungeon.downwardStairs[dungeon.numDownwardsStairs] = stair;
             dungeon.numDownwardsStairs++;
         }
@@ -709,12 +959,12 @@ void addStairs(int numStairs)
         {
             int randomStairCaseDirection = rand() % 2 + 1;
             if (randomStairCaseDirection == 1) {
-                dungeon.map[randomX][randomY] = UPWARD_STAIRS_CELL;
+                dungeon.map[randomY][randomX] = UPWARD_STAIRS_CELL;
                 dungeon.upwardStairs[dungeon.numUpwardsStairs] = stair;
                 dungeon.numUpwardsStairs++;
             }
             else {
-                dungeon.map[randomX][randomY] = DOWNWARD_STAIRS_CELL;
+                dungeon.map[randomY][randomX] = DOWNWARD_STAIRS_CELL;
                 dungeon.downwardStairs[dungeon.numDownwardsStairs] = stair;
                 dungeon.numDownwardsStairs++;
             }
@@ -751,11 +1001,14 @@ void loadFile(void){
 
     // Open the file
     FILE *f = fopen(path, "r");
+    
+    /*
     if (f == NULL) {
         perror("Failed to open file");
         free(path);
         return;
     }
+    */
 
     // Read file type and version
     char fileType[13];
@@ -782,22 +1035,14 @@ void loadFile(void){
 
     fread(&fileSize, sizeof(uint32_t), 1, f);
     fileSize = htonl(fileSize);
-    //printf("File size: %u bytes\n", fileSize);
+    printf("File size: %u bytes\n", fileSize);
 
     // Read player position
     fread(&dungeon.pc.posX, sizeof(uint8_t), 1, f);
     fread(&dungeon.pc.posY, sizeof(uint8_t), 1, f);
 
-    // Ensure player position is within bounds
-    if (dungeon.pc.posX >= DUNGEON_HEIGHT || dungeon.pc.posY >= DUNGEON_WIDTH) {
-        printf("Invalid player position\n");
-        printf("Player's X pos: %i\n", dungeon.pc.posX);
-        printf("Player's Y pos: %i\n", dungeon.pc.posY);
-        fclose(f);
-        free(path);
-        return;
-    }
-    dungeon.map[dungeon.pc.posX][dungeon.pc.posY] = PLAYER_CELL;
+    
+    dungeon.map[dungeon.pc.posY][dungeon.pc.posX] = PLAYER_CELL;
 
     // Load dungeon map hardness
     for (int y = 0; y < DUNGEON_HEIGHT; y++) {
@@ -809,12 +1054,7 @@ void loadFile(void){
     // Read number of rooms and validate it
     fread(&dungeon.numRooms, sizeof(uint16_t), 1, f);
     dungeon.numRooms = htons(dungeon.numRooms);
-    if (dungeon.numRooms > MAX_NUM_ROOMS || dungeon.numRooms < MIN_NUM_ROOMS) {
-        printf("Invalid number of rooms: %u\n", dungeon.numRooms);
-        fclose(f);
-        free(path);
-        return;
-    }
+
 
     // Allocate memory for rooms
     dungeon.rooms = (room_t *)malloc(sizeof(room_t) * dungeon.numRooms);
@@ -832,19 +1072,10 @@ void loadFile(void){
         fread(&dungeon.rooms[i].width, sizeof(uint8_t), 1, f);
         fread(&dungeon.rooms[i].height, sizeof(uint8_t), 1, f);
 
-        // Validate room positions and sizes
-        if (dungeon.rooms[i].posY >= DUNGEON_WIDTH || dungeon.rooms[i].posX >= DUNGEON_HEIGHT ||
-            dungeon.rooms[i].posY + dungeon.rooms[i].width > DUNGEON_WIDTH ||
-            dungeon.rooms[i].posX + dungeon.rooms[i].height > DUNGEON_HEIGHT) {
-            printf("Invalid room position or size for room %d\n", i);
-            fclose(f);
-            free(path);
-            return;
-        }
 
         // Mark room cells on the map
-        for (int n = dungeon.rooms[i].posX; n < dungeon.rooms[i].posX + dungeon.rooms[i].height; n++) {
-            for (int m = dungeon.rooms[i].posY; m < dungeon.rooms[i].posY + dungeon.rooms[i].width; m++) {
+        for (int y = dungeon.rooms[i].posY; y < dungeon.rooms[i].posY + dungeon.rooms[i].height; y++) {
+            for (int x = dungeon.rooms[i].posX; x < dungeon.rooms[i].posX + dungeon.rooms[i].width; x++) {
                 /*if (n >= DUNGEON_WIDTH || m >= DUNGEON_HEIGHT) {
                     printf("Room exceeds dungeon bounds: Room %d at (%d,%d)\n", i, n, m);
                     fclose(f);
@@ -852,8 +1083,8 @@ void loadFile(void){
                     return;
                 }
                  */
-                if (dungeon.map[n][m].ch != '@') {
-                    dungeon.map[n][m] = ROOM_CELL;
+                if (dungeon.map[y][x].ch != '@') {
+                    dungeon.map[y][x] = ROOM_CELL;
                 }
             }
         }
@@ -868,7 +1099,7 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numUpwardsStairs; i++) {
         fread(&dungeon.upwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.upwardStairs[i].posY, sizeof(uint8_t), 1, f);
-        dungeon.map[dungeon.upwardStairs[i].posX][dungeon.upwardStairs[i].posY] = UPWARD_STAIRS_CELL;
+        dungeon.map[dungeon.upwardStairs[i].posY][dungeon.upwardStairs[i].posX] = UPWARD_STAIRS_CELL;
     }
     
     fread(&dungeon.numDownwardsStairs, sizeof(uint16_t), 1, f);
@@ -877,7 +1108,7 @@ void loadFile(void){
     for (int i = 0; i < dungeon.numDownwardsStairs; i++) {
         fread(&dungeon.downwardStairs[i].posX, sizeof(uint8_t), 1, f);
         fread(&dungeon.downwardStairs[i].posY, sizeof(uint8_t), 1, f);
-        dungeon.map[dungeon.downwardStairs[i].posX][dungeon.downwardStairs[i].posY] = DOWNWARD_STAIRS_CELL;
+        dungeon.map[dungeon.downwardStairs[i].posY][dungeon.downwardStairs[i].posX] = DOWNWARD_STAIRS_CELL;
     }
 
     // Rebuild corridors
@@ -888,6 +1119,7 @@ void loadFile(void){
             }
         }
     }
+    
 
     fclose(f);
     free(path);
@@ -920,6 +1152,7 @@ void saveFile(void) {
     strcat(path, "/.rlg327/dungeon");
     FILE *f = NULL;
     f = fopen(path, "w");
+    
     if (f == NULL) {
         perror("Failed to open file");
         free(path);
@@ -966,4 +1199,3 @@ void saveFile(void) {
     free(path);
     return;
 }
-

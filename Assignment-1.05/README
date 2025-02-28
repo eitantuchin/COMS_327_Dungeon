@@ -1,3 +1,9 @@
+To run:
+    Use make to compile.
+    Use ./dungeon_UI to run.
+    Use ./dungeon_UI --nummon x to run with x amount of monsters.
+    You can use key z to attack and v to change direction as optional keys I added.
+
 New/Updated Files:
     dungeon_UI.c contains all logic with added UI and the first basic full working game.
     dungeon_UI.h contains framework for dungeon_UI.c.

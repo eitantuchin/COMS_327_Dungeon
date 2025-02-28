@@ -136,11 +136,9 @@ void carveCorridor(int startX, int startY, int endX, int endY);
 void initImmutableRock(void);
 void initPCPosition(void);
 bool contains(int *array, size_t size, int value);
-void cleanupDungeon(void);
 void calculateDistances(int tunneling);
 void initMonsters(void);
 void moveMonster(int index);
-void attemptMove(monster_t *m, int dx, int dy);
 void checkGameConditions(void);
 void processEvents(void);
 void scheduleEvent(event_type_t type, int monsterIndex, int currentTurn);
@@ -160,4 +158,5 @@ void useStairs(int key);
 void resetDungeonLevel(void);
 char* getMonsterPositionString(int monsterIndex);
 void displayMonsterList(void);
+int sign(int x);
 #endif

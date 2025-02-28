@@ -1,3 +1,8 @@
+To run:
+    Use make to compile.
+    Use ./dungeon_monsters to run.
+    Use ./dungeon_monsters --nummon x to run with x amount of monsters.
+
 New/Updated Files:
     dungeon_monsters.c contains all logic with added monsters.
     dungeon_monsters.h contains framework for dungeon_monsters.c.

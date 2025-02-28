@@ -148,7 +148,7 @@ void attack(int distance) {
                 Monster* monster = &dungeon.getMonsters()[j];
                 if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
                     monster->setAlive(false);
-                    if (contains(monster->getAbilities(), string("UNIQ"))) {
+                    if (containsString(monster->getAbilities(), string("UNIQ"))) {
                         monster->setElgibile(false);
                     }
                     vector<Item>& inventory = monster->getInventory();
@@ -226,3 +226,4 @@ void movePlayer(int key) {
     calculateDistances(1);
     calculateDistances(2);
 }
+

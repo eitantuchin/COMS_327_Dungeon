@@ -180,7 +180,6 @@ void calculateDistances(int mapNum) {
 }
 
 
-
 /*
  Initializes all the immutable rock and regular rock
  */

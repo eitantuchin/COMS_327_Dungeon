@@ -3,13 +3,14 @@
 #include "../headers/pc.hpp"
 #include "../headers/dungeon_game.hpp"
 #include "../headers/priority_queue.h"
+#include <algorithm>
 
 using namespace std;
 
 
 // Constructor implementation
 Dungeon::Dungeon()
-: numUpwardsStairs(0), numDownwardsStairs(0), numRooms(0), numMonsters(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP) {
+: numRooms(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP), numUpwardsStairs(0), numDownwardsStairs(0), numMonsters(0) {
 }
 
 // Getter for map
@@ -162,7 +163,7 @@ void initItems(void) {
         int randIndex = rand() % items.size();
         int randRarity = rand() % 100;
         if (items[randIndex].isEligible() && items[randIndex].getRarity() < randRarity) {
-            if ((items[randIndex].isArtifact() && !contains(indexesOfItemArtifactsInserted, randIndex)) || !items[randIndex].isArtifact()) {
+            if ((items[randIndex].isArtifact() && !containsInt(indexesOfItemArtifactsInserted, randIndex)) || !items[randIndex].isArtifact()) {
                 if (items[randIndex].isArtifact()) {
                     indexesOfItemArtifactsInserted.push_back(randIndex);
                 }
@@ -187,8 +188,8 @@ void initMonsters(void) {
         int randRarity = rand() % 100;
         if (monsters[randIndex].isEligible() && monsters[randIndex].getRarity() < randRarity) {
             // if the monster is unique and hasn't been inserted yet or if the monster isn't unique
-            bool isUnique = contains(monsters[randIndex].getAbilities(), string("UNIQ"));
-            if ((isUnique && !contains(indexesOfUniqueMonstersInserted, randIndex)) || !isUnique) {
+            bool isUnique = containsString(monsters[randIndex].getAbilities(), string("UNIQ"));
+            if ((isUnique && !containsInt(indexesOfUniqueMonstersInserted, randIndex)) || !isUnique) {
                 if (isUnique) {
                     indexesOfUniqueMonstersInserted.push_back(randIndex);
                 }
@@ -239,7 +240,7 @@ void addStairs(void)
         int randomRoomNum;
         while (true) {
             randomRoomNum = rand() % dungeon.getNumRooms();
-            if (contains(randomRoomNums, randomRoomNum)) {
+            if (containsInt(randomRoomNums, randomRoomNum)) {
                 continue;
             }
             randomRoomNums[dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs()] = randomRoomNum;

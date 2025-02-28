@@ -187,3 +187,4 @@ void Item::setArtifact(bool artifact) { ART = artifact; }
 void Item::setRarity(u_int8_t rarity) { RRTY = rarity; }
 void Item::setPreviousCell(cell_t cell) { previousCell =  cell; }
 void Item::setElgibile(bool isEligible) { eligibility = isEligible; }
+

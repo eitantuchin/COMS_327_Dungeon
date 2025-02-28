@@ -13,6 +13,7 @@
 #include <sstream>
 #include <cmath>
 #include <memory>
+#include <vector>
 
 using namespace std;
 
@@ -436,7 +437,7 @@ void printCharacter(int x, int y) {
         else {
             if (dungeon.getPC().getFogMap()[y][x] && dungeon.getMap()[y][x].hardness == -1) {
                 // add previous character since monster but shouldn't be seen
-                for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
+                for (size_t i = 0; i < dungeon.getMonsters().size(); ++i) {
                     if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
                         attron(COLOR_PAIR(COLOR_WHITE));
                         addch(dungeon.getMonsters()[i].getPreviousCell().ch);
@@ -528,7 +529,7 @@ void checkGameConditions(void) {
     bool bossKilled = false;
     string bossName = "";
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
-        if (!dungeon.getMonsters()[i].isAlive() && contains(dungeon.getMonsters()[i].getAbilities(), string("BOSS"))) {
+        if (!dungeon.getMonsters()[i].isAlive() && containsString(dungeon.getMonsters()[i].getAbilities(), string("BOSS"))) {
             bossKilled = true;
             bossName = dungeon.getMonsters()[i].getName();
             break;
@@ -605,5 +606,20 @@ void calculateDistances(int mapNum) {
     pq.clear();
 }
 
-template bool contains<string>(const vector<string>& array, const string& value);
-template bool contains<int>(const vector<int>& array, const int& value);
+bool containsInt(const vector<int>& array, const int& value) {
+    for (const int& element: array) {
+        if (element == value) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool containsString(const vector<string>& array, const string& value) {
+    for (const string& element: array) {
+        if (element == value) {
+            return true;
+        }
+    }
+    return false;
+}

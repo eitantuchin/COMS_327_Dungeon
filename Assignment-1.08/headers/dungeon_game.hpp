@@ -17,6 +17,7 @@
 #include <string>
 #include <cmath>
 #include <array>
+#include <vector>
 
 
 using namespace std;
@@ -124,16 +125,6 @@ void printCharacter(int x, int y);
 void moveTargetingPointer(int key);
 void initTargetingPointer(void);
 pair<int, int> getPointerCellPosition(void);
+bool containsString(const vector<string>& array, const string& value);
+bool containsInt(const vector<int>& array, const int& value);
 
-/*
- Checks whether an element exists within given array
- */
-template <typename T>
-bool contains(const vector<T>& array, const T& value) {
-    for (const T& element: array) {
-        if (element == value) {
-            return true;
-        }
-    }
-    return false;
-}

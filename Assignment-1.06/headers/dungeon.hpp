@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DUNGEON_HPP
+#define DUNGEON_HPP
 
 #include "character.hpp"
 #include "dungeon_game.hpp"
@@ -54,5 +55,9 @@ public:
     void setMonsters(const vector<Monster>& newMonsters);
     void setNumMonsters(uint16_t num);
     void setModeType(mode_type_t newModeType);
+
+    virtual ~Dungeon() = default;
+
 };
 
+#endif

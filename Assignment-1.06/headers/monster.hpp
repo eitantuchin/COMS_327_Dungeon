@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MONSTER_HPP
+#define MONSTER_HPP
 
 #include "character.hpp"
 #include "dungeon_game.hpp"
@@ -35,5 +36,4 @@ public:
     // Additional methods specific to Monster can be added here
 };
 
-
-
+#endif

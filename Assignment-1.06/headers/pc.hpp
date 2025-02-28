@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PC_HPP
+#define PC_HPP
 
 #include "character.hpp"    // contains inherited methods
 #include "dungeon_game.hpp" // contains cell_t
@@ -26,3 +27,4 @@ public:
     // Additional methods specific to PC can be added here
 };
 
+#endif

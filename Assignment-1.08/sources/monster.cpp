@@ -225,11 +225,11 @@ void moveMonster(int index) {
     
     // Get monster abilities
     vector<string> abilities = m->getAbilities();
-    bool isErratic = contains(abilities, string("ERRATIC"));
-    bool isTunneling = contains(abilities, string("TUNNEL"));
-    bool isTelepathic = contains(abilities, string("TELE"));
-    bool isIntelligent = contains(abilities, string("SMART"));
-    bool canPass = contains(abilities, string("PASS"));
+    bool isErratic = containsString(abilities, string("ERRATIC"));
+    bool isTunneling = containsString(abilities, string("TUNNEL"));
+    bool isTelepathic = containsString(abilities, string("TELE"));
+    bool isIntelligent = containsString(abilities, string("SMART"));
+    bool canPass = containsString(abilities, string("PASS"));
     
     // Determine target position
     int targetX = dungeon.getPC().getPosX();
@@ -609,12 +609,12 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1) {
         vector<Item> items = dungeon.getItemMap()[newY][newX];
-        if (contains(m->getAbilities(), string("DESTROY")) || contains(m->getAbilities(), string("PICKUP"))) { // ability to destroy items
+        if (containsString(m->getAbilities(), string("DESTROY")) || containsString(m->getAbilities(), string("PICKUP"))) { // ability to destroy items
             // destroy the topmost item in the stack
             if (!items.empty()) { // Check if the vector is not empty
                 Item i = items.back();
                 items.pop_back(); // Remove the last item
-                if (contains(m->getAbilities(), string("PICKUP"))) {
+                if (containsString(m->getAbilities(), string("PICKUP"))) {
                     m->getInventory().push_back(i); // add the item to the monster's inventory
                 }
                 if (items.empty()) {
@@ -683,7 +683,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             if (defenderIndex != -1) { // kill the defender
                 dungeon.getMonsters()[defenderIndex].setAlive(false);
                 // if the defending monster is unique then it can't be spawned anymore
-                if (contains(dungeon.getMonsters()[defenderIndex].getAbilities(), string("UNIQ"))) {
+                if (containsString(dungeon.getMonsters()[defenderIndex].getAbilities(), string("UNIQ"))) {
                     dungeon.getMonsters()[defenderIndex].setElgibile(false);
                 }
                 dungeon.getMap()[newY][newX] = m->getCell();
@@ -832,4 +832,5 @@ void Monster::setRarity(u_int8_t rrty) {
 }
 
 void Monster::setElgibile(bool isEligible) { eligibility = isEligible; }
+
 

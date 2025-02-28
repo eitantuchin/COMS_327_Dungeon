@@ -1,4 +1,4 @@
-#include "../headers/priority_queue.h"
+#include "../headers/priority_queue.hpp"
 
 bool pq_node_t::operator>(const pq_node_t& other) const {  // Definition of the comparison operator
      return priority > other.priority;
@@ -15,8 +15,8 @@ void my_priority_queue::swap(pq_node_t& a, pq_node_t& b) {
 }
 
 void my_priority_queue::heapify(int index) {
-    int left = 2 * index + 1;
-    int right = 2 * index + 2;
+    size_t left = 2 * index + 1;
+    size_t right = 2 * index + 2;
     int smallest = index;
 
     if (left < nodes.size() && nodes[left].priority < nodes[smallest].priority) {

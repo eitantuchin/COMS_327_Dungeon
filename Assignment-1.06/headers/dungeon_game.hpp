@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DUNGEON_GAME_HPP
+#define DUNGEON_GAME_HPP
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,3 +138,5 @@ void teleportPlayer(bool randomTeleport);
 void moveTargetingPointer(int key);
 void initTargetingPointer(void);
 pair<int, int> getPointerCellPosition(void);
+
+#endif

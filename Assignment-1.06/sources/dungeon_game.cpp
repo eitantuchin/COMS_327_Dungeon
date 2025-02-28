@@ -3,7 +3,7 @@
 #include "../headers/monster.hpp"
 #include "../headers/pc.hpp"
 #include "../headers/character.hpp"
-#include "../headers/priority_queue.h"
+#include "../headers/priority_queue.hpp"
 #include <array>
 #include <string>
 #include <cstring>
@@ -227,13 +227,22 @@ void teleportPlayer(bool randomTeleport) {
         displayMessage(message);
     }
     else {
-        dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] =  dungeon.getPC().getPreviousCell();
-        dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
-        dungeon.getPC().setPosX(pointerPos.first);
-        dungeon.getPC().setPosY(pointerPos.second);
-        dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
-        snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
-        displayMessage(message);
+        if (dungeon.getPC().getPosX() != pointerPos.first || 
+            dungeon.getPC().getPosY() != pointerPos.second) {
+            dungeon.getMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = dungeon.getPC().getPreviousCell();
+            dungeon.getPC().setPreviousCell(targetingPointerPreviousCell);
+            dungeon.getPC().setPosX(pointerPos.first);
+            dungeon.getPC().setPosY(pointerPos.second);
+            dungeon.getMap()[pointerPos.second][pointerPos.first] = PLAYER_CELL;
+            snprintf(message, sizeof(message), "You teleported to X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
+            displayMessage(message);
+        }
+        else {
+             // Teleporting to the same spot, don't change previous cell
+            dungeon.getMap()[pointerPos.second][pointerPos.first] = targetingPointerPreviousCell;
+            snprintf(message, sizeof(message), "You remained at X-coord: %i and Y-coord: %i!", pointerPos.first, pointerPos.second);
+            displayMessage(message);
+        }
     }
     calculateDistances(0);
     calculateDistances(1);
@@ -333,7 +342,7 @@ void printCharacter(int x, int y) {
         else {
             if (dungeon.getPC().getFogMap()[y][x] && dungeon.getMap()[y][x].hardness == -1) {
                 // add previous character since monster but shouldn't be seen
-                for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
+                for (size_t i = 0; i < dungeon.getMonsters().size(); ++i) {
                     if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
                         addch(dungeon.getMonsters()[i].getPreviousCell().ch);
                     }

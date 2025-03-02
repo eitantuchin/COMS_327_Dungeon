@@ -8,7 +8,7 @@ using namespace std;
 
 // Constructor implementation
 Dungeon::Dungeon()
-: numUpwardsStairs(0), numDownwardsStairs(0), numRooms(0), numMonsters(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP){
+: numRooms(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, UP), numUpwardsStairs(0), numDownwardsStairs(0), numMonsters(0) {
 }
 
 // Getter for map

@@ -14,10 +14,10 @@ void my_priority_queue::swap(pq_node_t& a, pq_node_t& b) {
     b = temp;
 }
 
-void my_priority_queue::heapify(int index) {
-    int left = 2 * index + 1;
-    int right = 2 * index + 2;
-    int smallest = index;
+void my_priority_queue::heapify(size_t index) {
+    size_t left = 2 * index + 1;
+    size_t right = 2 * index + 2;
+    size_t smallest = index;
 
     if (left < nodes.size() && nodes[left].priority < nodes[smallest].priority) {
         smallest = left;

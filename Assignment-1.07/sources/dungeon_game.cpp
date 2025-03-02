@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 {
     // Initialize dungeon
     dungeon.setNumRooms(MIN_NUM_ROOMS);
-    dungeon.setRooms(vector<room_t>(dungeon.getNumRooms()));
+    dungeon.setRooms(vector<room_t>(MAX_NUM_ROOMS));
     dungeon.setUpwardStairs(vector<stair_t>(3));
     dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setModeType(PLAYER_CONTROL);
@@ -352,7 +352,7 @@ void printCharacter(int x, int y) {
         else {
             if (dungeon.getPC().getFogMap()[y][x] && dungeon.getMap()[y][x].hardness == -1) {
                 // add previous character since monster but shouldn't be seen
-                for (int i = 0; i < dungeon.getMonsters().size(); ++i) {
+                for (size_t i = 0; i < dungeon.getMonsters().size(); ++i) {
                     if (dungeon.getMonsters()[i].getPosX() == x && dungeon.getMonsters()[i].getPosY() == y) {
                         addch(dungeon.getMonsters()[i].getPreviousCell().ch);
                     }
@@ -1583,6 +1583,9 @@ void addStairs(void)
 {
     int numStairs = rand() % (MAX_NUM_STAIRS - MIN_NUM_STAIRS + 1) + MIN_NUM_STAIRS;
     int randomRoomNums[MAX_NUM_STAIRS];
+    for (int i = 0; i < MAX_NUM_STAIRS; i++) {
+        randomRoomNums[i] = -1;
+    }
     dungeon.setNumUpwardsStairs(0);
     dungeon.setNumDownwardsStairs(0);
     while (dungeon.getNumUpwardsStairs() + dungeon.getNumDownwardsStairs() != numStairs) {

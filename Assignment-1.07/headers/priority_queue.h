@@ -15,7 +15,7 @@ class my_priority_queue {
     private:
         std::vector<pq_node_t> nodes;
         void swap(pq_node_t& a, pq_node_t& b);
-        void heapify(int index);
+        void heapify(size_t index);
 
     public:
         my_priority_queue();

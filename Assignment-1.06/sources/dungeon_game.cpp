@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 {
     // Initialize dungeon
     dungeon.setNumRooms(MIN_NUM_ROOMS);
-    dungeon.setRooms(vector<room_t>(dungeon.getNumRooms()));
+    dungeon.setRooms(vector<room_t>(MAX_NUM_ROOMS));
     dungeon.setUpwardStairs(vector<stair_t>(3));
     dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setModeType(PLAYER_CONTROL);

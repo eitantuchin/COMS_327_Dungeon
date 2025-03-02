@@ -100,6 +100,7 @@ vector<Item> itemFactory() {
         uint16_t val = rollDice(objectDescription.VAL);
         bool art = objectDescription.ART == "TRUE";
         vector<short> colors = getColors(objectDescription.COLOR);
+        bool itemInvalid = containsString(invalidItemsAndMonsters, objectDescription.NAME);
         items.push_back(Item(
             coordinates.second,
             coordinates.first,
@@ -118,7 +119,7 @@ vector<Item> itemFactory() {
             art,
             stoi(objectDescription.RRTY),
             ROOM_CELL,
-            true // items are always eligible to be begin with
+            !itemInvalid // the item is not eligible if the item is invalid
         ));
     }
     return items;

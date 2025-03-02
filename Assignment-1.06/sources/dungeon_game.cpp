@@ -109,10 +109,6 @@ int main(int argc, char *argv[])
         updateFogMap();
     }
 
-    // Cleanup
-    
-    endwin();
-    event_queue.clear();
     return 0;
 }
 
@@ -148,10 +144,6 @@ void checkKeyInput(void) {
             gameOver = true;
             endwin();
             printf("\nYou quit the game!\n");
-            dungeon.setRooms(vector<room_t>()); // Clear rooms
-            dungeon.setUpwardStairs(vector<stair_t>()); // Clear stairs
-            dungeon.setDownwardStairs(vector<stair_t>()); // Clear stairs
-            dungeon.setMonsters(vector<Monster>()); // Clear monsters
             exit(0);
             break;
         case 'z': // PC can attack 1 space away
@@ -1229,6 +1221,7 @@ void checkGameConditions(void) {
             dungeon.getMonsters()[i].getPosY() == dungeon.getPC().getPosY() &&
             dungeon.getMonsters()[i].getPosX() == dungeon.getPC().getPosX()) {
             gameOver = true;
+            exit(0);
             endwin();
             printf("\nGame Over - You were killed by monster %c!", dungeon.getMonsters()[i].getCell().ch);
             return;

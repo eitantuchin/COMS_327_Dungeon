@@ -110,6 +110,7 @@ extern string directionMessage;
 extern string dirNames[8];
 extern int monsterListScrollOffset;
 extern cell_t targetingPointerPreviousCell;
+extern vector<string> invalidItemsAndMonsters;
 
 // Function prototypes
 

@@ -8,8 +8,8 @@
 
 using namespace std;
 
-Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, int lastSeenX, int lastSeenY, bool isAlive, vector<Item> inventory, string NAME, string DESC, vector<short> COLOR, string DAM, char SYMB, vector<string> ABIL, u_int16_t HP, u_int8_t RRTY, bool eligibility)
-: Character(x, y, previousCell, speed, cell), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), inventory(inventory), NAME(NAME), DESC(DESC), COLOR(COLOR), DAM(DAM), SYMB(SYMB), ABIL(ABIL), HP(HP), RRTY(RRTY), eligibility(eligibility) {}
+Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, int lastSeenX, int lastSeenY, bool isAlive, vector<Item> inventory, string NAME, string DESC, vector<short> COLOR, string DAM, char SYMB, vector<string> ABIL, u_int16_t HP, u_int8_t RRTY)
+: Character(x, y, previousCell, speed, cell), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), inventory(inventory), NAME(NAME), DESC(DESC), COLOR(COLOR), DAM(DAM), SYMB(SYMB), ABIL(ABIL), HP(HP), RRTY(RRTY) {}
 
 pair<int, int> getMonsterCoordinates(void) {
     int randY, randX;
@@ -35,9 +35,9 @@ vector<string> getAbils(const string &abilitiesString) {
     return abilities;
 }
 
-vector<Monster> monsterFactory() {
-    vector<Monster> monsters; // to make dynamic instaces of items
-    vector<monsterDesc_t> dungeonMonsters = readMonsters(false); // false because we don't want to print out items
+vector<Monster> monsterFactory(void) {
+    vector<Monster> monsterArray; // to make dynamic instaces of items
+    vector<monsterDesc_t> dungeonMonsters = readMonsters(false); // false because we don't want to print out monsters
     for (monsterDesc_t monsterDescription: dungeonMonsters) {
         pair<int, int> coordinates = getMonsterCoordinates();
         cell_t PREVIOUS_CELL;
@@ -53,28 +53,30 @@ vector<Monster> monsterFactory() {
         vector<short> colors = getColors(monsterDescription.COLOR);
         uint16_t health = rollDice(monsterDescription.HP);
         vector<string> abilities = getAbils(monsterDescription.ABIL);
-        monsters.push_back(Monster(
-            coordinates.second,
-            coordinates.first,
-            PREVIOUS_CELL,
-            speed,
-            MONSTER_CELL,
-            -1,
-            -1,
-            true,
-            inventory,
-            monsterDescription.NAME,
-            monsterDescription.DESC,
-            colors,
-            monsterDescription.DAM,
-            monsterDescription.SYMB[0],
-            abilities,
-            health,
-            stoi(monsterDescription.RRTY),
-            true
-        ));
+        bool monsterInvalid = containsString(invalidItemsAndMonsters, monsterDescription.NAME);
+        if (!monsterInvalid) {
+            monsterArray.push_back(Monster(
+               coordinates.second,
+               coordinates.first,
+               PREVIOUS_CELL,
+               speed,
+               MONSTER_CELL,
+               -1,
+               -1,
+               !monsterInvalid,
+               inventory,
+               monsterDescription.NAME,
+               monsterDescription.DESC,
+               colors,
+               monsterDescription.DAM,
+               monsterDescription.SYMB[0],
+               abilities,
+               health,
+               stoi(monsterDescription.RRTY)
+            ));
+        }
     }
-    return monsters;
+    return monsterArray;
 }
 
 
@@ -684,7 +686,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
                 dungeon.getMonsters()[defenderIndex].setAlive(false);
                 // if the defending monster is unique then it can't be spawned anymore
                 if (containsString(dungeon.getMonsters()[defenderIndex].getAbilities(), string("UNIQ"))) {
-                    dungeon.getMonsters()[defenderIndex].setElgibile(false);
+                    invalidItemsAndMonsters.push_back(dungeon.getMonsters()[defenderIndex].getName());
                 }
                 dungeon.getMap()[newY][newX] = m->getCell();
                 dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
@@ -736,7 +738,6 @@ bool checkMonsterPlacementToPC(int randX, int randY) {
     return true;
 }
 
-bool Monster::isEligible() const { return eligibility; }
 
 int Monster::getLastSeenPCX() const {
     return lastSeenPCX;
@@ -831,6 +832,5 @@ void Monster::setRarity(u_int8_t rrty) {
     RRTY = rrty;
 }
 
-void Monster::setElgibile(bool isEligible) { eligibility = isEligible; }
 
 

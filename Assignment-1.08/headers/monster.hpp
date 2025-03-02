@@ -22,13 +22,12 @@ private:
     vector<string> ABIL;
     u_int16_t HP;
     u_int8_t RRTY;
-    bool eligibility;
 
 public:
     Monster() // default
-    : Character(0, 0, cell_t(), 0, cell_t()), lastSeenPCX(-1), lastSeenPCY(-1), alive(false), inventory(), NAME(""), DESC(""), COLOR(), DAM(""), SYMB(' '), ABIL(), HP(0), RRTY(0), eligibility(false) {}
+    : Character(0, 0, cell_t(), 0, cell_t()), lastSeenPCX(-1), lastSeenPCY(-1), alive(false), inventory(), NAME(""), DESC(""), COLOR(), DAM(""), SYMB(' '), ABIL(), HP(0), RRTY(0){}
     // Constructor
-    Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, int lastSeenX, int lastSeenY, bool isAlive, vector<Item> inventory, string NAME, string DESC, vector<short> COLOR, string DAM, char SYMB, vector<string> ABIL, u_int16_t HP, u_int8_t RRTY, bool eligibility);
+    Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, int lastSeenX, int lastSeenY, bool isAlive, vector<Item> inventory, string NAME, string DESC, vector<short> COLOR, string DAM, char SYMB, vector<string> ABIL, u_int16_t HP, u_int8_t RRTY);
        
 
     // Getters
@@ -44,7 +43,6 @@ public:
     vector<string> getAbilities() const;
     u_int16_t getHealth() const;
     u_int8_t getRarity() const;
-    bool isEligible() const;
 
     // Setters
     void setLastSeenPCX(int x);
@@ -58,7 +56,6 @@ public:
     void setAbilities(const vector<string>& abil);
     void setHealth(u_int16_t hp);
     void setRarity(u_int8_t rrty);
-    void setElgibile(bool eligibility);
 
     // Additional methods specific to Monster can be added here
 };
@@ -69,4 +66,4 @@ bool checkMonsterPlacementToPC(int randX, int randY);
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling, bool canPass);
 void moveMonster(int index);
 bool hasLineOfSight(int x1, int y1, int x2, int y2);
-vector<Monster> monsterFactory();
+vector<Monster> monsterFactory(void);

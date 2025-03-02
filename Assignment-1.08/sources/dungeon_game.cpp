@@ -38,6 +38,7 @@ const cell_t UPWARD_STAIRS_CELL = {'<', 0};
 const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
 const cell_t POINTER_CELL = {'*', 0};
+vector<string> invalidItemsAndMonsters = {};
 
 /*
  Allows the user to choose between saving, loading, and creating dungeons
@@ -145,7 +146,6 @@ int main(int argc, char *argv[])
     // Cleanup
     
     endwin();
-    event_queue.clear();
     return 0;
 }
 
@@ -182,14 +182,9 @@ void checkKeyInput(void) {
             break;
         case 'q': // quit the game
         case 'Q':
-            gameOver = true;
             endwin();
             printf("\nYou quit the game!\n");
-            dungeon.setRooms(vector<room_t>()); // Clear rooms
-            dungeon.setUpwardStairs(vector<stair_t>()); // Clear stairs
-            dungeon.setDownwardStairs(vector<stair_t>()); // Clear stairs
-            dungeon.setMonsters(vector<Monster>()); // Clear monsters
-            exit(0);
+            gameOver = true;
             break;
         case 'z': // PC can attack 1 space away
             attack(1); break;

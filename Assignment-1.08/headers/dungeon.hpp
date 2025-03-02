@@ -11,18 +11,6 @@
 
 using namespace std;
 
-// Specialize std::hash for std::pair<int, int>
-namespace std {
-    template <>
-    struct hash<pair<int, int>> {
-        std::size_t operator()(const pair<int, int>& p) const {
-            std::size_t h1 = std::hash<int>{}(p.first);
-            std::size_t h2 = std::hash<int>{}(p.second);
-            return h1 ^ (h2 << 1); // Combine hashes
-        }
-    };
-}
-
 class Dungeon {
 private:
     cell_t map[DUNGEON_HEIGHT][DUNGEON_WIDTH]; // Dungeon map grid
@@ -39,7 +27,7 @@ private:
     vector<Monster> monsters;             // List of monsters in the dungeon
     uint16_t numMonsters;                      // Number of monsters
     mode_type_t modeType;                      // Current mode of the dungeon (e.g., player control, monster list)
-    vector<Item> dungeonItems;
+    vector<Item> items;
     vector<Item> itemMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 
 public:
@@ -61,7 +49,7 @@ public:
     vector<Monster>& getMonsters();
     uint16_t getNumMonsters();
     mode_type_t getModeType();
-    vector<Item>& getDungeonItems();
+    vector<Item>& getItems();
     vector<Item> (&getItemMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 
     // Setters
@@ -75,7 +63,7 @@ public:
     void setMonsters(const vector<Monster>& newMonsters);
     void setNumMonsters(uint16_t num);
     void setModeType(mode_type_t newModeType);
-    void setDungeonItems(vector<Item> newItems);
+    void setItems(vector<Item> newItems);
 };
 
 void addRooms(void);

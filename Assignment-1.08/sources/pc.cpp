@@ -149,7 +149,7 @@ void attack(int distance) {
                 if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
                     monster->setAlive(false);
                     if (containsString(monster->getAbilities(), string("UNIQ"))) {
-                        monster->setElgibile(false);
+                        invalidItemsAndMonsters.push_back(monster->getName());
                     }
                     vector<Item>& inventory = monster->getInventory();
                     cell_t monsterOriginalCell = monster->getPreviousCell(); // Original cell under monster
@@ -160,7 +160,7 @@ void attack(int distance) {
                         dungeon.getItemMap()[oldY][oldX].push_back(item);
                     }
                     inventory.clear();
-                    dungeon.getMap()[attackX][attackY] = PLAYER_CELL;
+                    dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
                     vector<Item>& items = dungeon.getItemMap()[oldY][oldX];
                     if (!items.empty()) {
                         char symbol = getSymbolFromType(items.back().getType());

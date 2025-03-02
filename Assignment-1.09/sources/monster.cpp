@@ -237,97 +237,52 @@ void moveMonster(int index) {
     int targetX = dungeon.getPC().getPosX();
     int targetY = dungeon.getPC().getPosY();
     
+    // Handle pass-wall and tunneling monsters
+    int (*dist)[DUNGEON_WIDTH];
+    if (isTunneling) {
+        dist = dungeon.getTunnelingMap();
+    }
+    else if (canPass) {
+        dist = dungeon.getNonTunnelingPassMap();
+    }
+    else {
+        dist = dungeon.getNonTunnelingMap();
+    }
+
     // Handle erratic behavior
     bool erraticRandom = isErratic && (rand() % 2 == 0);
     if (erraticRandom) {
         newX = oldX + ((rand() % 3) - 1);
         newY = oldY + ((rand() % 3) - 1);
     }
-    // Non-erratic monsters or erratic monsters' directed movement
-    else if (!isTunneling && !isTelepathic && !isIntelligent && !canPass) {
+    // Not telepatchic nor intelligent
+    else if (!isTelepathic && !isIntelligent) {
         // Moves towards PC only if LOS exists, in a straight line
         if (!hasLineOfSight(oldX, oldY, targetX, targetY))
             return;
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
     }
-    else if (!isTunneling && !isTelepathic && isIntelligent && !canPass) {
+    // Not telepathic but is intelligent
+    else if (!isTelepathic && isIntelligent) {
         // Moves toward PC on shortest path if LOS exists, remembers last seen position
         if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
             m->setLastSeenPCX(targetX);
             m->setLastSeenPCY(targetY);
-        } else {
-            return;
-        }
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dungeon.getMap()[ny][nx].hardness > 0) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-    }
-    else if (!isTunneling && isTelepathic && !isIntelligent && !canPass) {
-        // Always knows PC position, moves in straight line
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (!isTunneling && isTelepathic && isIntelligent && !canPass) {
-        // Always knows PC position, moves on shortest path, remembers last seen
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dungeon.getMap()[ny][nx].hardness > 0) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (isTunneling && !isTelepathic && !isIntelligent && !canPass) {
-        // Tunnels, moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
-            return;
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (isTunneling && !isTelepathic && isIntelligent && !canPass) {
-        // Tunnels, moves on shortest path if LOS exists, remembers last seen
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
         }
         else {
             return;
         }
         int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
                 if (dx == 0 && dy == 0) continue;
                 int nx = oldX + dx;
                 int ny = oldY + dy;
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
+                if (!isTunneling && dungeon.getMap()[ny][nx].hardness > 0) {
+                    continue;
+                }
                 if (dist[ny][nx] < best) {
                     best = dist[ny][nx];
                     newX = nx;
@@ -336,258 +291,27 @@ void moveMonster(int index) {
             }
         }
     }
-    else if (isTunneling && isTelepathic && !isIntelligent && !canPass) {
-        // Tunnels, always knows PC position, moves in straight line
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (isTunneling && isTelepathic && isIntelligent && !canPass) {
-        // Tunnels, always knows PC position, moves on shortest path, remembers last seen
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (!isTunneling && !isTelepathic && !isIntelligent && !canPass) {
-        // 50% random, otherwise moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
-            return;
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (!isTunneling && !isTelepathic && isIntelligent && !canPass) {
-        // 50% random, otherwise moves on shortest path if LOS exists, remembers last seen
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        }
-        else {
-            return;
-        }
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dungeon.getMap()[ny][nx].hardness > 0) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-    }
-    else if (!isTunneling && isTelepathic && !isIntelligent && !canPass) {
-        // 50% random, otherwise always knows PC position, moves in straight line
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (!isTunneling && isTelepathic && isIntelligent && !canPass) {
-        // 50% random, otherwise always knows PC position, moves on shortest path, remembers last seen
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dungeon.getMap()[ny][nx].hardness > 0) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (isTunneling && !isTelepathic && !isIntelligent && !canPass) {
-        // Tunnels, 50% random, otherwise moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
-            return;
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (isTunneling && !isTelepathic && isIntelligent && !canPass) {
-        // Tunnels, 50% random, otherwise moves on shortest path if LOS exists, remembers last seen
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        } else {
-            return;
-        }
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-    }
-    else if (isTunneling && isTelepathic && !isIntelligent && !canPass) {
-        // Tunnels, 50% random, otherwise always knows PC position, moves in straight line
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (isTunneling && isTelepathic && isIntelligent && !canPass) {
-        // Tunnels, 50% random, otherwise always knows PC position, moves on shortest path, remembers last seen
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getTunnelingMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (!isTunneling && !isTelepathic && !isIntelligent && canPass) {
-        // Passes through rock, moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
-            return;
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (!isTunneling && !isTelepathic && isIntelligent && canPass) {
-        // Passes through rock, moves on shortest path if LOS exists, remembers last seen
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        } else {
-            return;
-        }
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingPassMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-    }
-    else if (!isTunneling && isTelepathic && !isIntelligent && canPass) {
-        // Passes through rock, always knows PC position, moves in straight line
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (!isTunneling && isTelepathic && isIntelligent && canPass) {
-        // Passes through rock, always knows PC position, moves on shortest path, remembers last seen
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingPassMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
-    }
-    else if (!isTunneling && !isTelepathic && !isIntelligent && canPass) {
-        // Passes through rock, 50% random, otherwise moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
-            return;
-        newX = oldX + sign(targetX - oldX);
-        newY = oldY + sign(targetY - oldY);
-    }
-    else if (!isTunneling && !isTelepathic && isIntelligent && canPass) {
-        // Passes through rock, 50% random, otherwise moves on shortest path if LOS exists, remembers last seen
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        } else {
-            return;
-        }
-        int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingPassMap();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                int nx = oldX + dx;
-                int ny = oldY + dy;
-                if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (dist[ny][nx] < best) {
-                    best = dist[ny][nx];
-                    newX = nx;
-                    newY = ny;
-                }
-            }
-        }
-    }
-    else if (!isTunneling && isTelepathic && !isIntelligent && canPass) {
+    // Is telepathic but not intelligent
+    else if (isTelepathic && !isIntelligent) {
         // Passes through rock, 50% random, otherwise always knows PC position, moves in straight line
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
         m->setLastSeenPCX(targetX);
         m->setLastSeenPCY(targetY);
     }
-    else if (!isTunneling && isTelepathic && isIntelligent && canPass) {
-        // Passes through rock, 50% random, otherwise always knows PC position, moves on shortest path, remembers last seen
+    // Is telepathic and is intelligent
+    else if (isTelepathic && isIntelligent) {
+        // Always knows PC position, moves on shortest path, remembers last seen
         int best = INT_MAX;
-        int (*dist)[DUNGEON_WIDTH] = dungeon.getNonTunnelingPassMap();
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
                 if (dx == 0 && dy == 0) continue;
                 int nx = oldX + dx;
                 int ny = oldY + dy;
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
+                if (!isTunneling && dungeon.getMap()[ny][nx].hardness > 0) {
+                    continue;
+                }
                 if (dist[ny][nx] < best) {
                     best = dist[ny][nx];
                     newX = nx;

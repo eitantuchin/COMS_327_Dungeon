@@ -1,8 +1,96 @@
+To run:
+    Use "make" to compile executable dungeon game.
+    Use "./dungeon_game" to start a new dungeon game.
+    Use "./dungeon_game --nummon x" to start a new dungeon game with x amount of monsters.
+    Use "./dungeon_game --parse -m" to parse monster_desc.txt file and print out output.
+    Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
+
+Keys:
+    Movement keys are per usual.
+    v to change direction clockwise and V to change direction counter-clockwise.
+    z to attack.
+    H for hardness map.
+    D for distance maps. 
+    m for monster list.
+    g then r to teleport randomly. g then g to telport deliberately.
+    f for fog of war.
+    q or Q to quit.
+
 New/Updated Files:
-   
+    item.cpp:
+        - Contains all the logic for items in the dungeon    
+    item.hpp:
+        - Is the framework for item.cpp
+    dungeon_game.cpp:
+        - Refactored to only keep game loop methods for the most part
+    monster.cpp:
+        - Moved related monster methods to this file
+    pc.cpp:
+        - Moved related pc methods to this file
+    save_load.cpp:
+        - Moved save and load stuff to this file
+    dungeon.cpp:
+        - Moved related dungeon methods to this file
+
 
 New/Updated Data Structures:
-   
-
+    item:
+        - Contains all the necessary info for an item in the dungeon
+    message_t:
+        - Removed from the game. Messges are no used as global variables
+    itemMap:
+        - Contains the locations and priorities of items in each cell in case of a stack of items
+    items:
+        - Contains a list of all the current items in the dungeon
+    
 New/Updated Functions:
+    main:
+        - Updated to initialize colors in ncurses, init color pairs, and calculate pass monster distances
+    checkKeyInput:
+        - Added new keys for hardness map, distance maps, etc.
+    printGame:
+        - Now adds support to print out all different styles of dungeons 
+    printCharacter:
+        - Now has logic for printing out items 
+    drawMessage:
+        - Now draws messages in color 
+    checkGameConditions:
+        - Now checks if a boss has been killed
+    calculateDistances:
+        - Now makes a new map for pass-wall monsters 
+    containsString:
+        - Checks if a string is in a string array 
+    containsInt:
+        - Checks if an int is in an int array
+    initItems:
+        - Adds the items to the dungeon following the rules
+    initMonsters
+        - Now adds monsters to the dungeon from the file using the new rules
+    resetDungeonLevel:
+        - Now resets itemMap aswell
+    updateMapForItemCells:
+        - Updates the map properly to display items
+    rollDice:
+        - Rolls the "dice" for different attributes that need dice rolling
+    getItemCoordinates:
+        - Returns a valid pair of x and y coordiantes for an item to be placed
+    getColors:
+        - Returns all the colors of an item or monster
+    itemFactory:
+        - Parses the item file and creates instances of items
+    getSymbolFromType:
+        - Gets the symbol of an item given its type
+    getMonsterCoordinates:
+        - Returns a valid pair of x and y coordinates for a monster to go 
+    getAbils:
+        - Creates an array of strings contining the abilities of a monster 
+    monsterFactory:
+        - Parses the monster file and creates instance of monsters
+    displayMonsterList:
+        - Now displays the monster list in color and has additional columns 
+    updateMonsterPosition:
+        - Updated to remove eligibilty of monsters that died and are unique. Monsters that picked up 
+            items can drop them. Monsters can destroy items if they have the ability.
+    attack:
+        - When the pc kills a monster that is unique it becomes ineligible. Monster drops items upon death.
     

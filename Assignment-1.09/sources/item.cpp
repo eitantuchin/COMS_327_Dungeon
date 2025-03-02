@@ -32,7 +32,7 @@ Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, ve
         }
     }
 }
-*/
+ */
 
 int rollDice(const string &diceStr) {
     int base = 0, dice = 0, sides = 0;

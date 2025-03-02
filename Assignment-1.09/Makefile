@@ -7,10 +7,11 @@ SRCS = sources/dungeon_game.cpp \
        sources/priority_queue.cpp \
        sources/monster.cpp \
        sources/pc.cpp \
-	sources/item.cpp \
+	   sources/item.cpp \
        sources/dungeon.cpp \
        sources/character.cpp \
-       sources/parse.cpp 
+       sources/parse.cpp \
+       sources/save_load.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 

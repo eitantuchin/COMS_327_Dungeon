@@ -5,8 +5,8 @@
 using namespace std;
 
 // Constructor implementation
-PC::PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, direction_t direction)
-: Character(x, y, previousCell, speed, cell), currentDirection(direction) {}
+PC::PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint16_t HP, string DAM, vector<Item> inventory, direction_t direction)
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction) {}
 
 // Getters
 direction_t PC::getCurrentDirection() const {
@@ -20,6 +20,19 @@ bool (&PC::getFogMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
 // Setters
 void PC::setCurrentDirection(direction_t direction) {
     currentDirection = direction;
+}
+
+void pickupItem(int index) {
+    vector<Item>& items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
+    if (index >= 0 && index < (int)items.size() && dungeon.getPC().getInventory().size() < 10) {
+        dungeon.getPC().getInventory().push_back(items[index]);
+        // Remove item from map
+        items.erase(items.begin() + index);
+        gameMessage = "Item picked up!";
+    }
+    else {
+        gameMessage = "Your inventory is too full to pickup another item!";
+    }
 }
 
 void teleportPlayer(bool randomTeleport) {

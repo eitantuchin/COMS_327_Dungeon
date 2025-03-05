@@ -8,8 +8,8 @@
 
 using namespace std;
 
-Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, int lastSeenX, int lastSeenY, bool isAlive, vector<Item> inventory, string NAME, string DESC, vector<short> COLOR, string DAM, char SYMB, vector<string> ABIL, u_int16_t HP, u_int8_t RRTY)
-: Character(x, y, previousCell, speed, cell), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), inventory(inventory), NAME(NAME), DESC(DESC), COLOR(COLOR), DAM(DAM), SYMB(SYMB), ABIL(ABIL), HP(HP), RRTY(RRTY) {}
+Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, u_int16_t HP, string DAM, vector<Item> inventory, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY)
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), NAME(NAME), DESC(DESC), COLOR(COLOR),SYMB(SYMB), ABIL(ABIL), RRTY(RRTY) {}
 
 pair<int, int> getMonsterCoordinates(void) {
     int randY, randX;
@@ -61,17 +61,17 @@ vector<Monster> monsterFactory(void) {
                PREVIOUS_CELL,
                speed,
                MONSTER_CELL,
+               health,
+               monsterDescription.DAM,
+               inventory,
                -1,
                -1,
                !monsterInvalid,
-               inventory,
                monsterDescription.NAME,
                monsterDescription.DESC,
                colors,
-               monsterDescription.DAM,
                monsterDescription.SYMB[0],
                abilities,
-               health,
                stoi(monsterDescription.RRTY)
             ));
         }
@@ -309,7 +309,7 @@ void moveMonster(int index) {
                 int nx = oldX + dx;
                 int ny = oldY + dy;
                 if (nx < 0 || nx >= DUNGEON_WIDTH || ny < 0 || ny >= DUNGEON_HEIGHT) continue;
-                if (!isTunneling && dungeon.getMap()[ny][nx].hardness > 0) {
+                if (!isTunneling && !canPass && dungeon.getMap()[ny][nx].hardness > 0) {
                     continue;
                 }
                 if (dist[ny][nx] < best) {
@@ -328,9 +328,10 @@ void moveMonster(int index) {
 }
 
 
+
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling, bool canPass) {
     // performing the monster's move
-    //updateMapForItemCells();
+    updateMapForItemCells();
 
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1) {
@@ -421,7 +422,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             }
         }
     }
-    //updateMapForItemCells();
+    updateMapForItemCells();
 }
 
 
@@ -475,11 +476,6 @@ bool Monster::isAlive() const {
     return alive;
 }
 
-// cannot use const because when using the reference value it can be modified
-vector<Item>& Monster::getInventory() {
-    return inventory;
-}
-
 string Monster::getName() const {
     return NAME;
 }
@@ -492,20 +488,12 @@ vector<short> Monster::getColor() const {
     return COLOR;
 }
 
-string Monster::getDamage() const {
-    return DAM;
-}
-
 char Monster::getSymbol() const {
     return SYMB;
 }
 
 vector<string> Monster::getAbilities() const {
     return ABIL;
-}
-
-u_int16_t Monster::getHealth() const {
-    return HP;
 }
 
 u_int8_t Monster::getRarity() const {
@@ -536,20 +524,12 @@ void Monster::setColor(const vector<short>& color) {
     COLOR = color;
 }
 
-void Monster::setDamage(const string& dam) {
-    DAM = dam;
-}
-
 void Monster::setSymbol(char symb) {
     SYMB = symb;
 }
 
 void Monster::setAbilities(const vector<string>& abil) {
     ABIL = abil;
-}
-
-void Monster::setHealth(u_int16_t hp) {
-    HP = hp;
 }
 
 void Monster::setRarity(u_int8_t rrty) {

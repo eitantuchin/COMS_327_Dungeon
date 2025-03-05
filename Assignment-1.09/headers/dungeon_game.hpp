@@ -97,7 +97,8 @@ typedef enum {
     MONSTER_LIST,
     PLAYER_TELEPORT,
     DISTANCE_MAPS,
-    HARDNESS_MAP
+    HARDNESS_MAP,
+    ITEM_MENU
 } mode_type_t;
 
 extern Dungeon dungeon;
@@ -109,6 +110,7 @@ extern string gameMessage;
 extern string directionMessage;
 extern string dirNames[8];
 extern int monsterListScrollOffset;
+extern int selectedItemIndex;
 extern cell_t targetingPointerPreviousCell;
 extern vector<string> invalidItemsAndMonsters;
 

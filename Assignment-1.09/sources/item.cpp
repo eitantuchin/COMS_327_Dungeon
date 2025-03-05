@@ -20,7 +20,7 @@ using namespace std;
 Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool  eligibility)
 : posX(posX), posY(posY), NAME(NAME), DESC(DESC), TYPE(TYPE), COLOR(COLOR), DAM(DAM), HIT(HIT), DODGE(DODGE), DEF(DEF), WEIGHT(WEIGHT), SPEED(SPEED), ATTR(ATTR), VAL(VAL), ART(ART), RRTY(RRTY), previousCell(previousCell), eligibility(eligibility) {}
 
-/*void updateMapForItemCells(void) {
+void updateMapForItemCells(void) {
     for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
         for (int x = 0; x < DUNGEON_WIDTH; ++x) {
             vector<Item> items = dungeon.getItemMap()[y][x];
@@ -32,7 +32,96 @@ Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, ve
         }
     }
 }
- */
+ 
+
+
+void displayItemMenu(void) {
+    // Get items at PC's current position
+    vector<Item> items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
+    uint8_t count = items.size();
+
+
+
+    // Screen dimensions
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth);
+
+    // Center "Item Menu" title
+    const char* title = "Item Menu";
+    size_t titleLength = strlen(title);
+    size_t titleX = (screenWidth - titleLength) / 2;
+    if (titleX < 0) titleX = 1;
+    mvprintw(0, (int) titleX, "%s", title);
+
+    // Header (Symbol, Name, Rarity, Type, Artifact)
+    mvprintw(1, 1, "Symbol | Name                      | Rarity     | Type       | Artifact");
+    mvprintw(2, 1, "------ | ------------------------- | ---------- | ---------- | --------");
+
+    // Display items (limited to screen height minus header and instructions)
+    int maxVisibleItems = screenHeight - 5; // Title, header, dashed line, instructions, buffer
+    if (maxVisibleItems > (int)count) maxVisibleItems = count;
+
+    for (int i = 0; i < maxVisibleItems; i++) {
+        const Item& item = items[i];
+
+        // Symbol with item color
+        short color = item.getColor()[0]; // Single color per item
+        attron(COLOR_PAIR(color));
+        mvprintw(i + 3, 1, "%-6s", string(1, getSymbolFromType(item.getType())).c_str());
+        attroff(COLOR_PAIR(color));
+        mvprintw(i + 3, 7, " | ");
+
+        // Name (highlighted in yellow if selected)
+        string name = item.getName().substr(0, 25); // Limit to 25 chars
+        if (i == selectedItemIndex) {
+            attron(COLOR_PAIR(COLOR_YELLOW));
+            mvprintw(i + 3, 10, "%-25s", name.c_str());
+            attroff(COLOR_PAIR(COLOR_YELLOW));
+        } else {
+            mvprintw(i + 3, 10, "%-25s", name.c_str());
+        }
+        mvprintw(i + 3, 35, " | ");
+
+        // Rarity with color coding
+        uint8_t rarity = item.getRarity();
+        string rarityText;
+        int colorPair;
+        if (rarity > 80) {
+            rarityText = "LEGENDARY";
+            colorPair = COLOR_YELLOW;
+        } else if (rarity > 60) {
+            rarityText = "EPIC";
+            colorPair = COLOR_MAGENTA;
+        } else if (rarity > 40) {
+            rarityText = "RARE";
+            colorPair = COLOR_BLUE;
+        } else if (rarity > 20) {
+            rarityText = "UNCOMMON";
+            colorPair = COLOR_CYAN;
+        } else {
+            rarityText = "COMMON";
+            colorPair = COLOR_WHITE;
+        }
+        attron(COLOR_PAIR(colorPair));
+        mvprintw(i + 3, 38, "%-10s", rarityText.c_str());
+        attroff(COLOR_PAIR(colorPair));
+        mvprintw(i + 3, 48, " | ");
+
+        // Type
+        string type = item.getType().substr(0, 10); // Limit to 10 chars
+        mvprintw(i + 3, 51, "%-10s", type.c_str());
+        mvprintw(i + 3, 61, " | ");
+
+        // Artifact (YES or NO)
+        string artifactText = item.isArtifact() ? "YES" : "NO";
+        mvprintw(i + 3, 64, "%-8s", artifactText.c_str());
+    }
+
+    // Instructions
+    mvprintw(screenHeight - 1, 1, "Use UP/DOWN to select, ENTER to pick up, ESC to exit.");
+
+    refresh();
+}
 
 int rollDice(const string &diceStr) {
     int base = 0, dice = 0, sides = 0;

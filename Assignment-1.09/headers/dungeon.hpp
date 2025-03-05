@@ -13,20 +13,20 @@ using namespace std;
 
 class Dungeon {
 private:
-    cell_t map[DUNGEON_HEIGHT][DUNGEON_WIDTH]; // Dungeon map grid
-    vector<room_t> rooms;                 // List of rooms in the dungeon
+    cell_t map[DUNGEON_HEIGHT][DUNGEON_WIDTH];              // Dungeon map grid
+    vector<room_t> rooms;                                   // List of rooms in the dungeon
     uint16_t numRooms;
-    PC pc;                                     // Player character
-    vector<stair_t> upwardStairs;         // List of upward stairs
-    vector<stair_t> downwardStairs;       // List of downward stairs
-    uint16_t numUpwardsStairs;                 // Number of upward stairs
-    uint16_t numDownwardsStairs;               // Number of downward stairs
-    int nonTunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]; // Distance map for non-tunneling monsters
-    int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];    // Distance map for tunneling monsters
-    int nonTunnelingPassMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];    // Distance map for tunneling monsters
-    vector<Monster> monsters;             // List of monsters in the dungeon
-    uint16_t numMonsters;                      // Number of monsters
-    mode_type_t modeType;                      // Current mode of the dungeon (e.g., player control, monster list)
+    PC pc;                                                  // Player character
+    vector<stair_t> upwardStairs;                           // List of upward stairs
+    vector<stair_t> downwardStairs;                         // List of downward stairs
+    uint16_t numUpwardsStairs;                              // Number of upward stairs
+    uint16_t numDownwardsStairs;                            // Number of downward stairs
+    int nonTunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];     // Distance map for non-tunneling monsters
+    int tunnelingMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];        // Distance map for tunneling monsters
+    int nonTunnelingPassMap[DUNGEON_HEIGHT][DUNGEON_WIDTH]; // Distance map for tunneling monsters
+    vector<Monster> monsters;                               // List of monsters in the dungeon
+    uint16_t numMonsters;                                   // Number of monsters
+    mode_type_t modeType;                                   // Current mode of the dungeon (e.g., player control, monster list)
     vector<Item> items;
     vector<Item> itemMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
 

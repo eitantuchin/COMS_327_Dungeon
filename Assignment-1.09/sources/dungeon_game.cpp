@@ -29,6 +29,7 @@ string dirNames[8] = {
     "NORTH", "NORTH-EAST", "EAST", "SOUTH-EAST", "SOUTH", "SOUTH-WEST", "WEST", "NORTH-WEST"
 };
 int monsterListScrollOffset = 0;
+int selectedItemIndex = 0; // Tracks the selected item in the item menu
 cell_t targetingPointerPreviousCell = {' ', 0};
 const cell_t IMMUTABLE_ROCK_CELL = {' ', 255};
 const cell_t ROCK_CELL = {' ', 1};
@@ -134,6 +135,9 @@ int main(int argc, char *argv[])
         if (dungeon.getModeType() == MONSTER_LIST) {
             displayMonsterList();
         }
+        else if (dungeon.getModeType() == ITEM_MENU) {
+            displayItemMenu();
+        }
         else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
             printGame(0);
             refresh();
@@ -168,15 +172,18 @@ void checkKeyInput(void) {
             if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
             if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
             if (dungeon.getModeType() == MONSTER_LIST) {
-                if (key == KEY_UP) {
+                clear();
+                if (key == KEY_UP) monsterListScrollOffset--;
+                else if (key == KEY_DOWN) monsterListScrollOffset++;
+                displayMonsterList();
+            }
+            if (dungeon.getModeType() == ITEM_MENU) {
+                vector<Item> items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
+                if (selectedItemIndex < (int) items.size()) {
                     clear();
-                    monsterListScrollOffset--;
-                    displayMonsterList();
-                }
-                else if (key == KEY_DOWN) {
-                    clear();
-                    monsterListScrollOffset++;
-                    displayMonsterList();
+                    if (key == KEY_UP) selectedItemIndex--;
+                    else if (key == KEY_DOWN) selectedItemIndex++;
+                    displayItemMenu();
                 }
             }
             break;
@@ -207,6 +214,10 @@ void checkKeyInput(void) {
             break;
         case 27: // escape key
             if (dungeon.getModeType() == MONSTER_LIST) {
+                clear();
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            if (dungeon.getModeType() == ITEM_MENU) {
                 clear();
                 dungeon.setModeType(PLAYER_CONTROL);
             }
@@ -261,6 +272,26 @@ void checkKeyInput(void) {
                 gameMessage = "Use keys [1] Non-Tunneling Map [2] Tunneling Map [3] Pass Wall Map [D] return";
                 dungeon.setModeType(DISTANCE_MAPS);
                 printGame(key);
+            }
+            break;
+        case ',':
+            // Show item menu for the player choose from
+            if (dungeon.getPC().getPreviousCell().hardness == -2 && playerToMove && dungeon.getModeType() == PLAYER_CONTROL) {
+                clear();
+                dungeon.setModeType(ITEM_MENU);
+                selectedItemIndex = 0;
+            }
+            else {
+                gameMessage = "No items here! You also must be in player control!";
+            }
+            
+            break;
+        case 10: // Enter key
+            if (dungeon.getModeType() == ITEM_MENU) {
+                pickupItem(selectedItemIndex);
+                clear();
+                dungeon.setModeType(PLAYER_CONTROL);
+                selectedItemIndex = 0; // Reset after pickup
             }
             break;
     }
@@ -358,12 +389,28 @@ void printGame(int value) {
                         addch('@');
                     }
                     else if (dungeon.getMap()[y][x].hardness == IMMUTABLE_ROCK_CELL.hardness) {
+                        attron(COLOR_PAIR(COLOR_RED));
                         addch('X');
+                        attroff(COLOR_PAIR(COLOR_RED));
                     }
                     else {
                         double hardness = static_cast<double>(dungeon.getMap()[y][x].hardness);
                         double result = ceil(hardness / 85.0);
-                        addch(static_cast<int>(result) + '0');
+                        short color = 0;
+                        switch ((int) result) {
+                            case 1: color = COLOR_YELLOW;    break;
+                            case 2: color = COLOR_GREEN;   break;
+                            case 3: color = COLOR_MAGENTA; break;
+                        }
+                        if (result != 0) {
+                            attron(COLOR_PAIR(color));
+                            addch(static_cast<int>(result) + '0');
+                            attroff(COLOR_PAIR(color));
+                        }
+                        else {
+                            addch(' ');
+                        }
+                       
                     }
                     break;
                 case 'D':
@@ -479,7 +526,6 @@ void processEvents(void) {
     }
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
-        usleep(25000); // intervals between when each monster moves
         scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
         gameMessage = "The monsters are moving...";
     }
@@ -501,12 +547,16 @@ void drawMessage(void) {
 }
 
 void checkGameConditions(void) {
+    // Check  if we are on top of item(s)
     // Check if we are standing on top of stairs
     if (dungeon.getPC().getPreviousCell().ch == '<') {
-        gameMessage = "You are on upward stairs! Press < to go up a level!";
+        gameMessage = "You are on upward stairs! Press [<] to go up a level.";
     }
     else if (dungeon.getPC().getPreviousCell().ch == '>') {
-        gameMessage = "You are on downward stairs! Press > to go down a level!";
+        gameMessage = "You are on downward stairs! Press [>] to go down a level.";
+    }
+    if (dungeon.getPC().getPreviousCell().hardness == -2) {
+        gameMessage = "There are items here! Press [,] to checkout the items.";
     }
     // Check PC death
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {

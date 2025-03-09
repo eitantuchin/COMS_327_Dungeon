@@ -82,3 +82,4 @@ char getSymbolFromType(string type);
 vector<short> getColors(const string &colorString);
 void updateMapForItemCells(void);
 void displayItemMenu(void);
+pair<int, int> getItemCoordinates(void);

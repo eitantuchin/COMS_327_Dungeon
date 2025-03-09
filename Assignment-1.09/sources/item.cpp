@@ -19,7 +19,7 @@ using namespace std;
 // Constructor
 Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool  eligibility)
 : posX(posX), posY(posY), NAME(NAME), DESC(DESC), TYPE(TYPE), COLOR(COLOR), DAM(DAM), HIT(HIT), DODGE(DODGE), DEF(DEF), WEIGHT(WEIGHT), SPEED(SPEED), ATTR(ATTR), VAL(VAL), ART(ART), RRTY(RRTY), previousCell(previousCell), eligibility(eligibility) {}
-
+/*
 void updateMapForItemCells(void) {
     for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
         for (int x = 0; x < DUNGEON_WIDTH; ++x) {
@@ -32,15 +32,13 @@ void updateMapForItemCells(void) {
         }
     }
 }
- 
+ */
 
 
 void displayItemMenu(void) {
     // Get items at PC's current position
     vector<Item> items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
     uint8_t count = items.size();
-
-
 
     // Screen dimensions
     int screenHeight, screenWidth;
@@ -60,8 +58,17 @@ void displayItemMenu(void) {
     // Display items (limited to screen height minus header and instructions)
     int maxVisibleItems = screenHeight - 5; // Title, header, dashed line, instructions, buffer
     if (maxVisibleItems > (int)count) maxVisibleItems = count;
-
-    for (int i = 0; i < maxVisibleItems; i++) {
+    
+    // Ensure the index offset is within valid bounds
+    if (selectedItemIndex < 0) {
+        selectedItemIndex = 0;
+    }
+    if (selectedItemIndex > count - 1) {
+        selectedItemIndex = count - 1;
+    }
+    reverse(items.begin(), items.end());
+    for (int i = 0; i < maxVisibleItems; ++i) {
+        
         const Item& item = items[i];
 
         // Symbol with item color
@@ -180,7 +187,6 @@ vector<Item> itemFactory() {
     vector<Item> items; // to make dynamic instaces of items
     vector<objectDesc_t> dungeonObjects = readObjects(false); // false because we don't want to print out items
     for (objectDesc_t objectDescription: dungeonObjects) {
-        pair<int, int> coordinates = getItemCoordinates();
         uint16_t hit = rollDice(objectDescription.HIT);
         uint16_t dodge = rollDice(objectDescription.DODGE);
         uint16_t def = rollDice(objectDescription.DEF);
@@ -192,8 +198,8 @@ vector<Item> itemFactory() {
         vector<short> colors = getColors(objectDescription.COLOR);
         bool itemInvalid = containsString(invalidItemsAndMonsters, objectDescription.NAME);
         items.push_back(Item(
-            coordinates.second,
-            coordinates.first,
+            -1, // we randomize the coords later
+            -1,
             objectDescription.NAME,
             objectDescription.DESC,
             objectDescription.TYPE,

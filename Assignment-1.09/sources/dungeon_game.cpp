@@ -179,12 +179,11 @@ void checkKeyInput(void) {
             }
             if (dungeon.getModeType() == ITEM_MENU) {
                 vector<Item> items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
-                if (selectedItemIndex < (int) items.size()) {
-                    clear();
-                    if (key == KEY_UP) selectedItemIndex--;
-                    else if (key == KEY_DOWN) selectedItemIndex++;
-                    displayItemMenu();
-                }
+                clear();
+                if (key == KEY_UP) selectedItemIndex--;
+                else if (key == KEY_DOWN) selectedItemIndex++;
+                displayItemMenu();
+                
             }
             break;
         case 'q': // quit the game
@@ -276,7 +275,7 @@ void checkKeyInput(void) {
             break;
         case ',':
             // Show item menu for the player choose from
-            if (dungeon.getPC().getPreviousCell().hardness == -2 && playerToMove && dungeon.getModeType() == PLAYER_CONTROL) {
+            if(!dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()].empty() && playerToMove && dungeon.getModeType() == PLAYER_CONTROL) {
                 clear();
                 dungeon.setModeType(ITEM_MENU);
                 selectedItemIndex = 0;
@@ -288,7 +287,7 @@ void checkKeyInput(void) {
             break;
         case 10: // Enter key
             if (dungeon.getModeType() == ITEM_MENU) {
-                pickupItem(selectedItemIndex);
+                pickupItem();
                 clear();
                 dungeon.setModeType(PLAYER_CONTROL);
                 selectedItemIndex = 0; // Reset after pickup
@@ -523,6 +522,9 @@ void processEvents(void) {
         playerToMove = true; // this stops the processing of events until the player moves again
         scheduleEvent(EVENT_PC, -1, node.priority);
         gameMessage = "Your turn to move!";
+        if (!dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()].empty()) {
+            gameMessage = "There are items here! Press [,] to checkout the items.";
+        }
     }
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
@@ -554,9 +556,6 @@ void checkGameConditions(void) {
     }
     else if (dungeon.getPC().getPreviousCell().ch == '>') {
         gameMessage = "You are on downward stairs! Press [>] to go down a level.";
-    }
-    if (dungeon.getPC().getPreviousCell().hardness == -2) {
-        gameMessage = "There are items here! Press [,] to checkout the items.";
     }
     // Check PC death
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {

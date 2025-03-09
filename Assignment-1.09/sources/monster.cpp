@@ -331,7 +331,7 @@ void moveMonster(int index) {
 
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling, bool canPass) {
     // performing the monster's move
-    updateMapForItemCells();
+    //updateMapForItemCells();
 
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1) {
@@ -422,7 +422,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             }
         }
     }
-    updateMapForItemCells();
+    //updateMapForItemCells();
 }
 
 

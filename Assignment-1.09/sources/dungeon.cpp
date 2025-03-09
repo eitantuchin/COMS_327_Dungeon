@@ -3,6 +3,7 @@
 #include "../headers/pc.hpp"
 #include "../headers/dungeon_game.hpp"
 #include "../headers/priority_queue.h"
+#include "../headers/item.hpp"
 #include <algorithm>
 
 using namespace std;
@@ -14,13 +15,17 @@ void initItems(void) {
     int itemsInserted = 0;
     vector<int> indexesOfItemArtifactsInserted;
     while (itemsInserted != numItems) {
+        pair<int, int> coordinates = getItemCoordinates();
         int randIndex = rand() % items.size();
         int randRarity = rand() % 100;
         if (items[randIndex].isEligible() && items[randIndex].getRarity() < randRarity) {
             if ((items[randIndex].isArtifact() && !containsInt(indexesOfItemArtifactsInserted, randIndex)) || !items[randIndex].isArtifact()) {
+                items[randIndex].setPosX(coordinates.second);
+                items[randIndex].setPosY(coordinates.first);
                 if (items[randIndex].isArtifact()) {
                     indexesOfItemArtifactsInserted.push_back(randIndex);
                 }
+                // problem here
                 char symbol = getSymbolFromType(items[randIndex].getType());
                 dungeon.getMap()[items[randIndex].getPosY()][items[randIndex].getPosX()] = cell_t { symbol, -2 }; // -2 hardness is unique to objects
                 itemsInserted++;

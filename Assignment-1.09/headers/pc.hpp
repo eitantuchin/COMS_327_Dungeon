@@ -30,4 +30,4 @@ void teleportPlayer(bool randomTeleport);
 void changeDirection(bool clockwise, bool justChangeText);
 void attack(int distance);
 void movePlayer(int key);
-void pickupItem(int itemIndex);
+void pickupItem(void);

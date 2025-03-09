@@ -22,13 +22,25 @@ void PC::setCurrentDirection(direction_t direction) {
     currentDirection = direction;
 }
 
-void pickupItem(int index) {
+void pickupItem(void) {
     vector<Item>& items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
-    if (index >= 0 && index < (int)items.size() && dungeon.getPC().getInventory().size() < 10) {
-        dungeon.getPC().getInventory().push_back(items[index]);
+    if (dungeon.getPC().getInventory().size() < 10) {
+        size_t itemIndex = items.size() - selectedItemIndex - 1;
+        dungeon.getPC().getInventory().push_back(items[itemIndex]);
         // Remove item from map
-        items.erase(items.begin() + index);
-        gameMessage = "Item picked up!";
+        char message[100];
+        snprintf(message, sizeof(message), "You picked up %s!", items[itemIndex].getName().c_str());
+        gameMessage = message;
+        cell_t prevCell = items[itemIndex].getPreviousCell();
+        items.erase(items.begin() + itemIndex);
+        if (!items.empty()) {
+            char symbol = getSymbolFromType(items[items.size() - 1].getType());
+            dungeon.getPC().setPreviousCell(cell_t {symbol, -2});
+        }
+        else {
+            dungeon.getPC().setPreviousCell(prevCell);
+        }
+        dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()] = items;
     }
     else {
         gameMessage = "Your inventory is too full to pickup another item!";

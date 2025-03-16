@@ -26,10 +26,11 @@ protected:
     u_int8_t RRTY;
     cell_t previousCell;
     bool eligibility;
+    bool equipped;
 
 public:
     // Constructor
-    Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool eligibility);
+    Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool eligibility, bool equipped);
 
     // Getters
     uint8_t getPosX() const;
@@ -50,6 +51,7 @@ public:
     u_int8_t getRarity() const;
     cell_t getPreviousCell() const;
     bool isEligible() const;
+    bool isEquipped() const;
 
     // Setters
     void setPosX(uint8_t x);
@@ -70,6 +72,7 @@ public:
     void setRarity(u_int8_t rarity);
     void setPreviousCell(cell_t cell);
     void setElgibile(bool eligibility);
+    void setEquipped(bool equipped);
 
     // Virtual destructor
     virtual ~Item() = default;
@@ -83,3 +86,5 @@ vector<short> getColors(const string &colorString);
 void updateMapForItemCells(void);
 void displayItemMenu(void);
 pair<int, int> getItemCoordinates(void);
+
+

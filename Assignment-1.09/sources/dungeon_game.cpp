@@ -23,6 +23,8 @@ my_priority_queue event_queue;
 bool gameOver = false;
 bool fogOfWar = true;
 bool playerToMove = true;
+item_select_t choosingCarryItem = NO_SELECT;
+bool choosingEquipmentItem = false;
 string gameMessage = "";
 string directionMessage = "";
 string dirNames[8] = {
@@ -40,6 +42,7 @@ const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
 const cell_t POINTER_CELL = {'*', 0};
 vector<string> invalidItemsAndMonsters = {};
+
 
 /*
  Allows the user to choose between saving, loading, and creating dungeons
@@ -138,6 +141,9 @@ int main(int argc, char *argv[])
         else if (dungeon.getModeType() == ITEM_MENU) {
             displayItemMenu();
         }
+        else if (dungeon.getModeType() == INVENTORY) {
+            displayInventory();
+        }
         else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
             printGame(0);
             refresh();
@@ -155,7 +161,7 @@ int main(int argc, char *argv[])
 
 void checkKeyInput(void) {
     int key = getch();
-    switch(key) {
+    switch (key) {
         case KEY_UP: case 'k': case KEY_DOWN: // move down
         case '2': case 'j': case KEY_LEFT: // move left
         case '4': case 'h': case KEY_RIGHT: // move right
@@ -165,25 +171,36 @@ void checkKeyInput(void) {
         case '3': case 'n': case KEY_END: // down-left
         case '1': case 'b': case KEY_B2: // rest
         case '5': case ' ': case '.':
-            if (dungeon.getModeType() == DISTANCE_MAPS && (key == '1' || key == '2' || key == '3')) {
+            if (choosingCarryItem == WEAR_ITEM) {
+                wearItem(key);
+            }
+            else if (choosingCarryItem == DROP_ITEM) { // for dropping an item
+                dropItem(key);
+            }
+            else if (choosingCarryItem == EXPUNGE_ITEM) { // for expunging an item
+                expungeItem(key);
+            }
+            else if (choosingEquipmentItem) { // for taking off an item
+                choosingEquipmentItem = false;
+            }
+            else if (dungeon.getModeType() == DISTANCE_MAPS && (key == '1' || key == '2' || key == '3')) {
                 clear();
                 printGame(key);
             }
-            if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
-            if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
-            if (dungeon.getModeType() == MONSTER_LIST) {
+            else if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
+            else if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
+            else if (dungeon.getModeType() == MONSTER_LIST) {
                 clear();
                 if (key == KEY_UP) monsterListScrollOffset--;
                 else if (key == KEY_DOWN) monsterListScrollOffset++;
                 displayMonsterList();
             }
-            if (dungeon.getModeType() == ITEM_MENU) {
+            else if (dungeon.getModeType() == ITEM_MENU) {
                 vector<Item> items = dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()];
                 clear();
                 if (key == KEY_UP) selectedItemIndex--;
                 else if (key == KEY_DOWN) selectedItemIndex++;
                 displayItemMenu();
-                
             }
             break;
         case 'q': // quit the game
@@ -212,12 +229,9 @@ void checkKeyInput(void) {
             }
             break;
         case 27: // escape key
-            if (dungeon.getModeType() == MONSTER_LIST) {
+            if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || choosingCarryItem != NO_SELECT || choosingEquipmentItem) {
                 clear();
-                dungeon.setModeType(PLAYER_CONTROL);
-            }
-            if (dungeon.getModeType() == ITEM_MENU) {
-                clear();
+                choosingCarryItem = NO_SELECT;
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             break;
@@ -291,6 +305,46 @@ void checkKeyInput(void) {
                 clear();
                 dungeon.setModeType(PLAYER_CONTROL);
                 selectedItemIndex = 0; // Reset after pickup
+            }
+            break;
+        case 'i':
+            clear();
+            if (dungeon.getModeType() == INVENTORY && choosingCarryItem == NO_SELECT) {
+                gameMessage = "Your turn to move!";
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            else {
+                dungeon.setModeType(INVENTORY);
+            }
+            break;
+        case 'w':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingCarryItem = WEAR_ITEM;
+                dungeon.setModeType(INVENTORY);
+            }
+            else {
+                gameMessage = "Can't wear an item in this mode. Go back to player control.";
+            }
+            break;
+        case 'x':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingCarryItem = EXPUNGE_ITEM;
+                dungeon.setModeType(INVENTORY);
+            }
+            else {
+                gameMessage = "Can't expunge an item in this mode. Go back to player control.";
+            }
+            break;
+        case 'd':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingCarryItem = DROP_ITEM;
+                dungeon.setModeType(INVENTORY);
+            }
+            else {
+                gameMessage = "Can't drop an item in this mode. Go back to player control.";
             }
             break;
     }

@@ -82,6 +82,13 @@ typedef enum {
 } direction_t;
 
 typedef enum {
+    WEAR_ITEM,
+    DROP_ITEM,
+    EXPUNGE_ITEM,
+    NO_SELECT
+} item_select_t;
+
+typedef enum {
     EVENT_MONSTER,
     EVENT_PC
 } event_type_t;
@@ -98,7 +105,9 @@ typedef enum {
     PLAYER_TELEPORT,
     DISTANCE_MAPS,
     HARDNESS_MAP,
-    ITEM_MENU
+    ITEM_MENU,
+    INVENTORY,
+    EQUIPMENT
 } mode_type_t;
 
 extern Dungeon dungeon;
@@ -113,6 +122,8 @@ extern int monsterListScrollOffset;
 extern int selectedItemIndex;
 extern cell_t targetingPointerPreviousCell;
 extern vector<string> invalidItemsAndMonsters;
+extern item_select_t choosingCarryItem;
+extern bool choosingEquipmentItem;
 
 // Function prototypes
 

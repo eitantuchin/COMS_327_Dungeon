@@ -5,21 +5,199 @@
 using namespace std;
 
 // Constructor implementation
-PC::PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint16_t HP, string DAM, vector<Item> inventory, direction_t direction)
-: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction) {}
+PC::PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint16_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems)
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction), equippedItems(equippedItems) {}
 
-// Getters
-direction_t PC::getCurrentDirection() const {
-    return currentDirection;
+vector<string> validTypes = {
+    "WEAPON", "OFFHAND", "RANGED", "ARMOR", "HELMET",
+    "CLOAK", "GLOVES", "BOOTS", "AMULET", "LIGHT", "RING"
+};
+
+int getNumRings(void) {
+    int count = 0;
+    for (Item i: dungeon.getPC().getEquippedItems()) {
+        if (i.getType() == "RING") {
+            count++;
+        }
+    }
+    return count;
 }
 
-bool (&PC::getFogMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
-    return fogMap;
+void wearItem(char key) {
+    vector<Item> inventory = dungeon.getPC().getInventory();
+    vector<Item> equippedItems = dungeon.getPC().getEquippedItems();
+    int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
+    if (index >= inventory.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+    }
+    else {
+        Item item = inventory[index];
+        if (containsString(validTypes, item.getType())) {
+            // swap item if already another of same type equipped, else equip/wear item
+            bool skip = item.getType() == "RING" && getNumRings() == 2; // only if the item we want to swap is a ring and theres two of them
+            int randInt = rand() % 2;
+            bool swapped = false;
+            for (size_t i = 0; i < equippedItems.size(); ++i) {
+                if (item.getType() == equippedItems[i].getType()) {
+                    if (skip && randInt == 0) {
+                        skip = false; // if we skip the first one then we won't skip the next one
+                        continue; // speical case where there is two rings and the equal random chance of skipping the first ring and swapping out the second happens
+                    }
+                    else {
+                        // swap items
+                        Item temp = equippedItems[i];
+                        equippedItems[i] = inventory[index];
+                        inventory[index] = temp;
+                        swapped = true;
+                    }
+                }
+            }
+            
+            if (!swapped) { // equip item without swapping
+                equippedItems.push_back(item); // add item to equipped items
+                inventory.erase(inventory.begin() + index); // remove item from inventory
+            }
+        
+            clear();
+            choosingCarryItem = NO_SELECT;
+            dungeon.setModeType(PLAYER_CONTROL);
+            char message[200];
+            snprintf(message, sizeof(message), "You equipped yourself with %s %s!", item.getType().c_str(), item.getName().c_str());
+            gameMessage = message;
+        }
+        else {
+            // item can't be worn, display message underneath slots
+        }
+    }
 }
 
-// Setters
-void PC::setCurrentDirection(direction_t direction) {
-    currentDirection = direction;
+void dropItem(char key) {
+    
+}
+
+void expungeItem(char key){
+    
+}
+
+void displayEquipment(void) {
+    
+}
+
+void displayInventory(void) {
+    // Get the player's inventory and filter for non-equipped items
+    vector<Item>& inventory = dungeon.getPC().getInventory();
+
+    // Screen dimensions
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth);
+
+    // Center "Inventory (Carry Slots)" title
+    const char* title = "";
+    const char* footer = "";
+    switch (choosingCarryItem) {
+        case NO_SELECT:
+            title = "Inventory (Carry Slots)";
+            footer = "Use [i] to exit.";
+            break;
+        case WEAR_ITEM:
+            title = "Wear Item (Carry Slots)";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to wear.";
+            break;
+        case EXPUNGE_ITEM:
+            title = "Expunge Item (Carry Slots)";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to expunge.";
+            break;
+        case DROP_ITEM:
+            title = "Drop Item (Carry Slots)";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to drop.";
+            break;
+    }
+    size_t titleLength = strlen(title);
+    size_t titleX = (screenWidth - titleLength) / 2;
+    if (titleX < 0) titleX = 1;
+    mvprintw(0, (int) titleX, "%s", title);
+
+    // Header (Number, Symbol, Name, Rarity, Type, Artifact)
+    mvprintw(1, 1, "Num | Symbol | Name                      | Rarity     | Type       | Artifact");
+    mvprintw(2, 1, "--- | ------ | ------------------------- | ---------- | ---------- | --------");
+
+    // Display all 10 slots ([0] to [9])
+    int maxVisibleItems = screenHeight - 5; // Title, header, dashed line, instructions, buffer
+    if (maxVisibleItems > 10) maxVisibleItems = 10; // Cap at 10 items
+
+    for (int i = 0; i < maxVisibleItems; ++i) {
+        // Item number [0] to [9]
+        char numStr[5];
+        snprintf(numStr, sizeof(numStr), "[%d]", i);
+        mvprintw(i + 3, 1, "%-3s", numStr);
+        mvprintw(i + 3, 4, " | ");
+
+        if (i < inventory.size()) {
+            const Item& item = inventory[i];
+
+            // Symbol with item color
+            short color = item.getColor()[0]; // Single color per item
+            attron(COLOR_PAIR(color));
+            mvprintw(i + 3, 7, "%-6s", string(1, getSymbolFromType(item.getType())).c_str());
+            attroff(COLOR_PAIR(color));
+            mvprintw(i + 3, 13, " | ");
+
+            // Name
+            string name = item.getName().substr(0, 25); // Limit to 25 chars
+            mvprintw(i + 3, 16, "%-25s", name.c_str());
+            mvprintw(i + 3, 41, " | ");
+
+            // Rarity with color coding
+            uint8_t rarity = item.getRarity();
+            string rarityText;
+            int colorPair;
+            if (rarity > 80) {
+                rarityText = "LEGENDARY";
+                colorPair = COLOR_YELLOW;
+            } else if (rarity > 60) {
+                rarityText = "EPIC";
+                colorPair = COLOR_MAGENTA;
+            } else if (rarity > 40) {
+                rarityText = "RARE";
+                colorPair = COLOR_BLUE;
+            } else if (rarity > 20) {
+                rarityText = "UNCOMMON";
+                colorPair = COLOR_CYAN;
+            } else {
+                rarityText = "COMMON";
+                colorPair = COLOR_WHITE;
+            }
+            attron(COLOR_PAIR(colorPair));
+            mvprintw(i + 3, 44, "%-10s", rarityText.c_str());
+            attroff(COLOR_PAIR(colorPair));
+            mvprintw(i + 3, 54, " | ");
+
+            // Type
+            string type = item.getType().substr(0, 10); // Limit to 10 chars
+            mvprintw(i + 3, 57, "%-10s", type.c_str());
+            mvprintw(i + 3, 67, " | ");
+
+            // Artifact (YES or NO)
+            string artifactText = item.isArtifact() ? "YES" : "NO";
+            mvprintw(i + 3, 70, "%-8s", artifactText.c_str());
+        } else {
+            // Empty slot
+            mvprintw(i + 3, 7, "%-6s", "      "); // Blank Symbol
+            mvprintw(i + 3, 13, " | ");
+            mvprintw(i + 3, 16, "%-25s", "Empty"); // "Empty" in Name
+            mvprintw(i + 3, 41, " | ");
+            mvprintw(i + 3, 44, "%-10s", ""); // Blank Rarity
+            mvprintw(i + 3, 54, " | ");
+            mvprintw(i + 3, 57, "%-10s", ""); // Blank Type
+            mvprintw(i + 3, 67, " | ");
+            mvprintw(i + 3, 70, "%-8s", ""); // Blank Artifact
+        }
+    }
+
+    // Instructions
+    mvprintw(screenHeight - 1, 1, footer);
+
+    refresh();
 }
 
 void pickupItem(void) {
@@ -252,3 +430,20 @@ void movePlayer(int key) {
     calculateDistances(2);
 }
 
+// Getters
+direction_t PC::getCurrentDirection() const {
+    return currentDirection;
+}
+
+bool (&PC::getFogMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH] {
+    return fogMap;
+}
+
+// Setters
+void PC::setCurrentDirection(direction_t direction) {
+    currentDirection = direction;
+}
+
+vector<Item>& PC::getEquippedItems() {
+    return equippedItems;
+}

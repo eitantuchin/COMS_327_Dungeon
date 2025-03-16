@@ -17,8 +17,8 @@
 using namespace std;
 
 // Constructor
-Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool  eligibility)
-: posX(posX), posY(posY), NAME(NAME), DESC(DESC), TYPE(TYPE), COLOR(COLOR), DAM(DAM), HIT(HIT), DODGE(DODGE), DEF(DEF), WEIGHT(WEIGHT), SPEED(SPEED), ATTR(ATTR), VAL(VAL), ART(ART), RRTY(RRTY), previousCell(previousCell), eligibility(eligibility) {}
+Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool  eligibility, bool equipped)
+: posX(posX), posY(posY), NAME(NAME), DESC(DESC), TYPE(TYPE), COLOR(COLOR), DAM(DAM), HIT(HIT), DODGE(DODGE), DEF(DEF), WEIGHT(WEIGHT), SPEED(SPEED), ATTR(ATTR), VAL(VAL), ART(ART), RRTY(RRTY), previousCell(previousCell), eligibility(eligibility),  equipped(equipped) {}
 /*
 void updateMapForItemCells(void) {
     for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
@@ -33,7 +33,6 @@ void updateMapForItemCells(void) {
     }
 }
  */
-
 
 void displayItemMenu(void) {
     // Get items at PC's current position
@@ -215,7 +214,8 @@ vector<Item> itemFactory() {
             art,
             stoi(objectDescription.RRTY),
             ROOM_CELL,
-            !itemInvalid // the item is not eligible if the item is invalid
+            !itemInvalid, // the item is not eligible if the item is invalid
+            false // item is not equipped to begin with
         ));
     }
     return items;
@@ -264,6 +264,7 @@ bool Item::isArtifact() const { return ART; }
 u_int8_t Item::getRarity() const { return RRTY; }
 cell_t Item::getPreviousCell() const { return previousCell; }
 bool Item::isEligible() const { return eligibility; }
+bool Item::isEquipped() const { return equipped; }
 
 // Setters
 void Item::setPosX(uint8_t x) { posX = x; }
@@ -284,4 +285,5 @@ void Item::setArtifact(bool artifact) { ART = artifact; }
 void Item::setRarity(u_int8_t rarity) { RRTY = rarity; }
 void Item::setPreviousCell(cell_t cell) { previousCell =  cell; }
 void Item::setElgibile(bool isEligible) { eligibility = isEligible; }
+void Item::setEquipped(bool isEquipped) { equipped = isEquipped; }
 

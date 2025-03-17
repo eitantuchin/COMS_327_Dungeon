@@ -85,6 +85,7 @@ typedef enum {
     WEAR_ITEM,
     DROP_ITEM,
     EXPUNGE_ITEM,
+    INSPECT_ITEM,
     NO_SELECT
 } item_select_t;
 

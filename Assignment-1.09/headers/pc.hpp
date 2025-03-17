@@ -38,3 +38,4 @@ void displayEquipment(void);
 void wearItem(char key);
 void dropItem(char key);
 void expungeItem(char key);
+void inspectItem(char key);

@@ -29,17 +29,28 @@ void wearItem(char key) {
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
     if (index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again."); // "Empty" in Name
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
     }
     else {
         Item item = inventory[index];
-        if (containsString(validTypes, item.getType())) {
+        if (containsString(validTypes, item.getType())) { // can be equipped
             // swap item if already another of same type equipped, else equip/wear item
             bool skip = item.getType() == "RING" && getNumRings() == 2; // only if the item we want to swap is a ring and theres two of them
             int randInt = rand() % 2;
-            bool swapped = false;
+            bool inserted = false;
             for (size_t i = 0; i < equippedItems.size(); ++i) {
                 if (item.getType() == equippedItems[i].getType()) {
-                    if (skip && randInt == 0) {
+                    if (getNumRings() < 2) {
+                        equippedItems.push_back(item);
+                        inventory.erase(inventory.begin() + index);
+                        inserted = true;
+                        break;
+                    }
+                    else if (skip && randInt == 0) {
                         skip = false; // if we skip the first one then we won't skip the next one
                         continue; // speical case where there is two rings and the equal random chance of skipping the first ring and swapping out the second happens
                     }
@@ -48,12 +59,13 @@ void wearItem(char key) {
                         Item temp = equippedItems[i];
                         equippedItems[i] = inventory[index];
                         inventory[index] = temp;
-                        swapped = true;
+                        inserted = true;
+                        break;
                     }
                 }
             }
             
-            if (!swapped) { // equip item without swapping
+            if (!inserted) { // equip item without swapping
                 equippedItems.push_back(item); // add item to equipped items
                 inventory.erase(inventory.begin() + index); // remove item from inventory
             }
@@ -67,16 +79,182 @@ void wearItem(char key) {
         }
         else {
             // item can't be worn, display message underneath slots
+            clear();
+            attron(COLOR_PAIR(COLOR_RED));
+            mvprintw(16, 15, "%-70s", "Item selected cannot be equipped. Please try again."); // "Empty" in Name
+            attroff(COLOR_PAIR(COLOR_RED));
+            refresh();
         }
     }
+    // update copies
+    dungeon.getPC().getInventory() = inventory;
+    dungeon.getPC().getEquippedItems() = equippedItems;
+}
+
+void expungeItem(char key) {
+    vector<Item> inventory = dungeon.getPC().getInventory();
+    int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
+    if (index >= inventory.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        Item item = inventory[index];
+        inventory.erase(inventory.begin() + index); // remove item from inventory and don't add save it anywhere else, effectively reomving it from the game forever
+        clear();
+        choosingCarryItem = NO_SELECT;
+        dungeon.setModeType(PLAYER_CONTROL);
+        char message[200];
+        snprintf(message, sizeof(message), "You removed item %s from the game!", item.getName().c_str());
+        gameMessage = message;
+    }
+    dungeon.getPC().getInventory() = inventory; // update inventory
 }
 
 void dropItem(char key) {
+    vector<Item> inventory = dungeon.getPC().getInventory();
+    int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
+    if (index >= inventory.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        // drop item onto floor
+        Item item = inventory[index];
+        inventory.erase(inventory.begin() + index);
+        char symbol = getSymbolFromType(item.getType());
+        dungeon.getPC().setPreviousCell(cell_t { symbol, -2 });
+        dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()].push_back(item);
+        clear();
+        choosingCarryItem = NO_SELECT;
+        dungeon.setModeType(PLAYER_CONTROL);
+        char message[200];
+        snprintf(message, sizeof(message), "You dropped item %s onto the floor!", item.getName().c_str());
+        gameMessage = message;
+    }
+    dungeon.getPC().getInventory() = inventory; // update inventory
     
 }
 
-void expungeItem(char key){
-    
+void inspectItem(char key) {
+    vector<Item> inventory = dungeon.getPC().getInventory();
+    int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
+    if (index >= inventory.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        clear();
+        int screenHeight, screenWidth;
+        getmaxyx(stdscr, screenHeight, screenWidth);
+        Item item = inventory[index];
+        
+        char title[50];
+        snprintf(title, sizeof(title), "Item Details for [%s]", item.getName().c_str());
+        size_t titleLength = strlen(title);
+        size_t titleX = (screenWidth - titleLength) / 2;
+        if (titleX < 0) titleX = 1;
+        attron(COLOR_PAIR(COLOR_GREEN));
+        mvprintw(13, (int)titleX, "%s", title);
+        attroff(COLOR_PAIR(COLOR_GREEN));
+
+        string desc = item.getDescription();
+        size_t charsPerLine = 81;
+        stringstream ss2(desc);
+        string word;
+        vector<string> lines(5);
+        int currentLine = 0;
+
+        // Build lines with word wrapping
+        while (ss2 >> word && currentLine < 5) {
+            string& line = lines[currentLine];
+            if (line.empty()) {
+                line = word;
+            } else if (line.length() + 1 + word.length() <= charsPerLine) {
+                line += " " + word; // Add space and word if it fits
+            } else {
+                currentLine++; // Move to next line
+                if (currentLine < 5) {
+                    lines[currentLine] = word; // Start new line with the word
+                }
+            }
+        }
+
+        // Print the lines
+        for (int i = 0; i < 5; ++i) {
+            if (!lines[i].empty()) {
+                mvprintw(14 + i, 1, "%-81s", lines[i].c_str());
+            }
+        }
+        
+        // Defense points
+        string defLabel = "Defense points added: ";
+        string defValue = to_string(item.getDefense());
+        string defText = defLabel + defValue;
+        size_t defX = (screenWidth - defText.length()) / 2;
+        if (defX < 0) defX = 1;
+        attron(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(19, (int)defX, "%s", defLabel.c_str());
+        attroff(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(19, (int)(defX + defLabel.length()), "%s", defValue.c_str());
+
+        // Hitpoints
+        string hitLabel = "Hitpoints added: ";
+        string hitValue = to_string(item.getHit());
+        string hitText = hitLabel + hitValue;
+        size_t hitX = (screenWidth - hitText.length()) / 2;
+        if (hitX < 0) hitX = 1;
+        attron(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(20, (int)hitX, "%s", hitLabel.c_str());
+        attroff(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(20, (int)(hitX + hitLabel.length()), "%s", hitValue.c_str());
+
+        // Speed
+        string speedLabel = "Speed gained: ";
+        string speedValue = to_string(item.getSpeed());
+        string speedText = speedLabel + speedValue;
+        size_t speedX = (screenWidth - speedText.length()) / 2;
+        if (speedX < 0) speedX = 1;
+        attron(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(21, (int)speedX, "%s", speedLabel.c_str());
+        attroff(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(21, (int)(speedX + speedLabel.length()), "%s", speedValue.c_str());
+
+        string damStr = item.getDamage();
+        int base = 0, dice = 0, sides = 0;
+        char d; // To hold 'd' character
+        stringstream ss(damStr);
+        if (damStr.find('+') != string::npos) {
+            ss >> base >> d >> dice >> d >> sides; // Parse "base+diced sides"
+        } else {
+            ss >> dice >> d >> sides; // Parse "diced sides" (no base)
+        }
+        int minDamage = base + dice; // Min: base + 1 per die
+        int maxDamage = base + (dice * sides); // Max: base + max roll per die
+        string damRange = to_string(minDamage) + " - " + to_string(maxDamage);
+
+        // Damage (as range)
+        string damLabel = "Damage added: ";
+        string damText = damLabel + damRange;
+        size_t damX = (screenWidth - damText.length()) / 2;
+        if (damX < 0) damX = 1;
+        attron(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(22, (int)damX, "%s", damLabel.c_str());
+        attroff(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(22, (int)(damX + damLabel.length()), "%s", damRange.c_str());
+
+        refresh();
+    }
 }
 
 void displayEquipment(void) {
@@ -101,15 +279,19 @@ void displayInventory(void) {
             break;
         case WEAR_ITEM:
             title = "Wear Item (Carry Slots)";
-            footer = "Use [esc] to return and keys [0] - [9] to select an item to wear.";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to wear/equip.";
             break;
         case EXPUNGE_ITEM:
             title = "Expunge Item (Carry Slots)";
-            footer = "Use [esc] to return and keys [0] - [9] to select an item to expunge.";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to expunge/remove.";
             break;
         case DROP_ITEM:
             title = "Drop Item (Carry Slots)";
             footer = "Use [esc] to return and keys [0] - [9] to select an item to drop.";
+            break;
+        case INSPECT_ITEM:
+            title = "Inspect Item (Carry Slots)";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to inspect.";
             break;
     }
     size_t titleLength = strlen(title);

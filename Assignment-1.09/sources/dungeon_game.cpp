@@ -171,6 +171,7 @@ void checkKeyInput(void) {
         case '3': case 'n': case KEY_END: // down-left
         case '1': case 'b': case KEY_B2: // rest
         case '5': case ' ': case '.':
+        case '0': case '8':
             if (choosingCarryItem == WEAR_ITEM) {
                 wearItem(key);
             }
@@ -179,6 +180,9 @@ void checkKeyInput(void) {
             }
             else if (choosingCarryItem == EXPUNGE_ITEM) { // for expunging an item
                 expungeItem(key);
+            }
+            else if (choosingCarryItem == INSPECT_ITEM) {
+                inspectItem(key);
             }
             else if (choosingEquipmentItem) { // for taking off an item
                 choosingEquipmentItem = false;
@@ -345,6 +349,16 @@ void checkKeyInput(void) {
             }
             else {
                 gameMessage = "Can't drop an item in this mode. Go back to player control.";
+            }
+            break;
+        case 'I':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingCarryItem = INSPECT_ITEM;
+                dungeon.setModeType(INVENTORY);
+            }
+            else {
+                gameMessage = "Can't inspect an item in this mode. Go back to player control.";
             }
             break;
     }

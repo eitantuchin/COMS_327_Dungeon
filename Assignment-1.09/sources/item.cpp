@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <ncurses.h>
+#include <algorithm>
 
 using namespace std;
 

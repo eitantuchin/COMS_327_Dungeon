@@ -8,8 +8,134 @@
 
 using namespace std;
 
-Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, u_int16_t HP, string DAM, vector<Item> inventory, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY)
+Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY)
 : Character(x, y, previousCell, speed, cell, HP, DAM, inventory), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), NAME(NAME), DESC(DESC), COLOR(COLOR),SYMB(SYMB), ABIL(ABIL), RRTY(RRTY) {}
+
+void displayMonsterDetails(int monsterIndex) {
+    clear();
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth);
+
+    const Monster& monster = dungeon.getMonsters()[monsterIndex];
+    
+    // Title
+    char title[50];
+    snprintf(title, sizeof(title), "Monster Details: %s", monster.getName().c_str());
+    size_t titleLength = strlen(title);
+    size_t titleX = (screenWidth - titleLength) / 2;
+    if (titleX < 0) titleX = 1;
+    attron(COLOR_PAIR(COLOR_GREEN));
+    mvprintw(3, (int)titleX, "%s", title);
+    attroff(COLOR_PAIR(COLOR_GREEN));
+
+    // Description with word wrapping (81 chars per line)
+    string desc = monster.getDescription();
+    size_t charsPerLine = 81;
+    stringstream ss(desc);
+    string word;
+    vector<string> lines(7); // Up to 5 lines (14-18)
+    int currentLine = 0;
+
+    while (ss >> word && currentLine < 7) {
+        string& line = lines[currentLine];
+        if (line.empty()) {
+            line = word;
+        }
+        else if (line.length() + 1 + word.length() <= charsPerLine) {
+            line += " " + word;
+        }
+        else {
+            currentLine++;
+            if (currentLine < 7) {
+                lines[currentLine] = word;
+            }
+        }
+    }
+
+    for (int i = 0; i < 6; ++i) {
+        if (!lines[i].empty()) {
+            mvprintw(5 + i, 1, "%-81s", lines[i].c_str());
+        }
+    }
+
+    // Additional info (HP, Speed, Damage, Abilities)
+    string hpLabel = "Hit Points: ";
+    string hpValue = to_string(monster.getHealth());
+    string hpText = hpLabel + hpValue;
+    size_t hpX = (screenWidth - hpText.length()) / 2;
+    if (hpX < 0) hpX = 1;
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(12, (int)hpX, "%s", hpLabel.c_str());
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(12, (int)(hpX + hpLabel.length()), "%s", hpValue.c_str());
+
+    string speedLabel = "Speed: ";
+    string speedValue = to_string(monster.getSpeed());
+    string speedText = speedLabel + speedValue;
+    size_t speedX = (screenWidth - speedText.length()) / 2;
+    if (speedX < 0) speedX = 1;
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(13, (int)speedX, "%s", speedLabel.c_str());
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(13, (int)(speedX + speedLabel.length()), "%s", speedValue.c_str());
+
+    // Damage as range
+    string damStr = monster.getDamage();
+    int base = 0, dice = 0, sides = 0;
+    char d; // To hold 'd' character
+    stringstream ssDam(damStr);
+    if (damStr.find('+') != string::npos) {
+        ssDam >> base >> d >> dice >> d >> sides; // Parse "base+diced sides"
+    } else {
+        ssDam >> dice >> d >> sides; // Parse "diced sides" (no base)
+    }
+    int minDamage = base + dice; // Min: base + 1 per die
+    int maxDamage = base + (dice * sides); // Max: base + max roll per die
+    string damRange = to_string(minDamage) + " - " + to_string(maxDamage);
+
+    string damLabel = "Damage Range: ";
+    string damText = damLabel + damRange;
+    size_t damX = (screenWidth - damText.length()) / 2;
+    if (damX < 0) damX = 1;
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(14, (int)damX, "%s", damLabel.c_str());
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(14, (int)(damX + damLabel.length()), "%s", damRange.c_str());
+
+    string abilLabel = "Abilities: ";
+    string abilValue = "";
+    for (const string& abil : monster.getAbilities()) {
+        abilValue += abil + ", ";
+    }
+    if (!abilValue.empty()) abilValue = abilValue.substr(0, abilValue.length() - 2); // Remove trailing ", "
+    string abilText = abilLabel + abilValue;
+    size_t abilX = (screenWidth - abilText.length()) / 2;
+    if (abilX < 0) abilX = 1;
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(15, (int)abilX, "%s", abilLabel.c_str());
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(15, (int)(abilX + abilLabel.length()), "%s", abilValue.c_str());
+
+    // Instructions
+    mvprintw(screenHeight - 1, 1, "Press [t] to return to the game.");
+    refresh();
+}
+
+
+int getMonsterAtPointer(void) {
+    pair<int, int> pointerPos = getPointerCellPosition();
+    int px = pointerPos.first;
+    int py = pointerPos.second;
+    
+    for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
+        const Monster& m = dungeon.getMonsters()[i];
+        if (m.isAlive() && m.getPosX() == px && m.getPosY() == py) {
+            return i;
+        }
+    }
+    return -1; // No visible monster found
+}
+
 
 pair<int, int> getMonsterCoordinates(void) {
     int randY, randX;
@@ -330,11 +456,31 @@ void moveMonster(int index) {
 
 
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling, bool canPass) {
-    // performing the monster's move
-    //updateMapForItemCells();
-
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1) {
+        
+        // Check for collision with PC (for combat)
+        bool pcCollision = (newX == dungeon.getPC().getPosX() && newY == dungeon.getPC().getPosY());
+        if (pcCollision) { // Combat
+            size_t defensivePoints = dungeon.getPC().getEquippedItems().size();
+            int defenseChance = (int) defensivePoints * 10; // Each equipped item gives 10% defense chance
+            int roll = rand() % 120; // Random roll from 0 to 119
+
+            if (roll < defenseChance) {
+                // PC successfully defends
+                gameMessage = "You blocked the " + m->getName() + "'s attack!";
+                return; // Monster doesn't move onto PC's position
+            }
+            else {
+                // Donald moves twice as fast in the beginning with no equipment on so he attacks twice for every time I move once thus dealing essentially 20 damage every time instead of 10. That's why when I have 100 health I die in 5 turns.
+                int damage = rollDice(m->getDamage());
+                int pcHP = dungeon.getPC().getHealth() - damage;
+                dungeon.getPC().setHealth(pcHP);
+                gameMessage = m->getName() + " hits you for " + to_string(damage) + " damage!";
+                return;
+            }
+        }
+
         vector<Item> items = dungeon.getItemMap()[newY][newX];
         if (containsString(m->getAbilities(), string("DESTROY")) || containsString(m->getAbilities(), string("PICKUP"))) { // ability to destroy items
             // destroy the topmost item in the stack
@@ -353,17 +499,18 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
         }
         dungeon.getItemMap()[newY][newX] = items; // update item map
         bool collision = false;
-        int defenderIndex = -1;
+        int collisionIndex = -1;
         for (int i = 0; i < dungeon.getNumMonsters(); i++) {
            if (i != index &&  // Don't check against itself
                dungeon.getMonsters()[i].isAlive() &&
                dungeon.getMonsters()[i].getPosX() == newX &&
                dungeon.getMonsters()[i].getPosY() == newY) {
                collision = true;
-               defenderIndex = i;
+               collisionIndex = i;
                break;
            }
         }
+        
         if (!collision && (dungeon.getMap()[newY][newX].hardness < IMMUTABLE_ROCK_CELL.hardness && canPass)) {
             dungeon.getMap()[oldY][oldX] = m->getPreviousCell(); // Restore the old cell
             if (!cellSet) {
@@ -407,22 +554,62 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
             
         }
         else if (collision) {
-            if (defenderIndex != -1) { // kill the defender
-                dungeon.getMonsters()[defenderIndex].setAlive(false);
-                // if the defending monster is unique then it can't be spawned anymore
-                if (containsString(dungeon.getMonsters()[defenderIndex].getAbilities(), string("UNIQ"))) {
-                    invalidItemsAndMonsters.push_back(dungeon.getMonsters()[defenderIndex].getName());
+            // Collision with another monster; attempt to displace or swap
+            Monster& occupant = dungeon.getMonsters()[collisionIndex];
+            vector<pair<int, int>> openCells;
+            // Look for an adjacent open cell
+            for (int y = -1; y <= 1; ++y) {
+                for (int x = -1; x <= 1; ++x) {
+                    int checkX = occupant.getPosX() + x;
+                    int checkY = occupant.getPosY() + y;
+                    if ((x == 0 && y == 0) || dungeon.getMap()[checkY][checkX].ch == '@')  continue; // Skip the current cell
+                    if (checkX >= 1 && checkX < DUNGEON_WIDTH - 1 && checkY >= 1 && checkY < DUNGEON_HEIGHT - 1) {
+                        if (containsString(occupant.getAbilities(), string("PASS"))) {
+                            if (dungeon.getMap()[checkY][checkX].hardness >= 0) { // Passable for PASS monsters
+                                openCells.push_back({checkX, checkY});
+                            }
+                        }
+                        else if (dungeon.getMap()[checkY][checkX].hardness == 0) {
+                            openCells.push_back({checkX, checkY});
+                        }
+                        
+                    }
                 }
-                dungeon.getMap()[newY][newX] = m->getCell();
+            }
+
+            if (!openCells.empty()) {
+                int randIndex = rand() % openCells.size();
+                int openCellX = openCells[randIndex].first;
+                int openCellY = openCells[randIndex].second;
+                // Displace the occupant to the open cell
+                dungeon.getMap()[occupant.getPosY()][occupant.getPosX()] = occupant.getPreviousCell();
+                occupant.setPreviousCell(dungeon.getMap()[openCellY][openCellX]);
+                occupant.setPosX(openCellX);
+                occupant.setPosY(openCellY);
+                dungeon.getMap()[openCellY][openCellX] = occupant.getCell();
+
+                // Move the current monster to the new position
                 dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+                m->setPreviousCell(dungeon.getMap()[newY][newX]);
                 m->setPosX(newX);
                 m->setPosY(newY);
-                m->setPreviousCell(dungeon.getMonsters()[defenderIndex].getPreviousCell());
-                
+                dungeon.getMap()[newY][newX] = m->getCell();
+            }
+            else {
+                // No open cell found; swap positions with the occupant
+                dungeon.getMap()[oldY][oldX] = occupant.getCell();
+                occupant.setPosX(oldX);
+                occupant.setPosY(oldY);
+                cell_t temp = occupant.getPreviousCell();
+                occupant.setPreviousCell(m->getPreviousCell());
+
+                dungeon.getMap()[newY][newX] = m->getCell();
+                m->setPosX(newX);
+                m->setPosY(newY);
+                m->setPreviousCell(temp);
             }
         }
     }
-    //updateMapForItemCells();
 }
 
 

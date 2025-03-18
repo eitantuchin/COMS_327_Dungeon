@@ -1,17 +1,173 @@
 #include "../headers/pc.hpp"
 #include "../headers/dungeon.hpp"
 #include "../headers/dungeon_game.hpp"
+#include "../headers/priority_queue.h"
 
 using namespace std;
 
 // Constructor implementation
-PC::PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint16_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems)
+PC::PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems)
 : Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction), equippedItems(equippedItems) {}
 
 vector<string> validTypes = {
-    "WEAPON", "OFFHAND", "RANGED", "ARMOR", "HELMET",
-    "CLOAK", "GLOVES", "BOOTS", "AMULET", "LIGHT", "RING"
+    "ARMOR", "HELMET", "GLOVES", "CLOAK", "BOOTS",
+    "RING", "WEAPON", "OFFHAND", "RANGED", "LIGHT", "AMULET"
 };
+
+vector<Item> arrangeItems(void) {
+    vector<Item> equippedItems = dungeon.getPC().getEquippedItems();
+    vector<Item> arrangedEquipment = {};
+    for (size_t i = 0; i < validTypes.size(); ++i) {
+        string currEquipmentType = validTypes[i];
+        for (size_t j = 0; j < equippedItems.size(); ++j) {
+            if (equippedItems[j].getType() == currEquipmentType) {
+                arrangedEquipment.push_back(equippedItems[j]);
+            }
+        }
+    }
+    return arrangedEquipment;
+}
+
+void takeOffItem(char key) {
+    PC& pc = dungeon.getPC();
+    vector<Item>& inventory = pc.getInventory();
+    vector<Item> equippedItems = arrangeItems();
+    int index = (int (key) - 'a'); // 'a' ASCII is 97 in decimal
+    if (index >= equippedItems.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(18, 17, "%-70s", "Item letter selected isn't valid. Please try again.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else if (inventory.size() >= 10) { // not enough space in inventory
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(18, 17, "%-70s", "No open inventory slot to take off an item.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        Item item = equippedItems[index];
+        equippedItems.erase(equippedItems.begin() - index); // remove from equipped items
+        inventory.push_back(item); // add to inventory
+        // subtract speed from PC after taking off item
+        pc.setSpeed(pc.getSpeed() - item.getSpeed());
+        if (pc.getSpeed() <= 0) pc.setSpeed(1); // lowest speed is 1
+        clear();
+        choosingEquipmentItem = false;
+        dungeon.setModeType(PLAYER_CONTROL);
+        char message[200];
+        snprintf(message, sizeof(message), "You took off item %s!", item.getName().c_str());
+        gameMessage = message;
+    }
+    dungeon.getPC().getEquippedItems() = equippedItems;
+}
+
+
+void displayEquipment(void) {
+    // armor, helmet, gloves, cloak, boots, ring, weapon, offhand, ranged, light, amulet
+    vector<Item> equippedItems = arrangeItems(); // sorted into slots
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth);
+
+    const char* title = "";
+    const char* footer = "";
+    if (choosingEquipmentItem) {
+        title = "Take Off Item (Equipment Slots)";
+        footer = "Use [esc] to return and keys [a] - [l] to select an item to take off.";
+    }
+    else {
+        title = "Equipped Items (Equipment Slots)";
+        footer = "Use [e] to exit.";
+    }
+    size_t titleLength = strlen(title);
+    size_t titleX = (screenWidth - titleLength) / 2;
+    if (titleX < 0) titleX = 1;
+    attron(COLOR_PAIR(COLOR_MAGENTA));
+    mvprintw(0, (int) titleX, "%s", title);
+    attroff(COLOR_PAIR(COLOR_MAGENTA));
+    // Header (Number, Symbol, Name, Rarity, Type, Artifact)
+    mvprintw(1, 1, "Num | Symbol | Name                      | Rarity     | Type       | Artifact");
+    mvprintw(2, 1, "--- | ------ | ------------------------- | ---------- | ---------- | --------");
+
+    int maxVisibleItems = screenHeight - 5; // Title, header, dashed line, instructions, buffer
+    if (maxVisibleItems > 12) maxVisibleItems = 12;
+
+    for (int i = 0; i < maxVisibleItems; ++i) {
+        char charStr[5];
+        snprintf(charStr, sizeof(charStr), "[%c]", (char) (i + 'a'));
+        mvprintw(i + 3, 1, "%-3s", charStr);
+        mvprintw(i + 3, 4, " | ");
+
+        if (i < equippedItems.size()) {
+            const Item& item = equippedItems[i];
+
+            // Symbol with item color
+            short color = item.getColor()[0]; // Single color per item
+            attron(COLOR_PAIR(color));
+            mvprintw(i + 3, 7, "%-6s", string(1, getSymbolFromType(item.getType())).c_str());
+            attroff(COLOR_PAIR(color));
+            mvprintw(i + 3, 13, " | ");
+
+            // Name
+            string name = item.getName().substr(0, 25); // Limit to 25 chars
+            mvprintw(i + 3, 16, "%-25s", name.c_str());
+            mvprintw(i + 3, 41, " | ");
+
+            // Rarity with color coding
+            uint8_t rarity = item.getRarity();
+            string rarityText;
+            int colorPair;
+            if (rarity > 80) {
+                rarityText = "LEGENDARY";
+                colorPair = COLOR_YELLOW;
+            } else if (rarity > 60) {
+                rarityText = "EPIC";
+                colorPair = COLOR_MAGENTA;
+            } else if (rarity > 40) {
+                rarityText = "RARE";
+                colorPair = COLOR_BLUE;
+            } else if (rarity > 20) {
+                rarityText = "UNCOMMON";
+                colorPair = COLOR_CYAN;
+            } else {
+                rarityText = "COMMON";
+                colorPair = COLOR_WHITE;
+            }
+            attron(COLOR_PAIR(colorPair));
+            mvprintw(i + 3, 44, "%-10s", rarityText.c_str());
+            attroff(COLOR_PAIR(colorPair));
+            mvprintw(i + 3, 54, " | ");
+
+            // Type
+            string type = item.getType().substr(0, 10); // Limit to 10 chars
+            mvprintw(i + 3, 57, "%-10s", type.c_str());
+            mvprintw(i + 3, 67, " | ");
+
+            // Artifact (YES or NO)
+            string artifactText = item.isArtifact() ? "YES" : "NO";
+            mvprintw(i + 3, 70, "%-8s", artifactText.c_str());
+        } else {
+            // Empty slot
+            mvprintw(i + 3, 7, "%-6s", "      "); // Blank Symbol
+            mvprintw(i + 3, 13, " | ");
+            mvprintw(i + 3, 16, "%-25s", "Empty"); // "Empty" in Name
+            mvprintw(i + 3, 41, " | ");
+            mvprintw(i + 3, 44, "%-10s", ""); // Blank Rarity
+            mvprintw(i + 3, 54, " | ");
+            mvprintw(i + 3, 57, "%-10s", ""); // Blank Type
+            mvprintw(i + 3, 67, " | ");
+            mvprintw(i + 3, 70, "%-8s", ""); // Blank Artifact
+        }
+    }
+
+    // Instructions
+    mvprintw(screenHeight - 1, 1, footer);
+
+    refresh();
+}
 
 int getNumRings(void) {
     int count = 0;
@@ -24,8 +180,9 @@ int getNumRings(void) {
 }
 
 void wearItem(char key) {
-    vector<Item> inventory = dungeon.getPC().getInventory();
-    vector<Item> equippedItems = dungeon.getPC().getEquippedItems();
+    PC& pc = dungeon.getPC();
+    vector<Item>& inventory = pc.getInventory();
+    vector<Item>& equippedItems = pc.getEquippedItems();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
     if (index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
@@ -60,6 +217,10 @@ void wearItem(char key) {
                         equippedItems[i] = inventory[index];
                         inventory[index] = temp;
                         inserted = true;
+                        // subtract bonuses from item taken off
+                        pc.setSpeed(pc.getSpeed() - equippedItems[i].getSpeed());
+                        // add bonuses from item put on
+                        pc.setSpeed(pc.getSpeed() + item.getSpeed());
                         break;
                     }
                 }
@@ -68,8 +229,11 @@ void wearItem(char key) {
             if (!inserted) { // equip item without swapping
                 equippedItems.push_back(item); // add item to equipped items
                 inventory.erase(inventory.begin() + index); // remove item from inventory
+                // add bonuses from item put on
+                pc.setSpeed(pc.getSpeed() + item.getSpeed());
             }
-        
+            if (pc.getSpeed() <= 0) pc.setSpeed(1); // lowest speed is 1
+                    
             clear();
             choosingCarryItem = NO_SELECT;
             dungeon.setModeType(PLAYER_CONTROL);
@@ -86,13 +250,10 @@ void wearItem(char key) {
             refresh();
         }
     }
-    // update copies
-    dungeon.getPC().getInventory() = inventory;
-    dungeon.getPC().getEquippedItems() = equippedItems;
 }
 
 void expungeItem(char key) {
-    vector<Item> inventory = dungeon.getPC().getInventory();
+    vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
     if (index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
@@ -111,11 +272,10 @@ void expungeItem(char key) {
         snprintf(message, sizeof(message), "You removed item %s from the game!", item.getName().c_str());
         gameMessage = message;
     }
-    dungeon.getPC().getInventory() = inventory; // update inventory
 }
 
 void dropItem(char key) {
-    vector<Item> inventory = dungeon.getPC().getInventory();
+    vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
     if (index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
@@ -138,12 +298,11 @@ void dropItem(char key) {
         snprintf(message, sizeof(message), "You dropped item %s onto the floor!", item.getName().c_str());
         gameMessage = message;
     }
-    dungeon.getPC().getInventory() = inventory; // update inventory
     
 }
 
 void inspectItem(char key) {
-    vector<Item> inventory = dungeon.getPC().getInventory();
+    vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
     if (index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
@@ -158,14 +317,13 @@ void inspectItem(char key) {
         int screenHeight, screenWidth;
         getmaxyx(stdscr, screenHeight, screenWidth);
         Item item = inventory[index];
-        
         char title[50];
         snprintf(title, sizeof(title), "Item Details for [%s]", item.getName().c_str());
         size_t titleLength = strlen(title);
         size_t titleX = (screenWidth - titleLength) / 2;
         if (titleX < 0) titleX = 1;
         attron(COLOR_PAIR(COLOR_GREEN));
-        mvprintw(13, (int)titleX, "%s", title);
+        mvprintw(13, (int) titleX, "%s", title);
         attroff(COLOR_PAIR(COLOR_GREEN));
 
         string desc = item.getDescription();
@@ -257,10 +415,6 @@ void inspectItem(char key) {
     }
 }
 
-void displayEquipment(void) {
-    
-}
-
 void displayInventory(void) {
     // Get the player's inventory and filter for non-equipped items
     vector<Item>& inventory = dungeon.getPC().getInventory();
@@ -297,8 +451,9 @@ void displayInventory(void) {
     size_t titleLength = strlen(title);
     size_t titleX = (screenWidth - titleLength) / 2;
     if (titleX < 0) titleX = 1;
+    attron(COLOR_PAIR(COLOR_MAGENTA));
     mvprintw(0, (int) titleX, "%s", title);
-
+    attroff(COLOR_PAIR(COLOR_MAGENTA));
     // Header (Number, Symbol, Name, Rarity, Type, Artifact)
     mvprintw(1, 1, "Num | Symbol | Name                      | Rarity     | Type       | Artifact");
     mvprintw(2, 1, "--- | ------ | ------------------------- | ---------- | ---------- | --------");
@@ -493,78 +648,56 @@ void changeDirection(bool clockwise, bool justChangeText) {
 }
 
 
-void attack(int distance) {
-    int attackX = dungeon.getPC().getPosX();
-    int attackY = dungeon.getPC().getPosY();
-    int oldX = attackX;
-    int oldY = attackY;
-
-    direction_t directionsToCheck[3];
-    switch (dungeon.getPC().getCurrentDirection()) {
-        case UP: directionsToCheck[0] = UP; directionsToCheck[1] = UP_LEFT; directionsToCheck[2] = UP_RIGHT; break;
-        case DOWN: directionsToCheck[0] = DOWN; directionsToCheck[1] = DOWN_LEFT; directionsToCheck[2] = DOWN_RIGHT; break;
-        case LEFT: directionsToCheck[0] = LEFT; directionsToCheck[1] = UP_LEFT; directionsToCheck[2] = DOWN_LEFT; break;
-        case RIGHT: directionsToCheck[0] = RIGHT; directionsToCheck[1] = UP_RIGHT; directionsToCheck[2] = DOWN_RIGHT; break;
-        case UP_LEFT: directionsToCheck[0] = UP_LEFT; directionsToCheck[1] = UP; directionsToCheck[2] = LEFT; break;
-        case UP_RIGHT: directionsToCheck[0] = UP_RIGHT; directionsToCheck[1] = UP; directionsToCheck[2] = RIGHT; break;
-        case DOWN_LEFT: directionsToCheck[0] = DOWN_LEFT; directionsToCheck[1] = DOWN; directionsToCheck[2] = LEFT; break;
-        case DOWN_RIGHT: directionsToCheck[0] = DOWN_RIGHT; directionsToCheck[1] = DOWN; directionsToCheck[2] = RIGHT; break;
-        default: return;
-    }
-
-    for (int i = 0; i < 3; i++) {
-        attackX = dungeon.getPC().getPosX();
-        attackY = dungeon.getPC().getPosY();
-
-        switch (directionsToCheck[i]) {
-            case UP: attackY -= distance; break;
-            case DOWN: attackY += distance; break;
-            case LEFT: attackX -= distance; break;
-            case RIGHT: attackX += distance; break;
-            case UP_LEFT: attackY -= distance; attackX -= distance; break;
-            case UP_RIGHT: attackY -= distance; attackX += distance; break;
-            case DOWN_LEFT: attackY += distance; attackX -= distance; break;
-            case DOWN_RIGHT: attackY += distance; attackX += distance; break;
-            default: break;
-        }
-
-        if (attackY >= 0 && attackY < DUNGEON_HEIGHT && attackX >= 0 && attackX < DUNGEON_WIDTH) {
-            for (int j = 0; j < dungeon.getNumMonsters(); j++) {
-                Monster* monster = &dungeon.getMonsters()[j];
-                if (monster->isAlive() && monster->getPosX() == attackX && monster->getPosY() == attackY) {
-                    monster->setAlive(false);
-                    if (containsString(monster->getAbilities(), string("UNIQ"))) {
-                        invalidItemsAndMonsters.push_back(monster->getName());
-                    }
-                    vector<Item>& inventory = monster->getInventory();
-                    cell_t monsterOriginalCell = monster->getPreviousCell(); // Original cell under monster
-                    for (Item& item : inventory) {
-                        item.setPosX(oldX);
-                        item.setPosY(oldY);
-                        item.setPreviousCell(monsterOriginalCell); // Set to what was under the monster
-                        dungeon.getItemMap()[oldY][oldX].push_back(item);
-                    }
-                    inventory.clear();
-                    dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
-                    vector<Item>& items = dungeon.getItemMap()[oldY][oldX];
-                    if (!items.empty()) {
-                        char symbol = getSymbolFromType(items.back().getType());
-                        dungeon.getMap()[oldY][oldX] = cell_t{symbol, -2};
-                    } else {
-                        dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
-                    }
-                    dungeon.getPC().setPosX(attackX);
-                    dungeon.getPC().setPosY(attackY);
-                    dungeon.getPC().setPreviousCell(monsterOriginalCell);
-                    char message[100];
-                    snprintf(message, sizeof(message), "You killed monster %s!", monster->getName().c_str());
-                    gameMessage = message;
-                    return;
-                }
-            }
+void attack(int attackX, int attackY, int oldX, int oldY, Monster *m) {
+    bool weaponEquipped = false;
+    int totalDamage = 0;
+    for (Item i: dungeon.getPC().getEquippedItems()) {
+        totalDamage += rollDice(i.getDamage());
+        if (i.getType() == "WEAPON") {
+            weaponEquipped = true;
         }
     }
-    gameMessage = "Attacked nothing! Get close to a monster and face them!";
+    if (!weaponEquipped) { // just bare handed
+        totalDamage += rollDice("0+1d4");
+    }
+
+    m->setHealth(m->getHealth() - totalDamage);
+    if (m->getHealth() > 0) { // still alive
+        gameMessage = "You attacked monster " + m->getName() + "!";
+    }
+    else {
+        m->setAlive(false);
+        if (containsString(m->getAbilities(), string("UNIQ"))) {
+            invalidItemsAndMonsters.push_back(m->getName());
+        }
+        vector<Item>& inventory = m->getInventory();
+        cell_t monsterOriginalCell = m->getPreviousCell(); // Original cell under monster
+        for (Item& item : inventory) {
+            item.setPosX(oldX);
+            item.setPosY(oldY);
+            item.setPreviousCell(monsterOriginalCell); // Set to what was under the monster
+            dungeon.getItemMap()[oldY][oldX].push_back(item);
+        }
+        inventory.clear();
+        dungeon.getMap()[attackY][attackX] = PLAYER_CELL;
+        vector<Item>& items = dungeon.getItemMap()[oldY][oldX];
+        if (!items.empty()) {
+            char symbol = getSymbolFromType(items.back().getType());
+            dungeon.getMap()[oldY][oldX] = cell_t{symbol, -2};
+        } else {
+            dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
+        }
+        dungeon.getPC().setPosX(attackX);
+        dungeon.getPC().setPosY(attackY);
+        dungeon.getPC().setPreviousCell(monsterOriginalCell);
+        char message[100];
+        snprintf(message, sizeof(message), "You killed monster %s!", m->getName().c_str());
+        gameMessage = message;
+        calculateDistances(0); // recalculate pathfinding maps after moving player
+        calculateDistances(1);
+        calculateDistances(2);
+    }
+    playerToMove = false;
 }
 
 void movePlayer(int key) {
@@ -591,6 +724,14 @@ void movePlayer(int key) {
         case KEY_END: case '1': case 'b':
             newX--; newY++; dungeon.getPC().setCurrentDirection(DOWN_LEFT); break;
         case KEY_B2: case '5': case ' ': case '.': break;
+    }
+    
+    for (size_t i = 0; i < dungeon.getMonsters().size(); ++i) {
+        if (dungeon.getMonsters()[i].isAlive() && dungeon.getMonsters()[i].getPosX() == newX && dungeon.getMonsters()[i].getPosY() == newY) {
+            // attack monster
+            attack(newX, newY, oldX, oldY, &dungeon.getMonsters()[i]);
+            return;
+        }
     }
     
     if (newY >= 0 && newY < DUNGEON_HEIGHT &&

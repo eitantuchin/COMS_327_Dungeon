@@ -3,7 +3,7 @@
 using namespace std;
 
 // Constructor implementation
-Character::Character(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, u_int16_t HP, string DAM, vector<Item> inventory)
+Character::Character(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory)
 : posX(x), posY(y), previousCell(previousCell), speed(speed), cell(cell), HP(HP), DAM(DAM), inventory(inventory) {}
 
 // Getter implementations
@@ -19,7 +19,7 @@ cell_t Character::getPreviousCell() const {
     return previousCell;
 }
 
-uint8_t Character::getSpeed() const {
+int16_t Character::getSpeed() const {
     return speed;
 }
 
@@ -27,7 +27,7 @@ cell_t Character::getCell() const {
     return cell;
 }
 
-u_int16_t Character::getHealth() const {
+int32_t Character::getHealth() const {
     return HP;
 }
 
@@ -53,7 +53,7 @@ void Character::setPreviousCell(cell_t prevCell) {
     previousCell = prevCell;
 }
 
-void Character::setSpeed(uint8_t speed) {
+void Character::setSpeed(int16_t speed) {
     this->speed = speed;
 }
 
@@ -61,7 +61,7 @@ void Character::setCell(cell_t cell) {
     this->cell = cell;
 }
 
-void Character::setHealth(u_int16_t hp) {
+void Character::setHealth(int32_t hp) {
     HP = hp;
 }
 

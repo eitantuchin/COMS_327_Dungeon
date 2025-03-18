@@ -14,7 +14,7 @@ private:
 
 public:
     // Constructor
-    PC(uint8_t x, uint8_t y, cell_t previousCell, uint8_t speed, cell_t cell, uint16_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems);
+    PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems);
 
     // Getters
     direction_t getCurrentDirection() const;
@@ -30,7 +30,6 @@ public:
 
 void teleportPlayer(bool randomTeleport);
 void changeDirection(bool clockwise, bool justChangeText);
-void attack(int distance);
 void movePlayer(int key);
 void pickupItem(void);
 void displayInventory(void);
@@ -39,3 +38,4 @@ void wearItem(char key);
 void dropItem(char key);
 void expungeItem(char key);
 void inspectItem(char key);
+void takeOffItem(char key);

@@ -37,6 +37,7 @@ class my_priority_queue;
 #define MIN_NUM_STAIRS 2
 #define MAX_NUM_STAIRS 3
 #define PC_SPEED 10
+#define PC_HEALTH 100
 #define MAX_NUM_MONSTERS 100
 #define MIN_NUM_MONSTERS 7
 #define MAX_NUM_ITEMS 15
@@ -108,7 +109,9 @@ typedef enum {
     HARDNESS_MAP,
     ITEM_MENU,
     INVENTORY,
-    EQUIPMENT
+    EQUIPMENT,
+    LOOK_AT_MONSTER,
+    MONSTER_DETAILS
 } mode_type_t;
 
 extern Dungeon dungeon;
@@ -125,6 +128,7 @@ extern cell_t targetingPointerPreviousCell;
 extern vector<string> invalidItemsAndMonsters;
 extern item_select_t choosingCarryItem;
 extern bool choosingEquipmentItem;
+extern int selectedMonsterIndex;
 
 // Function prototypes
 

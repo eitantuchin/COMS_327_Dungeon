@@ -42,6 +42,7 @@ const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
 const cell_t POINTER_CELL = {'*', 0};
 vector<string> invalidItemsAndMonsters = {};
+int selectedMonsterIndex = -1;
 
 
 /*
@@ -56,6 +57,7 @@ int main(int argc, char *argv[])
     dungeon.setDownwardStairs(vector<stair_t>(3));
     dungeon.setModeType(PLAYER_CONTROL);
     dungeon.getPC().setSpeed(PC_SPEED);
+    dungeon.getPC().setHealth(PC_HEALTH);
     srand((unsigned int) time(NULL));
     
     // Make a dungeon but no saving or loading
@@ -144,7 +146,13 @@ int main(int argc, char *argv[])
         else if (dungeon.getModeType() == INVENTORY) {
             displayInventory();
         }
-        else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
+        else if (dungeon.getModeType() == EQUIPMENT) {
+            displayEquipment();
+        }
+        else if (dungeon.getModeType() == MONSTER_DETAILS) {
+            displayMonsterDetails(selectedMonsterIndex);
+        }
+        else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT || dungeon.getModeType() == LOOK_AT_MONSTER) {
             printGame(0);
             refresh();
         }
@@ -171,7 +179,7 @@ void checkKeyInput(void) {
         case '3': case 'n': case KEY_END: // down-left
         case '1': case 'b': case KEY_B2: // rest
         case '5': case ' ': case '.':
-        case '0': case '8':
+        case '0': case '8': case 'a': case 'c':
             if (choosingCarryItem == WEAR_ITEM) {
                 wearItem(key);
             }
@@ -185,14 +193,16 @@ void checkKeyInput(void) {
                 inspectItem(key);
             }
             else if (choosingEquipmentItem) { // for taking off an item
-                choosingEquipmentItem = false;
+                takeOffItem(key);
             }
             else if (dungeon.getModeType() == DISTANCE_MAPS && (key == '1' || key == '2' || key == '3')) {
                 clear();
                 printGame(key);
             }
             else if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL) movePlayer(key);
-            else if (playerToMove && dungeon.getModeType() == PLAYER_TELEPORT)  moveTargetingPointer(key);
+            else if (playerToMove && (dungeon.getModeType() == PLAYER_TELEPORT || dungeon.getModeType() == LOOK_AT_MONSTER)) {
+                moveTargetingPointer(key);
+            }
             else if (dungeon.getModeType() == MONSTER_LIST) {
                 clear();
                 if (key == KEY_UP) monsterListScrollOffset--;
@@ -213,8 +223,6 @@ void checkKeyInput(void) {
             printf("\nYou quit the game!\n");
             gameOver = true;
             break;
-        case 'z': // PC can attack 1 space away
-            attack(1); break;
         case 'V': // counter-clockwise
             changeDirection(false, false); break;
         case 'v': // clocckwise
@@ -233,14 +241,26 @@ void checkKeyInput(void) {
             }
             break;
         case 27: // escape key
-            if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || choosingCarryItem != NO_SELECT || choosingEquipmentItem) {
+            if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || choosingCarryItem != NO_SELECT || choosingEquipmentItem || dungeon.getModeType() == LOOK_AT_MONSTER) {
                 clear();
                 choosingCarryItem = NO_SELECT;
+                choosingEquipmentItem = false;
+                if (dungeon.getModeType() == LOOK_AT_MONSTER) {
+                    pair<int, int> pointerPos = getPointerCellPosition();
+                    if (pointerPos.first != -1 && pointerPos.second != -1) {
+                        dungeon.getMap()[pointerPos.second][pointerPos.first] = targetingPointerPreviousCell;
+                    }
+                    selectedMonsterIndex = -1; // Reset selection
+                }
                 dungeon.setModeType(PLAYER_CONTROL);
+                gameMessage = "Your turn to move!";
             }
             break;
         case 'f':
-            if (dungeon.getModeType() == PLAYER_CONTROL) {
+            if (choosingEquipmentItem) {
+                takeOffItem(key);
+            }
+            else if (dungeon.getModeType() == PLAYER_CONTROL) {
                 fogOfWar = !fogOfWar;
             }// fog of war switch
             else {
@@ -249,7 +269,10 @@ void checkKeyInput(void) {
             }
             break;
         case 'g': // goto/teleport mode activated
-            if (dungeon.getModeType() == PLAYER_TELEPORT) {
+            if (choosingEquipmentItem) {
+                takeOffItem(key);
+            }
+            else if (dungeon.getModeType() == PLAYER_TELEPORT) {
                 teleportPlayer(false);
                 dungeon.setModeType(PLAYER_CONTROL);
             }
@@ -312,12 +335,16 @@ void checkKeyInput(void) {
             }
             break;
         case 'i':
-            clear();
-            if (dungeon.getModeType() == INVENTORY && choosingCarryItem == NO_SELECT) {
+            if (choosingEquipmentItem) {
+                takeOffItem(key);
+            }
+            else if (dungeon.getModeType() == INVENTORY && choosingCarryItem == NO_SELECT) {
+                clear();
                 gameMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             else {
+                clear();
                 dungeon.setModeType(INVENTORY);
             }
             break;
@@ -342,7 +369,10 @@ void checkKeyInput(void) {
             }
             break;
         case 'd':
-            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+            if (choosingEquipmentItem) {
+                takeOffItem(key);
+            }
+            else if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
                 clear();
                 choosingCarryItem = DROP_ITEM;
                 dungeon.setModeType(INVENTORY);
@@ -359,6 +389,61 @@ void checkKeyInput(void) {
             }
             else {
                 gameMessage = "Can't inspect an item in this mode. Go back to player control.";
+            }
+            break;
+        case 'e':
+            if (choosingEquipmentItem) {
+                takeOffItem(key);
+            }
+            else if (dungeon.getModeType() == EQUIPMENT && choosingEquipmentItem == false) {
+                clear();
+                gameMessage = "Your turn to move!";
+                dungeon.setModeType(PLAYER_CONTROL);
+            }
+            else {
+                clear();
+                dungeon.setModeType(EQUIPMENT);
+            }
+            break;
+        case 't':
+            if (dungeon.getModeType() == MONSTER_DETAILS) {
+                clear();
+                dungeon.setModeType(LOOK_AT_MONSTER);
+            }
+            else if (dungeon.getModeType() == LOOK_AT_MONSTER) {
+                int monsterIndex = getMonsterAtPointer();
+                if (monsterIndex != -1) {
+                    selectedMonsterIndex = monsterIndex;
+                    dungeon.setModeType(MONSTER_DETAILS);
+                }
+                else {
+                    gameMessage = "No visible monster at the pointer location!";
+                    clear();
+                    pair<int, int> pointerPos = getPointerCellPosition();
+                    if (pointerPos.first != -1 && pointerPos.second != -1) {
+                        dungeon.getMap()[pointerPos.second][pointerPos.first] = targetingPointerPreviousCell;
+                    }
+                    dungeon.setModeType(PLAYER_CONTROL);
+                }
+            }
+            else if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingEquipmentItem = true;
+                dungeon.setModeType(EQUIPMENT);
+            }
+            else {
+                gameMessage = "Can't take off an item in this mode. Go back to player control.";
+            }
+            break;
+        case 'L':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                dungeon.setModeType(LOOK_AT_MONSTER);
+                initTargetingPointer();
+                gameMessage = "Move pointer with movement keys, press 't' to select monster, ESC to abort.";
+            }
+            else {
+                gameMessage = "Can't look at a monster now. Return to player control mode.";
             }
             break;
     }
@@ -617,7 +702,6 @@ void drawMessage(void) {
 }
 
 void checkGameConditions(void) {
-    // Check  if we are on top of item(s)
     // Check if we are standing on top of stairs
     if (dungeon.getPC().getPreviousCell().ch == '<') {
         gameMessage = "You are on upward stairs! Press [<] to go up a level.";
@@ -625,33 +709,21 @@ void checkGameConditions(void) {
     else if (dungeon.getPC().getPreviousCell().ch == '>') {
         gameMessage = "You are on downward stairs! Press [>] to go down a level.";
     }
-    // Check PC death
-    for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
-        if (dungeon.getMonsters()[i].isAlive() &&
-            dungeon.getMonsters()[i].getPosY() == dungeon.getPC().getPosY() &&
-            dungeon.getMonsters()[i].getPosX() == dungeon.getPC().getPosX()) {
-            gameOver = true;
-            endwin();
-            printf("\nGame Over - You were killed by monster %s!", dungeon.getMonsters()[i].getName().c_str());
-            return;
-        }
+    
+    if (dungeon.getPC().getHealth() <= 0) {
+        gameOver = true;
+        endwin();
+        printf("\nYou died! Better luck next time!");
     }
     
     // Check if a boss monster has been killed
-    bool bossKilled = false;
-    string bossName = "";
     for (int i = 0; i < dungeon.getNumMonsters(); ++i) {
         if (!dungeon.getMonsters()[i].isAlive() && containsString(dungeon.getMonsters()[i].getAbilities(), string("BOSS"))) {
-            bossKilled = true;
-            bossName = dungeon.getMonsters()[i].getName();
+            gameOver = true;
+            endwin();
+            printf("\nCongratulations! You won since you defeated boss %s!\n", dungeon.getMonsters()[i].getName().c_str());
             break;
         }
-    }
-    
-    if (bossKilled) {
-        gameOver = true;
-        endwin();
-        printf("\nCongratulations! You won since you defeated boss %s!\n", bossName.c_str());
     }
 }
 

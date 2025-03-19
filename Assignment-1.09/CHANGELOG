@@ -1,5 +1,77 @@
 --ASSIGNMENT 1.09 CHANGELOGS BELOW--
 
+03/18/2025
+Functionalities Added
+    - Added status information at the bottom
+    - Added combat
+    - Monsters don't attack each other
+    - The game ends when a BOSS is killed
+Functionalities Changed
+    - Turn messages now have their own variable
+    - Attack no longer is bound to 'z'
+    - updateMonsterPosition updated to change how collions work plus monster-
+        on-player combat
+Bug Fixes
+    - Fixed unknown how much health mobs have when in combat
+    - Fixed player doesn't die in combat when health goes below 0
+    - Fixed when in pyrite the monster details screen is spazzing out
+    - Fixed monster details text isn't aligned properly
+Bugs Discovered
+    - Unkown how much health mobs have when in combat
+    - Player doesn't die in combat when health goes below 0
+    - When in pyrite the monster details screen is spazzing out
+    - Monster details text isn't aligned properly
+
+03/17/2025
+Functionalities Added
+    - Implemented equipment screen, inspect item, take off item, and look at monster
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed when inspecting an item the description doesn't show correctly
+    - Fixed can't look at mutliple monsters in a row
+Bugs Discovered
+    - When inspecting an item the description doesn't show correctly
+    - Can't look at mutliple monsters in a row
+
+03/16/2025
+Functionalities Added
+    - Added inventory, wear item, drop item, and expunge item modes
+Functionalities Changed
+    - All item modes use display inventory 
+Bug Fixes
+    - Fixed inventory and equipment aren't updated after equipping an item
+    - Fixed after dropping an item the itme appears ahead of the player
+    - Fixed item indexing is wrong in the inventory
+Bugs Discovered
+    - Inventory and equipment aren't updated after equipping an item
+    - After dropping an item the itme appears ahead of the player
+    - Item indexing is wrong in the inventory
+
+
+03/07/2025
+Functionalities Added
+    - Finished pickup command
+Functionalities Changed
+    - Items have boolean equipped now
+Bug Fixes
+    - Fixed topmost item isn't showing at the top of the item list when shown
+    - Fixed player control isn't activated when going out of item list
+Bugs Discovered
+    - Topmost item isn't showing at the top of the item list when shown
+    - Player control isn't activated when going out of item list
+
+03/03/2025
+Functionalities Added
+    - All characters now have hitpoints and damage
+    - PC now has health value
+    - Pickup command halfway done
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed when hitting the pickup command we see the text overlap
+Bugs Discovered
+    - When hitting the pickup command we see the text overlap
 
 --ASSIGNMENT 1.08 CHANGELOGS BELOW--
 

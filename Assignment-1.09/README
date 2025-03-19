@@ -6,6 +6,16 @@ To run:
     Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
 
 Keys:
+    Comma to dispay item list in a cell.
+    Enter key to choose an item in the item list.
+    i to display inventory.
+    e to dislpay equipment.
+    w to wear an item.
+    d to drop an item.
+    x to expunge an item.
+    t to take off an item.
+    L to enter look mode. t to choose a monster to look at.
+    I to inspect an item.
     Movement keys are per usual.
     v to change direction clockwise and V to change direction counter-clockwise.
     H for hardness map.
@@ -17,14 +27,81 @@ Keys:
 
 New/Updated Files:
     item.cpp:
-        - Contains all the logic for items in the dungeon    
-
+        - Updated to now include all the logic for displaying item menu
+    monster.cpp:
+        - Updated logic for combat and monster details
+    dungeon_game.cpp:
+        - Updated to include support for all new game modes and keys, and for
+            displaying status information. Added a couple more global vars.
+    pc.cpp:
+        - Updated to include logic for all item and equipment screens and updated
+            combat logic.
+    character.cpp:
+        - Updated to now host health and damage attributes
+    
 New/Updated Data Structures:
     item:
-        - Contains all the necessary info for an item in the dungeon
+        - Now has a boolean equipped 
+    monster:
+        - health and speed are now a signed types
+    pc:
+        - health and speed are now a signed types
+        - has item array for equipment
+    mode_type_t:
+        - now has more modes for new screens
+    item_select:
+        - new enum that has different item selecting options
+    PC_HEALTH:
+        - new macro that defines PC's default health
+    validTypes:
+        - contains a list of all item types that the PC can equip
     
 New/Updated Functions:
     main:
-        - Updated to initialize colors in ncurses, init color pairs, and calculate pass monster distances
+        - Now supports all the new game modes
+        - PC health is now set
+    checkKeyInput:
+        - Now has checks for all new keys in this assignment
+    processEvents:
+        - Now uses turnMessage instead of gameMessage
+    drawMessages:
+        - now drawMessages instead of drawMessage and shows all game messages
+    getMinAndMaxDamage:
+        - New function that gets the minimum and maximum total damages that the PC
+            can inflict when attacking
+    checkGameConditions:
+        - Now updated to check if a boss has been killed and removed check for player
+            death upon monster cell takeover
+    displayItemMenu:
+        - New function to display a menu of item's in a cell
+    displayMonsterDetails:
+        - New function that displays all the details of a monster
+    updateMonsterPosition:
+        - Now checks for PC to monster combat and change how monster collions work
+    arrangeItems:
+        - Arranges all of the items by type in a particular sensible order
+    takeOffItem:
+        - Displays a menu of all equipped items for the PC to take off
+    displayEquipment:
+        - Displays all of the equipment of the PC
+    getNumRings:
+        - Gets the number of rings the user has equipped
+    wearItem:
+        - Displays a menu of all carry items for the PC to wear
+    expungeItem:
+        - Displays a menu of all carry items for the PC to expunge
+    dropItem:
+        - Displays a menu of all carry items for the PC to drop
+    inspectItem:
+        - Displays a menu of all carry items for the PC to inspect
+    displayInventory:
+        - Displays the inventory with correct messages depending 
+            on the item select mode
+    pickupItem:
+        - Allows the user to pickup an item from the dungeon floor and add it
+            to their inventory
+    attack:
+        - Updated to remove the old attack logic and instead uses the new combat logic
+        
  
  

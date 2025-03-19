@@ -33,7 +33,7 @@ void takeOffItem(char key) {
     vector<Item>& inventory = pc.getInventory();
     vector<Item> equippedItems = arrangeItems();
     int index = (int (key) - 'a'); // 'a' ASCII is 97 in decimal
-    if (index >= equippedItems.size() || index < 0) {
+    if ((size_t) index >= equippedItems.size() || index < 0) {
         // invalid index handling, display message underneath slots
         clear();
         attron(COLOR_PAIR(COLOR_RED));
@@ -101,7 +101,7 @@ void displayEquipment(void) {
         mvprintw(i + 3, 1, "%-3s", charStr);
         mvprintw(i + 3, 4, " | ");
 
-        if (i < equippedItems.size()) {
+        if ((size_t) i < equippedItems.size()) {
             const Item& item = equippedItems[i];
 
             // Symbol with item color
@@ -184,7 +184,7 @@ void wearItem(char key) {
     vector<Item>& inventory = pc.getInventory();
     vector<Item>& equippedItems = pc.getEquippedItems();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
-    if (index >= inventory.size() || index < 0) {
+    if ((size_t) index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
         clear();
         attron(COLOR_PAIR(COLOR_RED));
@@ -255,7 +255,7 @@ void wearItem(char key) {
 void expungeItem(char key) {
     vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
-    if (index >= inventory.size() || index < 0) {
+    if ((size_t) index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
         attron(COLOR_PAIR(COLOR_RED));
         mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
@@ -277,7 +277,7 @@ void expungeItem(char key) {
 void dropItem(char key) {
     vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
-    if (index >= inventory.size() || index < 0) {
+    if ((size_t) index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
         attron(COLOR_PAIR(COLOR_RED));
         mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
@@ -304,7 +304,7 @@ void dropItem(char key) {
 void inspectItem(char key) {
     vector<Item>& inventory = dungeon.getPC().getInventory();
     int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
-    if (index >= inventory.size() || index < 0) {
+    if ((size_t) index >= inventory.size() || index < 0) {
         // invalid index handling, display message underneath slots
         clear();
         attron(COLOR_PAIR(COLOR_RED));
@@ -466,12 +466,10 @@ void displayInventory(void) {
 
     for (int i = 0; i < maxVisibleItems; ++i) {
         // Item number [0] to [9]
-        char numStr[5];
-        snprintf(numStr, sizeof(numStr), "[%d]", i);
-        mvprintw(i + 3, 1, "%-3s", numStr);
+        mvprintw(i + 3, 1, "[%d]", i);
         mvprintw(i + 3, 4, " | ");
 
-        if (i < inventory.size()) {
+        if ((size_t) i < inventory.size()) {
             const Item& item = inventory[i];
 
             // Symbol with item color

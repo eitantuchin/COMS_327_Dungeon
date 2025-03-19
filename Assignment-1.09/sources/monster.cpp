@@ -12,7 +12,7 @@ Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_
 : Character(x, y, previousCell, speed, cell, HP, DAM, inventory), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), NAME(NAME), DESC(DESC), COLOR(COLOR),SYMB(SYMB), ABIL(ABIL), RRTY(RRTY) {}
 
 void displayMonsterDetails(int monsterIndex) {
-    clear();
+    //clear();
     int screenHeight, screenWidth;
     getmaxyx(stdscr, screenHeight, screenWidth);
 
@@ -118,7 +118,7 @@ void displayMonsterDetails(int monsterIndex) {
 
     // Instructions
     mvprintw(screenHeight - 1, 1, "Press [t] to return to the game.");
-    refresh();
+    //refresh();
 }
 
 
@@ -476,7 +476,7 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
                 int damage = rollDice(m->getDamage());
                 int pcHP = dungeon.getPC().getHealth() - damage;
                 dungeon.getPC().setHealth(pcHP);
-                gameMessage = m->getName() + " hits you for " + to_string(damage) + " damage!";
+                gameMessage = m->getName() + " hits you for " + to_string(damage) + " damage! " + "Monster health: " + to_string(m->getHealth());
                 return;
             }
         }

@@ -1,8 +1,30 @@
+To run:
+    Use "make" to compile executable dungeon game.
+    Use "./dungeon_game" to start a new dungeon game.
+    Use "./dungeon_game --nummon x" to start a new dungeon game with x amount of monsters.
+    Use "./dungeon_game --parse -m" to parse monster_desc.txt file and print out output.
+    Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
+
+Keys:
+    Movement keys are per usual.
+    v to change direction clockwise and V to change direction counter-clockwise.
+    H for hardness map.
+    D for distance maps. 
+    m for monster list.
+    g then r to teleport randomly. g then g to telport deliberately.
+    f for fog of war.
+    q or Q to quit.
+
 New/Updated Files:
-   
+    item.cpp:
+        - Contains all the logic for items in the dungeon    
 
 New/Updated Data Structures:
-   
-
-New/Updated Functions:
+    item:
+        - Contains all the necessary info for an item in the dungeon
     
+New/Updated Functions:
+    main:
+        - Updated to initialize colors in ncurses, init color pairs, and calculate pass monster distances
+ 
+ 

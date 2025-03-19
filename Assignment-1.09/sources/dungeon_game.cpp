@@ -416,6 +416,7 @@ void checkKeyInput(void) {
                 int monsterIndex = getMonsterAtPointer();
                 if (monsterIndex != -1) {
                     selectedMonsterIndex = monsterIndex;
+                    clear();
                     dungeon.setModeType(MONSTER_DETAILS);
                 }
                 else {
@@ -780,7 +781,7 @@ void checkGameConditions(void) {
     if (dungeon.getPC().getHealth() <= 0) {
         gameOver = true;
         endwin();
-        printf("\nYou died! Better luck next time!");
+        printf("\nYou died! Better luck next time!\n");
     }
     
     // Check if a boss monster has been killed

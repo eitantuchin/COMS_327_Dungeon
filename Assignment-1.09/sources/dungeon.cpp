@@ -343,7 +343,7 @@ void resetDungeonLevel(void) {
     }
 
     // Display a message to the player
-    gameMessage = "Your turn to move!";
+    turnMessage = "Your turn to move!";
 }
 
 // Constructor implementation

@@ -37,7 +37,7 @@ class my_priority_queue;
 #define MIN_NUM_STAIRS 2
 #define MAX_NUM_STAIRS 3
 #define PC_SPEED 10
-#define PC_HEALTH 100
+#define PC_HEALTH 500
 #define MAX_NUM_MONSTERS 100
 #define MIN_NUM_MONSTERS 7
 #define MAX_NUM_ITEMS 15
@@ -121,6 +121,7 @@ extern bool fogOfWar;
 extern bool playerToMove;
 extern string gameMessage;
 extern string directionMessage;
+extern string turnMessage;
 extern string dirNames[8];
 extern int monsterListScrollOffset;
 extern int selectedItemIndex;
@@ -138,7 +139,7 @@ void checkGameConditions(void);
 void processEvents(void);
 void scheduleEvent(event_type_t type, int monsterIndex, int currentTurn);
 void checkKeyInput(void);
-void drawMessage(void);
+void drawMessages(void);
 void updateFogMap(void);
 void printCharacter(int x, int y);
 void moveTargetingPointer(int key);
@@ -146,4 +147,4 @@ void initTargetingPointer(void);
 pair<int, int> getPointerCellPosition(void);
 bool containsString(const vector<string>& array, const string& value);
 bool containsInt(const vector<int>& array, const int& value);
-
+pair<int, int> getMinAndMaxDamage(void);

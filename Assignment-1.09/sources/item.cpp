@@ -20,20 +20,6 @@ using namespace std;
 // Constructor
 Item::Item(uint8_t posX, uint8_t posY, string NAME, string DESC, string TYPE, vector<short> COLOR, string DAM, u_int16_t HIT, u_int16_t DODGE, u_int16_t DEF, u_int16_t WEIGHT, u_int16_t SPEED, u_int16_t ATTR, u_int16_t VAL, bool ART, u_int8_t RRTY, cell_t previousCell, bool  eligibility, bool equipped)
 : posX(posX), posY(posY), NAME(NAME), DESC(DESC), TYPE(TYPE), COLOR(COLOR), DAM(DAM), HIT(HIT), DODGE(DODGE), DEF(DEF), WEIGHT(WEIGHT), SPEED(SPEED), ATTR(ATTR), VAL(VAL), ART(ART), RRTY(RRTY), previousCell(previousCell), eligibility(eligibility),  equipped(equipped) {}
-/*
-void updateMapForItemCells(void) {
-    for (int y = 0; y < DUNGEON_HEIGHT; ++y) {
-        for (int x = 0; x < DUNGEON_WIDTH; ++x) {
-            vector<Item> items = dungeon.getItemMap()[y][x];
-            if (!items.empty() && dungeon.getMap()[y][x].hardness != -1) {
-                Item i = items.back();
-                char symbol = getSymbolFromType(i.getType());
-                dungeon.getMap()[y][x] = cell_t { symbol, -2 };
-            }
-        }
-    }
-}
- */
 
 void displayItemMenu(void) {
     // Get items at PC's current position

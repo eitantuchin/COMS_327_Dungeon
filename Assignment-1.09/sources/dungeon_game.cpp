@@ -25,6 +25,7 @@ bool fogOfWar = true;
 bool playerToMove = true;
 item_select_t choosingCarryItem = NO_SELECT;
 bool choosingEquipmentItem = false;
+string turnMessage = "";
 string gameMessage = "";
 string directionMessage = "";
 string dirNames[8] = {
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
     // Initialize event queue
     event_queue = my_priority_queue();
 
-    gameMessage = "Your turn to move!";
+    turnMessage = "Your turn to move!";
     directionMessage = "Facing: NORTH";
     
     // Schedule initial PC event
@@ -253,7 +254,7 @@ void checkKeyInput(void) {
                     selectedMonsterIndex = -1; // Reset selection
                 }
                 dungeon.setModeType(PLAYER_CONTROL);
-                gameMessage = "Your turn to move!";
+                turnMessage = "Your turn to move!";
             }
             break;
         case 'f':
@@ -279,6 +280,7 @@ void checkKeyInput(void) {
             else if (dungeon.getModeType() == PLAYER_CONTROL){
                 dungeon.setModeType(PLAYER_TELEPORT);
                 initTargetingPointer();
+                gameMessage = "Use arrows to move pointer, [g] to teleport to pointer, [r] to teleport randomly.";
             }
             else {
                 gameMessage = "You must have player control to use the GOTO command!";
@@ -293,7 +295,7 @@ void checkKeyInput(void) {
         case 'H': // display hardness map
             clear();
             if (dungeon.getModeType() == HARDNESS_MAP) {
-                gameMessage = "Your turn to move!";
+                turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             else {
@@ -305,7 +307,7 @@ void checkKeyInput(void) {
         case 'D': // display distance map
             clear();
             if (dungeon.getModeType() == DISTANCE_MAPS) {
-                gameMessage = "Your turn to move!";
+                turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             else {
@@ -340,7 +342,7 @@ void checkKeyInput(void) {
             }
             else if (dungeon.getModeType() == INVENTORY && choosingCarryItem == NO_SELECT) {
                 clear();
-                gameMessage = "Your turn to move!";
+                turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             else {
@@ -397,7 +399,7 @@ void checkKeyInput(void) {
             }
             else if (dungeon.getModeType() == EQUIPMENT && choosingEquipmentItem == false) {
                 clear();
-                gameMessage = "Your turn to move!";
+                turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
             }
             else {
@@ -584,7 +586,7 @@ void printGame(int value) {
             }
         }
     }
-    drawMessage();
+    drawMessages();
 }
 
 void printCharacter(int x, int y) {
@@ -674,7 +676,7 @@ void processEvents(void) {
     if (node.x == -1) { // EVENT_PC
         playerToMove = true; // this stops the processing of events until the player moves again
         scheduleEvent(EVENT_PC, -1, node.priority);
-        gameMessage = "Your turn to move!";
+        turnMessage = "Your turn to move!";
         if (!dungeon.getItemMap()[dungeon.getPC().getPosY()][dungeon.getPC().getPosX()].empty()) {
             gameMessage = "There are items here! Press [,] to checkout the items.";
         }
@@ -682,23 +684,88 @@ void processEvents(void) {
     else if (dungeon.getMonsters()[node.x].isAlive()) {
         moveMonster(node.x);
         scheduleEvent(EVENT_MONSTER, node.x, node.priority); // keep moving the monster
-        gameMessage = "The monsters are moving...";
+        turnMessage = "The monsters are moving...";
     }
 }
 
-void drawMessage(void) {
+void drawMessages(void) {
     move(0, 0);
     clrtoeol();
+    // game message
     attron(COLOR_PAIR(COLOR_CYAN));
-    mvprintw(0, 1, "%s", gameMessage.c_str()); // Print at the beginning of the line (left-aligned)
+    mvprintw(0, 1, "%s", gameMessage.c_str());
     attroff(COLOR_PAIR(COLOR_CYAN));
-    if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT) {
-        size_t len = strlen(directionMessage.c_str());
-        size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
-        attron(COLOR_PAIR(COLOR_GREEN));
-        mvprintw(0, (int) x, "%s", directionMessage.c_str()); // Print right-aligned
-        attroff(COLOR_PAIR(COLOR_GREEN));
+    
+    move(22, 0);
+    clrtoeol();
+    // Health
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 1, "Health: ");
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 9, "%d", dungeon.getPC().getHealth());
+    
+    // Speed
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 15, "Speed: ");
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 22, "%d", dungeon.getPC().getSpeed());
+    
+    // Damage dealt
+    pair<int, int> minAndMax = getMinAndMaxDamage();
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 28, "Attack Damage: ");
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(22, 43, "%d - %d", minAndMax.first, minAndMax.second);
+    
+    move(23, 0);
+    clrtoeol();
+    // Turn message
+    attron(COLOR_PAIR(COLOR_CYAN));
+    mvprintw(23, 1, "%s", turnMessage.c_str());
+    attroff(COLOR_PAIR(COLOR_CYAN));
+    
+    // Coords
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(23, 35, "Position: ");
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(23, 45, "[X: %d, Y: %d]", dungeon.getPC().getPosX(), dungeon.getPC().getPosY());
+    
+    // Direction message
+    size_t len = strlen(directionMessage.c_str());
+    size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
+    attron(COLOR_PAIR(COLOR_GREEN));
+    mvprintw(23, (int) x, "%s", directionMessage.c_str()); // Print right-aligned
+    attroff(COLOR_PAIR(COLOR_GREEN));
+}
+
+pair<int, int> getMinAndMaxDamage(void) {
+    int maxDamage = 0, minDamage = 0;
+    bool weaponEquipped = false;
+    for (Item i: dungeon.getPC().getEquippedItems()) {
+        if (i.getType() == "WEAPON") {
+            weaponEquipped = true;
+        }
+        // calculate min and max damage for each item equipped and add to totals
+        string damStr = i.getDamage();
+        int base = 0, dice = 0, sides = 0;
+        char d; // To hold 'd' character
+        stringstream ss(damStr);
+        if (damStr.find('+') != string::npos) {
+            ss >> base >> d >> dice >> d >> sides;
+        } else {
+            ss >> dice >> d >> sides;
+        }
+        minDamage += (base + dice);
+        maxDamage += (base + (dice * sides));
     }
+    if (!weaponEquipped) { // just bare handed
+        minDamage += 1;
+        maxDamage += 4;
+    }
+    pair<int, int> ret;
+    ret.first = minDamage;
+    ret.second = maxDamage;
+    return ret;
 }
 
 void checkGameConditions(void) {

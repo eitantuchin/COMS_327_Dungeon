@@ -321,9 +321,11 @@ void inspectItem(char key) {
         snprintf(title, sizeof(title), "Item Details for [%s]", item.getName().c_str());
         size_t titleLength = strlen(title);
         size_t titleX = (screenWidth - titleLength) / 2;
+        size_t titleY = screenHeight / 2 + 1;  // Use screenHeight to center vertically
         if (titleX < 0) titleX = 1;
+        if (titleY < 0) titleY = 1;
         attron(COLOR_PAIR(COLOR_GREEN));
-        mvprintw(13, (int) titleX, "%s", title);
+        mvprintw((int) titleY, (int)titleX, "%s", title);  // Use titleY instead of hardcoded 13
         attroff(COLOR_PAIR(COLOR_GREEN));
 
         string desc = item.getDescription();

@@ -1,0 +1,470 @@
+--ASSIGNMENT 1.09 CHANGELOGS BELOW--
+
+03/18/2025
+Functionalities Added
+    - Added status information at the bottom
+    - Added combat
+    - Monsters don't attack each other
+    - The game ends when a BOSS is killed
+Functionalities Changed
+    - Turn messages now have their own variable
+    - Attack no longer is bound to 'z'
+    - updateMonsterPosition updated to change how collions work plus monster-
+        on-player combat
+Bug Fixes
+    - Fixed unknown how much health mobs have when in combat
+    - Fixed player doesn't die in combat when health goes below 0
+    - Fixed when in pyrite the monster details screen is spazzing out
+    - Fixed monster details text isn't aligned properly
+Bugs Discovered
+    - Unkown how much health mobs have when in combat
+    - Player doesn't die in combat when health goes below 0
+    - When in pyrite the monster details screen is spazzing out
+    - Monster details text isn't aligned properly
+
+03/17/2025
+Functionalities Added
+    - Implemented equipment screen, inspect item, take off item, and look at monster
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed when inspecting an item the description doesn't show correctly
+    - Fixed can't look at mutliple monsters in a row
+Bugs Discovered
+    - When inspecting an item the description doesn't show correctly
+    - Can't look at mutliple monsters in a row
+
+03/16/2025
+Functionalities Added
+    - Added inventory, wear item, drop item, and expunge item modes
+Functionalities Changed
+    - All item modes use display inventory 
+Bug Fixes
+    - Fixed inventory and equipment aren't updated after equipping an item
+    - Fixed after dropping an item the itme appears ahead of the player
+    - Fixed item indexing is wrong in the inventory
+Bugs Discovered
+    - Inventory and equipment aren't updated after equipping an item
+    - After dropping an item the itme appears ahead of the player
+    - Item indexing is wrong in the inventory
+
+
+03/07/2025
+Functionalities Added
+    - Finished pickup command
+Functionalities Changed
+    - Items have boolean equipped now
+Bug Fixes
+    - Fixed topmost item isn't showing at the top of the item list when shown
+    - Fixed player control isn't activated when going out of item list
+Bugs Discovered
+    - Topmost item isn't showing at the top of the item list when shown
+    - Player control isn't activated when going out of item list
+
+03/03/2025
+Functionalities Added
+    - All characters now have hitpoints and damage
+    - PC now has health value
+    - Pickup command halfway done
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed when hitting the pickup command we see the text overlap
+Bugs Discovered
+    - When hitting the pickup command we see the text overlap
+
+--ASSIGNMENT 1.08 CHANGELOGS BELOW--
+
+03/01/2025
+Functionalities Added
+    - Added rule that if items that are artifacts are destroyed and monsters that are unique that are killed  cannot spawn again
+Functionalities Changed
+    - Rooms array now initialized to hold max rooms count
+Bug Fixes
+    - Fixed when attacking a monster the player doesn't show anymore (x and y were swapped)
+    - Fixed player shows beneath item if they move on top of an item
+Bugs Discovered
+    - When attacking a monster the player doesn't show anymore
+    - Player shows beneath item if they move on top of an item
+
+02/27/2025
+Functionalities Added
+    - Added an itemMap to store item positions
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed monster moving to illegal areas
+Bugs Discovered
+    - Monster moving to illegal areas
+
+02/26/2025
+Functionalities Added
+    - Monster list now updated to show more things
+    - Hardness map and distance maps can now be viewed
+Functionalities Changed
+    - Contains is not generic anymore but instead is split into containsString and containsInt
+    - Parsing functions for items and monsters now contains a boolean as a param to determine whether we print
+        to terminal or not
+Bug Fixes
+    - Fixed when teleporting right onto the same cell where the player is the player's symbol is left behind
+    - Fixed we are getting seg faults when up and down dungeon levels
+    - Fixed monster list bugging out when trying to be shown
+Bugs Discovered
+    - We are getting seg faults when up and down dungeon levels
+    - Monster list bugging out when trying to be shown
+
+02/24/2025
+Functionalities Added
+    - Added flickering effect for monsters and items that have multiple colors
+    - Calculate distances now calculates distances for pass-wall monsters aswell
+    - Game ends when a boss monster dies
+Functionalities Changed
+    - Monster class now contains new attributes and monster are now generated differently as per rules
+    - Added more types of monsters since monsters now have the pass wall ability
+Bug Fixes
+    - Fixed wrong item color and sybmol showing on top of stack of items
+    - Fixed when a monster picks up an item the item beneath is pushed aside
+Bugs Discovered
+    - Wrong item color and sybmol showing on top of stack of items
+    - When a monster picks up an item the item beneath is pushed aside
+    - When teleporting right onto the same cell where the player is the player's symbol is left behind
+
+02/23/2025
+Functionalities Added
+    - Added item.cpp and item.hpp files
+    - Made item class that contains all relevant attributes of items
+    - Created an item factory to generate item instaces
+Functionalities Changed
+    - Refactored code from dungeon_game.cpp to all other files where it made sense
+Bug Fixes
+    - N/A
+Bugs Discovered
+    - N/A
+
+--ASSIGNMENT 1.07 CHANGELOGS BELOW--
+
+02/20/2025
+Functionalities Added
+    - Added check for correct values for values in file
+    - Added check for duplicate or missing values
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed only the last line of the description is being printed out
+    - Fixed other values are not being printed out correctly after adding check for missing values
+Bugs Discovered
+    - Only the last line of the description is being printed out
+    - Other values are not being printed out correctly after adding check for missing values
+
+02/19/2025
+Functionalities Added
+    - Added monsterDedc and objectDesc structs for storing values of monsters and objects
+    - Added parse.cpp and parse.hpp
+    - Added functionality to parse through the files and get the input and print it out
+Functionalities Changed
+    - main now has --parse -m and --parse -o input support
+    - Makefile now has parse.cpp
+Bug Fixes
+    - Fixed only the first item is being printed out
+    - Fixed problems with printing out output
+Bugs Discovered
+    - Only the first item is being printed out
+    - Problems with printing out output
+
+--ASSIGNMENT 1.06 CHANGELOGS BELOW--
+
+02/18/2025
+Functionalities Added
+    - N/A
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed dungeon glitching in pyrite
+Bugs Discovered
+    - Dungeon glitching in pyrite
+
+02/17/2025
+Functionalities Added
+    - Added random and deliberate teleporting
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed player is being teleported outside of dungeon
+    - Fixed when player is being teleported on top of monster it doesn't die
+Bugs Discovered
+    - Player is being teleported outside of dungeon
+    - When player is being teleported on top of monster it doesn't die
+
+02/14/2025
+Functionalities Added
+    - Starting adding fog of war
+    - Added the boolean map for explored areas
+Functionalities Changed
+    - Changed to use std namespace instead of std:: everywhere
+Bug Fixes
+    - Fixed PC is not showing up when fog of war is on
+    - Fixed PC is being duplicated everytime I move in fog of war
+    - Fixed dungeon not being reset correctly when using stairs
+Bugs Discovered
+    - PC is not showing up when fog of war is on
+    - PC is being duplicated everytime I move in fog of war
+    - Dungeon not being reset correctly when using stairs
+
+02/13/2025
+Functionalities Added
+    - Created all of the getter and setters for the dungeon, pc, monster, and character classes
+    - Implemented inheritance
+    - Organized files into headers and sources folders
+Functionalities Changed
+    - Updated Makefile for CPP
+Bug Fixes
+    - Fixed inheritance isn't working for monsters
+Bugs Discovered
+    - Inheritance isn't working for monsters
+
+02/12/2025
+Functionalities Added
+    - Added character, monster, pc, and dungeon classes
+    - Began refactoring the structs into classes
+Functionalities Changed
+    - Renamed all existing files into cpp files
+    - Everything needs to use CPP memory management techniques
+    - Everything is changed to use CPP methods
+Bug Fixes
+    - Fixed the dungeon won't generate correcty after refactoring
+Bugs Discovered
+    - The dungeon won't generate correcty after refactoring
+
+--ASSIGNMENT 1.05 CHANGELOGS BELOW--
+
+02/07/2025
+Functionalities Added
+    - NA
+Functionalities Changed
+    - We only clear and refresh the terminal screen when needed instead of every second in the game loop
+    - Changed buttons used for changing direction and for attacking
+Bug Fixes
+    - Fixed the screen is visibily fading in and out at high speeds in the terminal in pyrite
+Bugs Discovered
+    - The screen is visibily fading in and out at high speeds in the terminal in pyrite
+
+02/06/2025
+Functionalities Added
+    - Stairs now are functional and can deliver the player from one dungeon to anther
+    - Added terminal messages when a player does certain things in the game
+    - Added generateDungeon, useStairs, and resetDungeonLevel methods
+    - Added monster list
+    - Added getMonsterPositionString, displayMonsterList functions
+    - Added scrolling through monster list function
+    - Added a mode type to the dungeon for what type of screen to display to the user
+    - Added a message struct
+    - Added drawMessage and displayMessage functions
+Functionalities Changed
+    - Dungeon struct now has a mode type field
+Bug Fixes
+    - Fixed monster list when displayed overlaps with the dungeon
+Bugs Discovered
+    - Monster list when displayed overlaps with the dungeon
+
+02/05/2025
+Functionalities Added
+    - Added direction changing and basic combat
+    - Added an enum for all 8 directions
+    - PC now carries an currentDirection attribute
+Functionalities Changed
+    - The player can now attack in 2 adjacent direction aswell and can attack from 2 spaces away
+    - The game now operates in required in turn based movement
+    - The player only can move when their node is removed from the PQ
+Bug Fixes
+    - Fixed PC position is not updating when key pressed
+    - Fixed the player's position on the screen is not being updated until way after moving
+
+Bugs Discovered
+    - The player's position on the screen is not being updated until way after moving
+
+02/04/2025
+Functionalities Added
+    - Added movePlayer, checkKeyInput, and checkMonsterPlacementToPC functions
+Functionalities Changed
+    - The player is now controlled by key input
+    - Monsters can now only spawn 3 spaces at minimum away from the PC to give the PC from breathing room
+    - We no longer display the dungeon border
+Bug Fixes
+    - Fixed no key does anything when pressed
+Bugs Discovered
+    - PC position is not updating when key pressed
+    - No key does anything when pressed
+
+--ASSIGNMENT 1.04 CHANGELOGS BELOW--
+
+02/03/2025
+Functionalities Added
+    - Added moveMonsters, updateMonsterPosition, hasLineOfSight functions
+    - Added lastSeenPCX and lastSeenPCY params to the monster struct
+    - Monsters can kill each other
+Functionalities Changed
+    - moveMonsters doesn't use random movement anymore but actual monster movement logic
+    - Modified initMonsters to init new monster params
+    - updateMonterPosition now takes in isTunneling as a param
+Bug Fixes
+    - Fixed monsters aren't moving
+    - Fixed monsters are moving but are stopping after a couple moves
+    - Fixed Monsters are moving illegaly
+    - Fixed we are getting memory issues with the priority queue setup
+    - Fixed some monsters are moving and some aren't
+    - Fixed when a monster kills another monster the attacking monster's cell char is left behind in
+        the location it killed the monster in
+    - Fixed we don't cover unintelligent but telepathic monsters
+Bugs Discovered
+    - Some monsters are moving and some aren't
+    - When a monster kills another monster the attacking monster's cell char is left behind in
+        the location it killed the monster in
+    - We don't cover unintelligent but telepathic monsters
+
+02/02/2025
+Functionalities Added
+    - Added params monsterBits, MONSTER_CELL, alive, and previousCharacter to monster struct
+    - Added a game loop in main
+    - Added scheduleEvent, processEvents, checkGameConditions functions
+    - Added  a priority queue for monster movement later
+    - Added a loop to schedule initial game events for each monster
+    - Added an event struct
+    - Added a event_type enum
+Functionalities Changed
+    - Changed processEvents to use the x value for the monster index since it wasn't being used anyway
+Bug Fixes
+    - Fixed player doesn't die when a monster comes into contact with it
+Bugs Discovered
+    - Monsters aren't moving
+    - Monsters are moving but are stopping after a couple moves
+    - Monsters are moving illegaly
+    - We are getting memory issues with the priority queue setup
+    - Player doesn't die when a monster comes into contact with it
+
+02/01/2025
+Functionalities Added
+    - Added a monster struct
+    - Added monsters array to dungeon
+    - Began working on initializing monsters
+    - Added ncurses library
+    - Added --nummon switch
+Functionalities Changed
+    - Removed any player movement
+    - Modified player struct to have speed value
+Bug Fixes
+    - Fixed monster being inserted on invalid cell
+Bugs Discovered
+    - Monster being inserted on invalid cell
+
+--ASSIGNMENT 1.03 CHANGELOGS BELOW--
+
+01/31/2025
+Functionalities Added
+    - Added print statements for the different distance maps
+    - Made the calcuateDistances function to make the distance maps for both tunneling and non-tunneling monsters
+Functionalities Changed
+    - We use INT_MAX instead of INFINITY for initial Dijiktra values
+    - Calculate distances takes in a tunneling value to determine type of distance map
+Bug Fixes
+    - Fixed distance map only generating partially for non-tunnelers
+    - Fixed distance map for tunnelers not taking into account hardness
+    - Fixed when trying path finding with saving and loading it won't work
+Bugs Discovered
+    - Distance map only generating partially for non-tunnelers
+    - Distance map for tunnelers not taking into account hardness
+    - When trying path finding with saving and loading it won't work
+
+01/30/2025
+Functionalities Added
+    - Added the priority queue to be used in Dijikstra's
+    - Added priority queue header file
+Functionalities Changed
+    - None just working on PQ
+Bug Fixes
+    - Fixed node is not being bubbled up
+    - Fixed wrong node is being extracted
+    - Fixed node is being inserted in the wrong position in the PQ
+Bugs Discovered
+    - Node is not being bubbled up
+    - Wrong node is being extracted
+    - Node is being inserted in the wrong position in the PQ
+
+--ASSIGNMENT 1.02 CHANGELOGS BELOW--
+
+01/29/2025
+Functionalities Added
+    - Added functionality to store and sort staircases into two seperate arrays
+    - Added checks along the way when loading and saving files for debugging
+Functionalities Changed
+    - Instead of using a stairs array we now use upwardStairs and downwardStairs arrays
+    - stair struct doesn't have direction field anymore
+    - addStairs function changed to reflect array change
+    - the simultaenous loading and saving option is now last in the if else block
+Bug Fixes
+    - Fixed segmentation faults or bus errors when trying any of the saving and loading options
+    - Fixed rooms generating in wrong areas after loading the file
+    - Fixed PC generating in wrong areas after loading file
+    - Fixed corridors not showing when loading file
+    - Fixed adding random dungeon cell hardness causes infinite loop upon generating dungeon
+    - Fixed position of PC not showing and being overriden by room cells
+Bugs Discovered
+    - Rooms generating in wrong areas after loading the file
+    - PC generating in wrong areas after loading file
+    - Corridors not showing when loading file
+    - Adding random dungeon cell hardness causes infinite loop upon generating dungeon
+    - Position of PC not showing and being overriden by room cells
+   
+01/28/2025
+Functionalities Added
+    - Added functions initPCPosition, loadFile, saveFile, addStairs, contains
+    - Added pc, dungeon, and stairs structs
+    - Added FILE_MARKER constant
+    - Added stairs array
+    - Added player cell type cell
+Functionalities Changed
+    - Changed function name of addRoomsAndStairs to addRooms
+    - Removed stairs functionality in addRooms
+    - Refactored code for loading and saving by putting all relevant data to be stored in structs
+Bug Fixes
+    - Fixed staircases generating in wrong areas of after refactoring code for loading and saving
+Bugs Discovered
+    - Segmentation faults or bus errors when trying any of the saving and loading options
+    - Staircases generating in wrong areas of after refactoring code for loading and saving
+    
+--ASSIGNMENT 1.01 CHANGELOGS BELOW--
+
+01/27/2025
+Functionalities Added
+    - Added functioning corridors
+    - Added hardness to different cells
+Functionalities Changed
+    - Added an additional 2 corridors to the dungeon to make more paths for the player
+    - Made each cell in the grid have a corresponding type. This was made to distinguish between
+        rock and immutable rock
+Bug Fixes
+    - Fixed corridors generating all over the place
+Bugs Discovered
+    - Corridors generating all over the place
+
+01/26/2025
+Functionalities Added
+    - Added dungeon_generation.c file
+    - Added room struct
+    - Added dungeon border
+    - Added rooms
+    - Added stairs
+Functionalities Changed
+    - Made there be at least 2 cells of spacing between rooms
+Bug Fixes
+    - Fixed dungeon border generating wrong
+    - Fixed rooms are not listening to the border requirement
+    - Fixed rooms are all trying to generate stairs
+    - Fixed illegal corridors are being generated
+Bugs Discovered
+    - Dungeon border generating wrong
+    - Rooms are not listening to the border requirement
+    - Rooms are all trying to generate stairs
+    - Illegal corridors are being generated
+
+--BEGIN CHANGELOG FOR DUNGEON ASSIGNMENT--
+

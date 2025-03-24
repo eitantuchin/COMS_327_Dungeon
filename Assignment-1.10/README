@@ -1,0 +1,41 @@
+To run:
+    Use "make" to compile executable dungeon game.
+    Use "./dungeon_game" to start a new dungeon game.
+    Use "./dungeon_game --nummon x" to start a new dungeon game with x amount of monsters.
+    Use "./dungeon_game --parse -m" to parse monster_desc.txt file and print out output.
+    Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
+
+Keys:
+    Comma to dispay item list in a cell.
+    Enter key to choose an item in the item list.
+    i to display inventory.
+    e to dislpay equipment.
+    w to wear an item.
+    d to drop an item.
+    x to expunge an item.
+    t to take off an item.
+    L to enter look mode. t to choose a monster to look at.
+    I to inspect an item.
+    Movement keys are per usual.
+    v to change direction clockwise and V to change direction counter-clockwise.
+    H for hardness map.
+    D for distance maps. 
+    m for monster list.
+    g then r to teleport randomly. g then g to telport deliberately.
+    f for fog of war.
+    q or Q to quit.
+
+New/Updated Files:
+    item.cpp:
+        - Updated to now include all the logic for displaying item menu
+  
+    
+New/Updated Data Structures:
+    item:
+        - Now has a boolean equipped 
+   
+New/Updated Functions:
+    main:
+        - Now supports all the new game modes
+        - PC health is now set
+    

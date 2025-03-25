@@ -65,3 +65,5 @@ void expungeItem(char key);
 void inspectItem(char key);
 void takeOffItem(char key);
 void displayStats(void);
+void buyItem(void);
+void useItem(char key);

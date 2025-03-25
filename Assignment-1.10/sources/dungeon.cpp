@@ -8,8 +8,129 @@
 
 using namespace std;
 
+void displayShop(Item randItem) {
+    vector<Item> shopItems = {};
+    shopItems.push_back(randItem);
+    // Health potion, invis potion, speed potion
+    Item healthPotion = Item(0, 0, "Potion of Healing", "Brewed by adding golden watermelon to suspicious water. Take and become heartened!", "FLASK", {COLOR_MAGENTA}, "0+0d1", 0, 0, 0, 2, 0, "70+6d8", 200, true, 80, SHOP_CELL, true, false);
+    Item speedPotion = Item(0, 0, "Potion of Speed", "Brewed by adding sugar to suspicious water. Take and become fast AF!", "FLASK", {COLOR_GREEN}, "0+0d1", 0, 0, 0, 2, rollDice("10+5d4"), "0+0d1", 150, true, 80, SHOP_CELL, true, false);
+    Item invisPotion = Item(0, 0, "Potion of Invisibility", "Brewed by adding a fermented spider eye to suspicious water. Take and become invisible!", "FLASK", {COLOR_WHITE}, "0+0d1", 0, 0, 0, 2, 0, "0+0d1", 250, true, 80, SHOP_CELL, true, false);
+    shopItems.push_back(healthPotion);
+    shopItems.push_back(speedPotion);
+    shopItems.push_back(invisPotion);
+    dungeon.getShopItems() = shopItems;
+    uint8_t count = shopItems.size();
+
+    // Screen dimensions
+    int screenHeight, screenWidth;
+    getmaxyx(stdscr, screenHeight, screenWidth);
+
+    // ASCII Shopkeeper
+    const char* shopkeeper[] = {
+        "   ___   ",
+        "  /   \\  ",
+        "  O   O  ",
+        "  _/|_   ",
+        " /  |  \\ ",
+        "|_______|",
+        "|  ***  |"
+    };
+    const int shopkeeperLines = 7;
+    const int shopkeeperWidth = 11; // Widest line length
+    int shopkeeperY = 12; // Starting row
+    int shopkeeperX = (screenWidth - shopkeeperWidth) / 2; // Centered horizontally
+
+    // Draw shopkeeper in magenta
+    attron(COLOR_PAIR(COLOR_MAGENTA));
+    for (int i = 0; i < shopkeeperLines; i++) {
+        mvprintw(shopkeeperY + i, shopkeeperX, "%s", shopkeeper[i]);
+    }
+    attroff(COLOR_PAIR(COLOR_MAGENTA));
+
+    // Centered welcome message below shopkeeper
+    const char* welcomeMsg = "Welcome to my shop! See anything you want to buy?";
+    int welcomeLength = (int) strlen(welcomeMsg);
+    int welcomeX = (screenWidth - welcomeLength) / 2;
+    mvprintw(shopkeeperY + shopkeeperLines, welcomeX, "%s", welcomeMsg);
+
+    // Center "Shop Menu" title
+    const char* title = "Shop Menu";
+    size_t titleLength = strlen(title);
+    size_t titleX = (screenWidth - titleLength) / 2;
+    if (titleX < 0) titleX = 1;
+    mvprintw(0, (int) titleX, "%s", title);
+
+    // Header (positioned above shopkeeper)
+    int itemsStartX = 1; // Left-aligned, above shopkeeper
+    mvprintw(1, itemsStartX, "Symbol | Name                      | Coins      | Type       | Artifact");
+    mvprintw(2, itemsStartX, "------ | ------------------------- | ---------- | ---------- | --------");
+
+    // Display items (rows 3-11, before shopkeeper)
+    int maxVisibleItems = shopkeeperY - 3; // From row 3 to row 11 (9 rows max)
+    if (maxVisibleItems > (int)count) maxVisibleItems = count;
+    
+    // Ensure scrollOffset is within bounds
+    if (scrollOffset < 0) {
+        scrollOffset = 0;
+    }
+    if (scrollOffset > count - 1) {
+        scrollOffset = count - 1;
+    }
+    reverse(shopItems.begin(), shopItems.end());
+    for (int i = 0; i < maxVisibleItems; ++i) {
+        const Item& item = shopItems[i];
+
+        // Symbol with item color
+        short color = item.getColor()[0];
+        attron(COLOR_PAIR(color));
+        mvprintw(i + 3, itemsStartX, "%-6s", string(1, getSymbolFromType(item.getType())).c_str());
+        attroff(COLOR_PAIR(color));
+        mvprintw(i + 3, itemsStartX + 6, " | ");
+
+        // Name (highlighted in yellow if selected)
+        string name = item.getName().substr(0, 25);
+        if (i == scrollOffset) {
+            attron(COLOR_PAIR(COLOR_YELLOW));
+            mvprintw(i + 3, itemsStartX + 9, "%-25s", name.c_str());
+            attroff(COLOR_PAIR(COLOR_YELLOW));
+        } else {
+            mvprintw(i + 3, itemsStartX + 9, "%-25s", name.c_str());
+        }
+        mvprintw(i + 3, itemsStartX + 34, " | ");
+
+        // Coins
+        attron(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(i + 3, itemsStartX + 37, "%-10d", item.getValue());
+        attroff(COLOR_PAIR(COLOR_YELLOW));
+        mvprintw(i + 3, itemsStartX + 47, " | ");
+
+        // Type
+        string type = item.getType().substr(0, 10);
+        mvprintw(i + 3, itemsStartX + 50, "%-10s", type.c_str());
+        mvprintw(i + 3, itemsStartX + 60, " | ");
+
+        // Artifact
+        string artifactText = item.isArtifact() ? "YES" : "NO";
+        mvprintw(i + 3, itemsStartX + 63, "%-8s", artifactText.c_str());
+    }
+
+    // Player coins (below shopkeeper and welcome message)
+    string userCoins = "Coins available: " + to_string(dungeon.getPC().getCoins());
+    size_t stringX = (screenWidth - userCoins.length()) / 2;
+    attron(COLOR_PAIR(COLOR_YELLOW));
+    mvprintw(shopkeeperY + shopkeeperLines + 1, (int) stringX, "%-70s", userCoins.c_str());
+    attroff(COLOR_PAIR(COLOR_YELLOW));
+    
+    // Instructions (bottom of screen)
+    mvprintw(screenHeight - 1, 1, "Use UP/DOWN to select, ENTER to buy item, [T] to exit.");
+
+    refresh();
+}
+
 
 void generateShop(void) {
+    vector<Item> itemsGot = itemFactory();
+    randShopItem = itemsGot[rand() % itemsGot.size()];
     bool shopPlaced = false;
     while (!shopPlaced) {
         // Randomly pick a potential center for the 3x3 shop
@@ -39,13 +160,12 @@ void generateShop(void) {
             continue;
         }
 
-        // Place the 3x3 shop: '~' with 'S' in the center
         for (int y = topLeftY; y <= topLeftY + 2; y++) {
             for (int x = topLeftX; x <= topLeftX + 2; x++) {
                 if (x == centerX && y == centerY) {
-                    dungeon.getMap()[y][x] = {'S', -3}; // Magenta 'S'
+                    dungeon.getMap()[y][x] = {'S', -3}; // shopkeeper cell has -3 hardness
                 } else {
-                    dungeon.getMap()[y][x] = {'~', 0}; // Shop floor
+                    dungeon.getMap()[y][x] = SHOP_CELL; // Shop floor
                 }
             }
         }
@@ -580,4 +700,8 @@ void Dungeon::setNumMonsters(uint16_t num) {
 // Setter for modeType
 void Dungeon::setModeType(mode_type_t newModeType) {
     modeType = newModeType;
+}
+
+vector<Item>& Dungeon::getShopItems() {
+    return shopItems;
 }

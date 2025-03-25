@@ -23,6 +23,7 @@
 using namespace std;
 class Monster;
 class Dungeon;
+class Item;
 class my_priority_queue;
 
 // Constants for our dungeon game
@@ -76,6 +77,7 @@ extern const cell_t UPWARD_STAIRS_CELL;
 extern const cell_t DOWNWARD_STAIRS_CELL;
 extern const cell_t PLAYER_CELL;
 extern const cell_t POINTER_CELL;
+extern const cell_t SHOP_CELL;
 
 typedef enum {
     UP,
@@ -93,6 +95,7 @@ typedef enum {
     DROP_ITEM,
     EXPUNGE_ITEM,
     INSPECT_ITEM,
+    USE_ITEM,
     NO_SELECT
 } item_select_t;
 
@@ -119,8 +122,16 @@ typedef enum {
     LOOK_AT_MONSTER,
     MONSTER_DETAILS,
     STATS,
-    SETTINGS
+    SETTINGS,
+    SHOP
 } mode_type_t;
+
+typedef enum {
+    NO_POTION,
+    HEALING,
+    INVISIBILITY,
+    SPEED
+} potion_type_t;
 
 extern Dungeon dungeon;
 extern my_priority_queue event_queue;
@@ -138,6 +149,9 @@ extern item_select_t choosingCarryItem;
 extern bool choosingEquipmentItem;
 extern int selectedMonsterIndex;
 extern bool cheatsEnabled;
+extern Item randShopItem;
+extern int turnsPassed;
+extern potion_type_t potionInUse;
 
 // Function prototypes
 

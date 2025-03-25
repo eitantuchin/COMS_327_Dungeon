@@ -46,8 +46,12 @@ const cell_t UPWARD_STAIRS_CELL = {'<', 0};
 const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
 const cell_t POINTER_CELL = {'*', 0};
+const cell_t SHOP_CELL = {'%', 0};
 vector<string> invalidItemsAndMonsters = {};
 int selectedMonsterIndex = -1;
+Item randShopItem(0, 0, "", "", "", {}, "", 0, 0, 0, 0, 0, "", 0, false, 0, {}, false, false);
+int turnsPassed = 0;
+potion_type_t potionInUse = NO_POTION;
 
 /*
  Allows the user to choose between saving, loading, and creating dungeons
@@ -162,20 +166,6 @@ int main(int argc, char *argv[])
     gameOver = false;
     while (!gameOver) {
         checkKeyInput();
-        /*
-         PLAYER_CONTROL,
-         MONSTER_LIST,
-         PLAYER_TELEPORT,
-         DISTANCE_MAPS,
-         HARDNESS_MAP,
-         ITEM_MENU,
-         INVENTORY,
-         EQUIPMENT,
-         LOOK_AT_MONSTER,
-         MONSTER_DETAILS,
-         STATS,
-         SETTINGS
-         */
         if (dungeon.getModeType() == MONSTER_LIST) {
             displayMonsterList();
         }
@@ -196,6 +186,9 @@ int main(int argc, char *argv[])
         }
         else if (dungeon.getModeType() == SETTINGS) {
             displaySettings();
+        }
+        else if (dungeon.getModeType() == SHOP) {
+            displayShop(randShopItem);
         }
         else if (dungeon.getModeType() == PLAYER_CONTROL || dungeon.getModeType() == PLAYER_TELEPORT || dungeon.getModeType() == LOOK_AT_MONSTER) {
             printGame(0);
@@ -334,6 +327,9 @@ void checkKeyInput(void) {
             else if (choosingCarryItem == INSPECT_ITEM) {
                 inspectItem(key);
             }
+            else if (choosingCarryItem == USE_ITEM) {
+                useItem(key);
+            }
             else if (choosingEquipmentItem) { // for taking off an item
                 takeOffItem(key);
             }
@@ -345,7 +341,7 @@ void checkKeyInput(void) {
             else if (playerToMove && (dungeon.getModeType() == PLAYER_TELEPORT || dungeon.getModeType() == LOOK_AT_MONSTER)) {
                 moveTargetingPointer(key);
             }
-            else if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || dungeon.getModeType() == SETTINGS || dungeon.getModeType() == STATS) {
+            else if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || dungeon.getModeType() == SETTINGS || dungeon.getModeType() == STATS || dungeon.getModeType() == SHOP) {
                 clear();
                 if (key == KEY_UP) scrollOffset--;
                 else if (key == KEY_DOWN) scrollOffset++;
@@ -385,6 +381,7 @@ void checkKeyInput(void) {
         case 27: // escape key
             if (dungeon.getModeType() == MONSTER_LIST || dungeon.getModeType() == ITEM_MENU || choosingCarryItem != NO_SELECT || choosingEquipmentItem || dungeon.getModeType() == LOOK_AT_MONSTER) {
                 clear();
+                scrollOffset = 0;
                 choosingCarryItem = NO_SELECT;
                 choosingEquipmentItem = false;
                 if (dungeon.getModeType() == LOOK_AT_MONSTER) {
@@ -478,6 +475,9 @@ void checkKeyInput(void) {
                 dungeon.setModeType(PLAYER_CONTROL);
                 scrollOffset = 0; // Reset after pickup
             }
+            else if (dungeon.getModeType() == SHOP) {
+                buyItem();
+            }
             break;
         case 'i':
             if (choosingEquipmentItem) {
@@ -550,6 +550,16 @@ void checkKeyInput(void) {
                 dungeon.setModeType(EQUIPMENT);
             }
             break;
+        case 'U':
+            if (dungeon.getModeType() == PLAYER_CONTROL && playerToMove) {
+                clear();
+                choosingCarryItem = USE_ITEM;
+                dungeon.setModeType(INVENTORY);
+            }
+            else {
+                gameMessage = "Can't use an item in this mode. Go back to player control.";
+            }
+            break;
         case 't':
             if (dungeon.getModeType() == MONSTER_DETAILS) {
                 clear();
@@ -620,12 +630,22 @@ void checkKeyInput(void) {
                 scrollOffset = 0;
             }
             break;
-        case 'T':
-            // Toggle shop
-            // Add shop mode. Show shopkeeper ASCII and show buyable things like health potion, speed potion, invis potion, food, item? User can use up and down arrows to go between items and pick an item with enter like when picking up an item. Upon buying the item we reduce the user coins by the amount of coins the item costed and add the item to the user's inventory (or not if it's an immediate effect) if there is enough space in their inventory.
-            // Also not related but add more terrain? A non-intelligent monster won't realize that they are walking into lava for example and would die.
+        case 'T':            
+            if (dungeon.getModeType() == SHOP) {
+                clear();
+                turnMessage = "Your turn to move!";
+                dungeon.setModeType(PLAYER_CONTROL);
+                scrollOffset = 0;
+            }
+            else if (playerToMove && dungeon.getModeType() == PLAYER_CONTROL && dungeon.getPC().getPreviousCell().ch == '%') {
+                clear();
+                dungeon.setModeType(SHOP);
+                scrollOffset = 0;
+            }
+            else {
+                gameMessage = "Not currently next to a shopkeeper!";
+            }
             break;
-            
     }
 }
 
@@ -660,7 +680,7 @@ vector<string> inputDescriptions = {
     "  D: Toggle distance maps",
     "  1, 2, 3: Show distance map (Distance Maps mode)",
     "  ,: Open item menu (if items present)",
-    "  Enter: Pick up item (Item Menu)",
+    "  Enter: Pick up item (Item Menu), Buy item (Shop)",
     "  i: View inventory",
     "  w: Wear item (from Inventory)",
     "  x: Expunge item (from Inventory)",
@@ -671,6 +691,8 @@ vector<string> inputDescriptions = {
     "  L: Look at monster mode",
     "  s: Toggle stats screen",
     "  S: Toggle settings screen",
+    "  U: Use item (from Inventory)",
+    "  T: Talk to shopkeeper (when next to shop)",
     "Inventory/Equipment Selection:",
     "  0-9, a-c: Select slot for actions"
 };
@@ -928,7 +950,22 @@ void scheduleEvent(event_type_t type, int index, int currentTurn) {
     newEvent->type = type;
     newEvent->index = index;
     if (type == EVENT_PC) {
-        newEvent->turn = currentTurn + (1000 / dungeon.getPC().getSpeed());
+        int speedBoost = 0;
+        if (potionInUse) turnsPassed++;
+        if (turnsPassed == 20 && potionInUse == SPEED) {
+            turnsPassed = 0;
+            potionInUse = NO_POTION; // NO_POTION is
+            gameMessage = "Speed potion ended!";
+        }
+        else if (turnsPassed < 20 && potionInUse == SPEED) {
+            speedBoost = rollDice("10+5d4");
+        }
+        else if (turnsPassed == 35 && potionInUse == INVISIBILITY) {
+            turnsPassed = 0;
+            potionInUse = NO_POTION;
+            gameMessage = "Invisibility potion ended!";
+        }
+        newEvent->turn = currentTurn + (1000 / (dungeon.getPC().getSpeed() + speedBoost));
     }
     else {
         newEvent->turn = currentTurn + (1000 / dungeon.getMonsters()[index].getSpeed());
@@ -979,6 +1016,29 @@ void drawMessages(void) {
     mvprintw(22, 28, "Coins: ");
     attroff(COLOR_PAIR(COLOR_YELLOW));
     mvprintw(22, 35, "%d", dungeon.getPC().getCoins());
+    
+    switch (potionInUse) {
+        case INVISIBILITY:
+            attron(COLOR_PAIR(COLOR_BLUE));
+            mvprintw(22, 40, "Using INVISIBILITY Pot");
+            attroff(COLOR_PAIR(COLOR_BLUE));
+            break;
+        case SPEED:
+            attron(COLOR_PAIR(COLOR_BLUE));
+            mvprintw(22, 40, "Using SPEED Pot");
+            attroff(COLOR_PAIR(COLOR_BLUE));
+            break;
+        case HEALING:
+            attron(COLOR_PAIR(COLOR_BLUE));
+            mvprintw(22, 40, "Using HEALING Pot");
+            attroff(COLOR_PAIR(COLOR_BLUE));
+            break;
+        case NO_POTION:
+            attron(COLOR_PAIR(COLOR_RED));
+            mvprintw(22, 40, "No potion in use");
+            attroff(COLOR_PAIR(COLOR_RED));
+            break;
+    }
     
     attron(COLOR_PAIR(COLOR_MAGENTA));
     mvprintw(22, 63, "[S] for settings");

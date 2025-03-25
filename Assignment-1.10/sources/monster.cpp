@@ -383,7 +383,7 @@ void moveMonster(int index) {
     // Not telepatchic nor intelligent
     else if (!isTelepathic && !isIntelligent) {
         // Moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
+        if (!hasLineOfSight(oldX, oldY, targetX, targetY) || potionInUse == INVISIBILITY)
             return;
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
@@ -391,7 +391,7 @@ void moveMonster(int index) {
     // Not telepathic but is intelligent
     else if (!isTelepathic && isIntelligent) {
         // Moves toward PC on shortest path if LOS exists, remembers last seen position
-        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
+        if (hasLineOfSight(oldX, oldY, targetX, targetY) && potionInUse != INVISIBILITY) {
             m->setLastSeenPCX(targetX);
             m->setLastSeenPCY(targetY);
         }
@@ -421,8 +421,10 @@ void moveMonster(int index) {
         // Passes through rock, 50% random, otherwise always knows PC position, moves in straight line
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
+        if (potionInUse != INVISIBILITY) {
+            m->setLastSeenPCX(targetX);
+            m->setLastSeenPCY(targetY);
+        }
     }
     // Is telepathic and is intelligent
     else if (isTelepathic && isIntelligent) {
@@ -444,8 +446,10 @@ void moveMonster(int index) {
                 }
             }
         }
-        m->setLastSeenPCX(targetX);
-        m->setLastSeenPCY(targetY);
+        if (potionInUse != INVISIBILITY) {
+            m->setLastSeenPCX(targetX);
+            m->setLastSeenPCY(targetY);
+        }
     }
     
     // Update position, tunneling only applies to tunneling monsters
@@ -456,7 +460,7 @@ void moveMonster(int index) {
 
 void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Monster *m, bool isTunneling, bool canPass) {
     bool cellSet = false;
-    if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1 && dungeon.getMap()[newY][newX].ch != '~') {
+    if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1 && dungeon.getMap()[newY][newX].ch != '%') {
         // Check for collision with PC (for combat)
         bool pcCollision = (newX == dungeon.getPC().getPosX() && newY == dungeon.getPC().getPosY());
         if (pcCollision) { // Combat

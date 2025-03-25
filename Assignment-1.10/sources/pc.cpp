@@ -7,7 +7,85 @@ using namespace std;
 
 // Constructor implementation
 PC::PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems, int damageDealt, int damageTaken, int distanceTraveled, int monstersKilled, int floorsVisited, int numItemsPickedUp, int numHealing, string name, int numCoins)
-: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction), equippedItems(equippedItems), damageDealt(damageDealt), damageTaken(damageTaken), distanceTraveled(distanceTraveled), monstersKilled(monstersKilled), floorsVisited(floorsVisited), numItemsPickedUp(numItemsPickedUp), numHealing(numHealing), name(name), numCoins(numCoins){}
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction), equippedItems(equippedItems), damageDealt(damageDealt), damageTaken(damageTaken), distanceTraveled(distanceTraveled), monstersKilled(monstersKilled), floorsVisited(floorsVisited), numItemsPickedUp(numItemsPickedUp), numHealing(numHealing), name(name), numCoins(numCoins) {}
+
+void useItem(char key) {
+    vector<Item>& inventory = dungeon.getPC().getInventory();
+    int index = (int (key) - '0'); // '0' ASCII is 48 in decimal
+    if ((size_t) index >= inventory.size() || index < 0) {
+        // invalid index handling, display message underneath slots
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(16, 15, "%-70s", "Item number selected isn't valid. Please try again.");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        // use item
+        Item item = inventory[index];
+        if (item.getType() == "FLASK") { // only flask item types can be used for now
+            if (item.getName() == "Potion of Healing") {
+                potionInUse = HEALING;
+                int healingAmount = rollDice(item.getAttribute());
+                dungeon.getPC().setHealth(dungeon.getPC().getHealth() + healingAmount);
+                gameMessage = "You drank a potion of healing! It gave you " + to_string(healingAmount) + " more HP!";
+                potionInUse = NO_POTION;
+            }
+            else if (item.getName() == "Potion of Speed") {
+                potionInUse = SPEED;
+                turnsPassed = 0;
+                gameMessage = "You drank a potion of speed! You will be faster temporarily!";
+            }
+            else if (item.getName() == "Potion of Invisibility") {
+                potionInUse = INVISIBILITY;
+                turnsPassed = 0;
+                gameMessage = "You drank a potion of invisibility! Monsters can't see you temporarily!";
+            }
+            // remove item from inventory after use
+            inventory.erase(inventory.begin() + index);
+            clear();
+            choosingCarryItem = NO_SELECT;
+            dungeon.setModeType(PLAYER_CONTROL);
+        }
+        else {
+            clear();
+            attron(COLOR_PAIR(COLOR_RED));
+            mvprintw(16, 30, "%-70s", "Item cannot be used.");
+            attroff(COLOR_PAIR(COLOR_RED));
+            refresh();
+        }
+    }
+}
+
+void buyItem(void) {
+    vector<Item>& shopItems = dungeon.getShopItems();
+    Item itemBought = shopItems[shopItems.size() - scrollOffset - 1];
+    // show coins amount
+    if (dungeon.getPC().getInventory().size() >= 10) {
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(10, 20, "%-70s", "Not enough space in inventory!");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else if (dungeon.getPC().getCoins() - itemBought.getValue() < 0) { // not enough coins
+        clear();
+        attron(COLOR_PAIR(COLOR_RED));
+        mvprintw(10, 15, "%-70s", "You don't have enough coins to buy this item!");
+        attroff(COLOR_PAIR(COLOR_RED));
+        refresh();
+    }
+    else {
+        dungeon.getPC().getInventory().push_back(itemBought); // add bought item to inventory
+        dungeon.getPC().setCoins(dungeon.getPC().getCoins() - itemBought.getValue());
+        string bought = "You bought item " + itemBought.getName() + " for " + to_string(itemBought.getValue()) + " coins!\n\t\t\t (Item should be in your inventory now)";
+        clear();
+        attron(COLOR_PAIR(COLOR_GREEN));
+        mvprintw(10, 20, "%-70s", bought.c_str());
+        attroff(COLOR_PAIR(COLOR_GREEN));
+        refresh();
+    }
+}
 
 vector<string> validTypes = {
     "ARMOR", "HELMET", "GLOVES", "CLOAK", "BOOTS",
@@ -513,6 +591,10 @@ void displayInventory(void) {
             title = "Inspect Item (Carry Slots)";
             footer = "Use [esc] to return and keys [0] - [9] to select an item to inspect.";
             break;
+        case USE_ITEM:
+            title = "Use Item (Carry Slots)";
+            footer = "Use [esc] to return and keys [0] - [9] to select an item to use.";
+            break;
     }
     size_t titleLength = strlen(title);
     size_t titleX = (screenWidth - titleLength) / 2;
@@ -839,17 +921,11 @@ void movePlayer(int key) {
             else if (dungeon.getPC().getPreviousCell().ch == '>') {
                 gameMessage = "You are on downward stairs! Press [>] to go down a level.";
             }
+            else if (dungeon.getPC().getPreviousCell().ch == '%') {
+                gameMessage = "Press [T] to talk to the shopkeeper and look at what you can buy!";
+            }
             else {
                 gameMessage = "Adventuring...";
-            }
-            int pcX = dungeon.getPC().getPosX();
-            int pcY = dungeon.getPC().getPosY();
-            for (int y = pcY - 1; y <= pcY + 1; ++y) {
-                for (int x = pcX - 1; x <= pcX + 1; ++x) {
-                    if (dungeon.getMap()[y][x].hardness == -3) { // shopkeeper cell
-                        gameMessage = "Press [T] to talk to the shopkeeper and look at what you can buy!";
-                    }
-                }
             }
         }
     }

@@ -29,7 +29,7 @@ private:
     mode_type_t modeType;                                   // Current mode of the dungeon (e.g., player control, monster list)
     vector<Item> items;
     vector<Item> itemMap[DUNGEON_HEIGHT][DUNGEON_WIDTH];
-
+    vector<Item> shopItems;
 public:
     // Constructor
     Dungeon();
@@ -51,6 +51,7 @@ public:
     mode_type_t getModeType();
     vector<Item>& getItems();
     vector<Item> (&getItemMap())[DUNGEON_HEIGHT][DUNGEON_WIDTH];
+    vector<Item>& getShopItems();
 
     // Setters
     void setRooms(const vector<room_t>& newRooms);
@@ -78,3 +79,4 @@ void generateDungeon(void);
 void useStairs(int key);
 void resetDungeonLevel(void);
 void generateShop(void);
+void displayShop(Item randItem) ;

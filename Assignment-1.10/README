@@ -5,9 +5,31 @@ To run:
     Use "./dungeon_game --parse -m" to parse monster_desc.txt file and print out output.
     Use "./dungeon_game --parse -o" to parse object_desc.txt file and print out output.
 
+Main things added for 1.10:
+    Stats screen
+    Settings Screen
+    Added food and healing
+    Added preface to game asking users for options
+    Lights work
+    Win and lose screens
+    Leaderboard
+    Shop and money system
+    Use item screen
+    Potions
+    Water and lava
+    Water and lava have effects on the player and monsters
+    If the PC has a WAND they can use souls to cast a spell
+    Souls gathering and using system
+    Expanded the status bar
+
+Important Note:
+    Please use the descriptions I provided in the "descriptions" folder and put them 
+    in your .rlg327 directory for the game to work as I intended. Thanks.
+    
 Keys:
-    Comma to dispay item list in a cell.
-    Enter key to choose an item in the item list.
+    Escape key to get out of some screens.
+    Comma to display item list in a cell.
+    Enter key to choose an item in the item list or buy an item in the shop.
     i to display inventory.
     e to dislpay equipment.
     w to wear an item.
@@ -24,18 +46,88 @@ Keys:
     g then r to teleport randomly. g then g to telport deliberately.
     f for fog of war.
     q or Q to quit.
+    s for stats.
+    S for settings.
+    T to open the shop when next to a shop.
+    U to use an item.
 
 New/Updated Files:
-    item.cpp:
-        - Updated to now include all the logic for displaying item menu
-  
-    
+    dungeon_game.cpp:
+        - Added more game modes, more key bindings, leaderboard, 
+            preface to game, death screens, settings
+    character.cpp:
+        - Added more values common to both monster and PC
+    monster.cpp:
+        - Updated monster movement logic, monster interacting with lava and
+            water logic
+    pc.cpp:
+        - Added useItem screen, stats screen, updated movement logic, buying 
+            an item
+    dungeon.cpp:
+        - Added display shop, generate shop, updated monster generation logic,
+            added lava and water generation logic
 New/Updated Data Structures:
-    item:
-        - Now has a boolean equipped 
+    potion_type_t:
+        - Added to determine current PC potion use
+    mode_type_t:
+        - Added STATS, SHOP, and SETTINGS to the enum
+    item_select_t:
+        - Added USE_ITEM to the enum
+    cell_t:
+        - Added water and lava cells
+    leaderboardEntry_t:
+        - An entry in the leaderboard with name, score, and time
+    wandUsedCoords:
+        - All of the coords in the dungeon level where the wand was used
+    shopItems:
+        - Contains the current items in the shop
+    Monster:
+        - Added attribute to determine if monster is in water
+    PC:
+        - Added many attributes for keeping track of stats
    
 New/Updated Functions:
     main:
-        - Now supports all the new game modes
-        - PC health is now set
-    
+        - Added game preface, more game modes in game loop, leaderboard
+    compareEntries:
+        - Compares the scores in the leaderboard
+    showLeaderboard:
+        - Displays the leaderboard to the terminal once the game finishes
+    checkKeyInput:
+        - Added more keys to check
+    displaySettings:
+        - Displays the settings
+    updateFogMap:
+        - Updated to now check if PC is holding a light object
+    printCharacter:
+        - Added checks for shopkeeper, lava, water, wand
+    scheduleEvent:
+        - Added updated speed calculation based on water and potions, checks
+            for invisibility potion too
+    drawMessages:
+        - Now shows potion use, souls and coins collected, etc
+    calculateDistances:
+        - Now takes into account water and lava
+    generateLiquids:
+        - Generates water and lava in the dungeon
+    displayShop:
+        - Displays the shop
+    generateShop:
+        - Generates the shop in the dungeon
+    initMonsters:
+        - Updated to set coords 
+    resetDungeonLevel:
+        - Now resets the wandUsedCoords
+    moveMonster:
+        - No monster moves now if invisibilty potion has been used by PC
+    updateMonsterPosition:
+        - Adds checks for lava, water, shop, etc.
+    useItem:
+        - A screen which allows the PC to use an item that can be used
+    buyItem:
+        - Adds logic for buying items from the shop
+    displayStats:
+        - Displays the PC's stats
+    movePlayer:
+        - Added checks for lava, water, and shop. If the user dies in
+             lava the game ends

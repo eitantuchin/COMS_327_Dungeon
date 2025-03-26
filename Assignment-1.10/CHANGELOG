@@ -1,3 +1,86 @@
+--ASSIGNMENT 1.10 CHANGELOGS BELOW--
+
+03/26/2025
+Functionalities Added
+    - N/A
+Functionalities Changed
+    - N/A
+Bug Fixes
+    - Fixed when monsters are generated they don't have a previous cell set
+Bugs Discovered
+    - When monsters are generated they don't have a previous cell set
+
+03/25/2025
+Functionalities Added
+    - Added water and lava terrain
+    - Added water and lava logic
+    - Added the Wand of Lightning
+    - Added souls collection system
+    - Added spells 
+Functionalities Changed
+    - The PC cannot use two potions at once
+    - The pathfinding system now considers lava
+    - Invisibility spell now makes all monsters stay in place for the duration of the spell
+Bug Fixes
+    - Fixed when the Wand of Lightning is used the yellow area left behind follows the PC
+    - Fixed monsters do not die in lava
+    - Fixed PC doesn't die in lava
+    - Fixed when a monster dies in lava the previous cell isn't set correctly
+    - Fixed monsters and PC don't move slower in water
+Bugs Discovered
+    - When the Wand of Lightning is used the yellow area left behind follows the PC
+    - Monsters do not die in lava
+    - PC doesn't die in lava
+    - When a monster dies in lava the previous cell isn't set correctly
+    - Monsters and PC don't move slower in water
+
+03/24/2025
+Functionalities Added
+    - Added 3 different potions
+    - Added a shop and money system
+    - Added a use item screen
+    - Some items can be used 
+Functionalities Changed
+    - Monsters now get their coordinates at the time they are initialized
+Bug Fixes
+    - Fixed the random item in the shop is being set infinitely 
+    - Fixed if item of type A is equipped and another item of type A is equipped (not a ring) then it won’t be swapped
+Bugs Discovered
+    - The random item in the shop is being set infinitely 
+    - If item of type A is equipped and another item of type A is equipped (not a ring) then it won’t be swapped
+
+03/23/2025
+Functionalities Added
+    - Added a leaderboard
+    - Added stats screen
+    - Added settings screen
+Functionalities Changed
+    - When the game ends the user's score is calculated and added to a leaderboard file
+    - If the user turns on cheats their run won't be on the leaderboard
+Bug Fixes
+    - Fixed settings screen not scrolling properly
+    - Fixed leaderboard displaying incorrectly
+Bugs Discovered
+    - Settings screen not scrolling properly
+    - Leaderboard displaying incorrectly
+
+03/21/2025
+Functionalities Added
+    - Added death screens
+    - Added healing and food
+    - Added working lights
+    - Added preface to game asking users for options
+Functionalities Changed
+    - Fogmap now updates based upon the light radius of the PC, not fixed anymore to 2
+    - The game now asks users for options before the game begins
+Bug Fixes
+    - Fixed if the user has a name that has a space it won't be read correctly
+    - Fixed big ASCII drawings of death screens not showing up right
+
+Bugs Discovered
+    - If the user has a name that has a space it won't be read correctly
+    - Big ASCII drawings of death screens not showing up right
+
 --ASSIGNMENT 1.09 CHANGELOGS BELOW--
 
 03/18/2025

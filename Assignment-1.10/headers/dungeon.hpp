@@ -80,3 +80,4 @@ void useStairs(int key);
 void resetDungeonLevel(void);
 void generateShop(void);
 void displayShop(Item randItem) ;
+void generateLiquids(void);

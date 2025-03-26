@@ -14,10 +14,11 @@ protected:
     int32_t HP;
     string DAM;
     vector<Item> inventory;
+    bool isInWater;
 
 public:
     // Constructor
-    Character(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell,  int32_t HP,  string DAM,  vector<Item> inventory);
+    Character(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell,  int32_t HP,  string DAM,  vector<Item> inventory, bool isInWater);
     
     // Getters
     uint8_t getPosX() const;
@@ -28,6 +29,7 @@ public:
     int32_t getHealth() const;
     string getDamage() const;
     vector<Item>& getInventory();
+    bool inWater() const;
 
 
     // Setters
@@ -38,6 +40,7 @@ public:
     void setCell(cell_t cell);
     void setHealth(int32_t hp);
     void setDamage(const string& dam);
+    void setInWater(bool isInWater);
 
 
     // Virtual destructor

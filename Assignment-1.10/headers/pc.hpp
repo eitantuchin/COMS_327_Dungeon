@@ -20,10 +20,11 @@ private:
     int numHealing;
     string name;
     int numCoins;
+    int numSouls;
 
 public:
     // Constructor
-    PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems, int damageDealt, int damageTaken, int distanceTraveled, int monstersKilled, int floorsVisited, int numItemsPickedUp, int numHealing, string name, int numCoins);
+    PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, bool isInWater, direction_t direction, vector<Item> equippedItems, int damageDealt, int damageTaken, int distanceTraveled, int monstersKilled, int floorsVisited, int numItemsPickedUp, int numHealing, string name, int numCoins, int numSouls);
 
     // Getters
     direction_t getCurrentDirection() const;
@@ -38,11 +39,13 @@ public:
     int getNumHealing() const;
     string getName() const;
     int getCoins() const;
+    int getSouls() const;
     
     // Setters
     void setCurrentDirection(direction_t direction);
     void setName(string name);
     void setCoins(int coins);
+    void setSouls(int souls);
     
     void addDamageDealt(int stat);
     void addDamageTaken(int stat);

@@ -5,365 +5,415 @@ NAME a NERF(R) dagger
 TYPE WEAPON
 COLOR MAGENTA
 WEIGHT 1+0d1
-HIT 0+0d1
-DAM 0+0d1
+HIT 1+1d4
+DAM 1+1d4
 ATTR 0+0d1
-VAL 9+1d6
-DODGE 10+0d1
+VAL 10+1d10
+DODGE 5+1d5
 DEF 0+0d1
 SPEED 0+0d1
 DESC
-This is a totally wicked looking dagger.  It's got awesome barbs on the back
-of the blade, a compass on the hilt, and myriad other embellishments that
-serve no functional purpose.  You could totally be a deadly assassin with a
-sweet blade like this.  Since it's so light, it won't encumber you.  It's
-made out of polyurethane foam.
+A wicked-looking polyurethane foam dagger with no functional purpose.
 .
-RRTY 90
+RRTY 10
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME the Vorpal Blade
-DESC
-One, two! One, two! And through and through!
-It goes snicker-snack.
-.
 TYPE WEAPON
 COLOR RED
 WEIGHT 15+0d1
-HIT 12+3d4
+HIT 10+2d5
+DAM 15+5d10
 ATTR 0+0d1
-VAL 198+2d51
-DAM 314+15d92
+VAL 500+2d100
 DODGE 0+0d1
 DEF 0+0d1
-SPEED 20+0d5
-RRTY 10
+SPEED 10+1d5
+DESC
+One, two! One, two! And through and through! It goes snicker-snack.
+.
+RRTY 90
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME a prom dress
-HIT 0+2d3
-DAM 0+2d3
-DODGE 0+0d1
-SPEED -5+0d1
-ATTR 0+0d1
-VAL 449+0d1
-DEF 0+0d1
-DESC
-This dress is totes fab! It's off-the-shoulder with an A-line waste, sequins,
-and lavender chiffon.  It fits tight to mid-calf and you totally can't take
-full steps in it, but, like, who cares?  You'll be the hit of the party as
-long as Shirley doesn't show up wearing the same thing again.
-.
 TYPE ARMOR
 COLOR MAGENTA
-WEIGHT 0+2d2
-RRTY 70
+WEIGHT 2+1d2
+HIT 0+1d3
+DAM 0+1d3
+DODGE 0+0d1
+SPEED -2+0d1
+ATTR 0+0d1
+VAL 50+1d50
+DEF 5+1d5
+DESC
+Totes fab lavender chiffon dress, tight to mid-calf.
+.
+RRTY 30
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME a pair of Prada dress sandals
-HIT 0+0d1
-DAM 0+3d10
-DODGE 0+0d1
-SPEED -5+0d1
-ATTR 0+0d1
-VAL 449+0d1
-DEF 0+0d1
-DESC
-You'll be the belle of the prom in these Prada dress sandals.  The 3" spike
-heel makes you a bit unsteady, but they look like they could cause some
-major damage.
-.
 TYPE BOOTS
 COLOR MAGENTA
-WEIGHT 0+2d2
-RRTY 80
+WEIGHT 2+1d2
+HIT 0+0d1
+DAM 2+2d6
+DODGE 0+0d1
+SPEED -2+0d1
+ATTR 0+0d1
+VAL 100+1d50
+DEF 5+1d5
+DESC
+3" spike heels, unsteady but damaging.
+.
+RRTY 20
 ART FALSE
 END
 
-
 BEGIN OBJECT
 NAME a chainmail coif
+TYPE HELMET
+COLOR BLACK
 WEIGHT 8+0d1
 HIT 0+0d1
 DAM 0+0d1
 ATTR 0+0d1
 DODGE 0+0d1
-VAL 48+2d11
+VAL 50+2d25
 DEF 10+2d6
 SPEED 0+0d1
 DESC
 A heavy chainmail head covering.
 .
-TYPE HELMET
-COLOR BLACK
-RRTY 100
+RRTY 10
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME the Aegis
-DESC
-A very high-quality shield.  Nobody knows what it looks like, except for
-maybe--now--you, but you're not telling.  The back side is inscribed with the
-words: "If found, please return to Zeus, Mount Olympus".
-.
 TYPE OFFHAND
+COLOR YELLOW
 WEIGHT 3+0d1
 HIT 0+0d1
 DAM 0+0d1
-VAL 17000+0d1
-DODGE 20+2d8
+VAL 1000+2d500
+DODGE 15+2d5
 ATTR 0+0d1
-DEF 20+3d8
-SPEED 10+0d1
-COLOR YELLOW
-RRTY 30
+DEF 20+2d10
+SPEED 5+1d5
+DESC
+A high-quality shield inscribed to Zeus.
+.
+RRTY 85
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME the cloak of invisibility
 TYPE CLOAK
-VAL 10000+5d1000
-DESC
-One of the Deathly Hallows, this cloak grants the wearer invisibility.  Last
-know to be the property of the Boy Who Lived.
-.
+COLOR CYAN
 WEIGHT 1+0d1
-DODGE 24+5d4
+DODGE 20+2d10
 DEF 0+0d1
 HIT 0+0d1
 ATTR 0+0d1
 DAM 0+0d1
-SPEED 0+0d1
-COLOR CYAN
-RRTY 20
+SPEED 5+1d5
+VAL 1000+2d500
+DESC
+One of the Deathly Hallows, grants invisibility.
+.
+RRTY 90
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME the One Ring
 TYPE RING
-WEIGHT 1+0d1
 COLOR YELLOW
-DODGE 50+6d8
-VAL 1000000+2d1000000
-DEF 50+6d8
+WEIGHT 1+0d1
+DODGE 20+2d10
+VAL 5000+2d1000
+DEF 20+2d10
 ATTR 0+0d1
 HIT 10+2d5
-DAM 10+12d55
-SPEED 25+5d5
+DAM 15+5d10
+SPEED 10+2d5
 DESC
-The One Ring to rule them all... and in the darkness bind them.  Created by
-Sauron as a tool in his quest to dominate Middle Earth.  It draws the dark
-sorcerer's eye upon its wearer.
+The One Ring to rule them all, draws Sauron’s eye.
 .
-RRTY 3
+RRTY 95
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME a torch
 TYPE LIGHT
-WEIGHT 2+1d2
 COLOR BLACK
+WEIGHT 2+1d2
 DODGE 0+0d1
-VAL 0+1d3
+VAL 5+1d5
 DAM 0+0d1
 DEF 0+0d1
 HIT 0+0d1
 SPEED 0+0d1
+ATTR 1+1d3
 DESC
-A short wooden stick topped with an oil-soaked cloth, perfect for lighting
-your way through the dungeon.
+A short wooden stick with an oil-soaked cloth.
 .
-ATTR 0+1d3
-RRTY 100
+RRTY 5
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME a Wicked Lasers(R) Torch
 TYPE LIGHT
-WEIGHT 1+1d2
 COLOR BLACK
+WEIGHT 1+1d2
 DODGE 0+0d1
-VAL 199+0d1
+VAL 50+1d50
 DAM 0+0d1
 DEF 0+0d1
 HIT 0+0d1
 SPEED 0+0d1
+ATTR 2+2d5
 DESC
-From the makers of the world's most refined lasers, comes the ultimate in
-handheld flashlights. The Flashtorch is a compact, portable searchlight that
-is capable of producing an incredible 4100 lumens of intense white light. Use
-this power to guide your way home, light a fire, or even fry an egg!
+A compact searchlight with 4100 lumens.
 .
-ATTR 200+0d1
-RRTY 30
+RRTY 60
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME the Moon Tiara
 TYPE HELMET
-WEIGHT 1+1d2
 COLOR WHITE
-DODGE 10+0d1
-VAL 199+0d1
+WEIGHT 1+1d2
+DODGE 10+1d5
+VAL 200+1d100
 DAM 0+0d1
-DEF 100+0d1
+DEF 15+2d10
 HIT 0+0d1
 SPEED 0+0d1
+ATTR 0+0d1
 DESC
-Sailor Moon's Moon Tiara.  Maybe you can use it to do Moon Tiara Action?  But
-she's probably looking for it.
+Sailor Moon’s Moon Tiara for Moon Tiara Action.
 .
-ATTR 200+0d1
-RRTY 35
+RRTY 80
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME the Moon Stick
 TYPE OFFHAND
-WEIGHT 1+1d2
 COLOR MAGENTA
-DODGE 10+0d1
-VAL 199+0d1
-DAM 25+0d1
-DEF 100+0d1
+WEIGHT 1+1d2
+DODGE 10+1d5
+VAL 200+1d100
+DAM 10+2d10
+DEF 15+2d10
 HIT 0+0d1
 SPEED 0+0d1
+ATTR 0+0d1
 DESC
-Sailor Moon's Moon Stick.  Maybe you can use it to do Moon Princess Halation?
-But she's probably looking for it.
+Sailor Moon’s Moon Stick for Moon Princess Halation.
 .
-ATTR 200+0d1
-RRTY 25
+RRTY 85
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME a ring of speed
 TYPE RING
-WEIGHT 1+0d1
 COLOR RED
+WEIGHT 1+0d1
 DODGE 0+0d1
-VAL 1000+0d1
+VAL 200+1d100
 DAM 0+0d1
 DEF 0+0d1
 HIT 0+0d1
-SPEED 0+1d40
-DESC
-Not only is it stylish, but it will let you move faster.
-.
+SPEED 5+2d5
 ATTR 0+0d1
-RRTY 80
+DESC
+Stylish and lets you move faster.
+.
+RRTY 40
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME a ring of damage
 TYPE RING
-WEIGHT 1+0d1
 COLOR CYAN
+WEIGHT 1+0d1
 DODGE 0+0d1
-VAL 1000+0d1
-DAM 25+10d50
+VAL 200+1d100
+DAM 5+2d10
 DEF 0+0d1
 HIT 0+0d1
 SPEED 0+0d1
-DESC
-Not only does it look great, but it will let you hit harder.
-.
 ATTR 0+0d1
-RRTY 80
+DESC
+Looks great and lets you hit harder.
+.
+RRTY 40
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME Mjolnir
 TYPE WEAPON
-WEIGHT 1000+0d1
 COLOR GREEN
-DODGE 10+10d10
-VAL 19900+0d1
-DAM 10+500d10
-DEF 100+0d1
-HIT 100+0d1
-SPEED 10+0d1
+WEIGHT 50+0d1
+DODGE 15+2d5
+VAL 2000+2d500
+DAM 20+5d20
+DEF 20+2d10
+HIT 15+2d5
+SPEED 10+1d5
+ATTR 0+0d1
 DESC
-The hammer of Thor, one of the most fearsome and powerful weapons in
-existence, capable of leveling mountains.
+Thor’s hammer, capable of leveling mountains.
 .
-ATTR 10+0d1
-RRTY 50
+RRTY 90
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME Sting
 TYPE WEAPON
-WEIGHT 10+0d1
 COLOR BLUE
-DODGE 0+0d1
-VAL 300+0d1
-DAM 10+15d30
-DEF 10+0d1
-HIT 10+0d1
-SPEED 5+0d1
+WEIGHT 10+0d1
+DODGE 5+1d5
+VAL 300+1d100
+DAM 10+3d10
+DEF 10+1d5
+HIT 10+1d5
+SPEED 5+1d5
+ATTR 0+0d1
 DESC
-A magical, elven blade, it glows blue when orcs are near.
+A magical elven blade that glows blue near orcs.
 .
-ATTR 10+0d1
-RRTY 80
+RRTY 70
 ART TRUE
 END
 
 BEGIN OBJECT
 NAME fingerless gloves
 TYPE GLOVES
-WEIGHT 2+0d1
 COLOR GREEN
-DODGE 0+0d1
-VAL 3+0d1
+WEIGHT 2+0d1
+DODGE 5+1d5
+VAL 10+1d10
 DAM 0+0d1
-DEF 10+0d1
-HIT 10+0d1
+DEF 5+1d5
+HIT 5+1d5
 SPEED 0+0d1
-DESC
-Put these on and you'll be bad like Michael Jackson.
-.
 ATTR 0+0d1
-RRTY 80
+DESC
+Makes you bad like Michael Jackson.
+.
+RRTY 20
 ART FALSE
 END
 
 BEGIN OBJECT
 NAME the Heart of the Ocean
 TYPE AMULET
-WEIGHT 2+0d1
 COLOR BLUE
-DODGE 0+0d1
-VAL 20000000+0d1
-DAM 20+10d2
-DEF 10+0d1
-HIT 10+0d1
-SPEED 10+0d1
-DESC
-A 56 carat diamond was originally owned by Louis XVI and cut into a heart
-shape after the French Revolution.  Last known whereabouts: Bottom of the
-Atlantic Ocean (thanks, Rose).  Little did she know, it's imbued with
-fantastic magical powers!
-.
+WEIGHT 2+0d1
+DODGE 10+1d5
+VAL 5000+2d1000
+DAM 10+2d10
+DEF 15+2d10
+HIT 10+1d5
+SPEED 10+1d5
 ATTR 0+0d1
-RRTY 80
+DESC
+A 56-carat diamond with magical powers.
+.
+RRTY 85
+ART TRUE
+END
+
+BEGIN OBJECT
+NAME Golden Apple
+TYPE FOOD
+COLOR YELLOW
+WEIGHT 5+0d1
+DODGE 0+0d1
+VAL 10+1d10
+DAM 0+0d1
+DEF 0+0d1
+HIT 0+0d1
+SPEED 0+0d1
+ATTR 10+2d10
+DESC
+Woah! All that health regeneration!
+.
+RRTY 50
+ART FALSE
+END
+
+BEGIN OBJECT
+NAME Steak
+TYPE FOOD
+COLOR RED
+WEIGHT 2+0d1
+DODGE 0+0d1
+VAL 5+1d5
+DAM 0+0d1
+DEF 0+0d1
+HIT 0+0d1
+SPEED 0+0d1
+ATTR 5+1d5
+DESC
+Do you want your steak rare, medium, well-done?
+.
+RRTY 20
+ART FALSE
+END
+
+BEGIN OBJECT
+NAME golden coins
+TYPE GOLD
+COLOR YELLOW
+WEIGHT 10+2d5
+DODGE 0+0d1
+VAL 0+0d1
+DAM 0+0d1
+DEF 0+0d1
+HIT 0+0d1
+SPEED 0+0d1
+ATTR 20+6d8
+DESC
+Shiny golden coins, a dungeon crawler’s dream!
+.
+RRTY 40
+ART FALSE
+END
+
+BEGIN OBJECT
+NAME Wand of Lightning
+TYPE WAND
+COLOR YELLOW
+WEIGHT 20+2d5
+DODGE 0+0d1
+VAL 500+0d1
+DAM 200+8d8
+DEF 0+0d1
+HIT 0+0d1
+SPEED 0+0d1
+ATTR 200+0d1
+DESC
+Use this wand and unleash the power of lightning upon all your foes!
+.
+RRTY 90
 ART TRUE
 END

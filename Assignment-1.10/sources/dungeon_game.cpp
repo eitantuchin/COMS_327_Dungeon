@@ -47,11 +47,15 @@ const cell_t DOWNWARD_STAIRS_CELL = {'>', 0};
 const cell_t PLAYER_CELL = {'@', 0};
 const cell_t POINTER_CELL = {'*', 0};
 const cell_t SHOP_CELL = {'%', 0};
+const cell_t WATER_CELL = {'~', -4};
+const cell_t LAVA_CELL = {'~', -5};
 vector<string> invalidItemsAndMonsters = {};
 int selectedMonsterIndex = -1;
 Item randShopItem(0, 0, "", "", "", {}, "", 0, 0, 0, 0, 0, "", 0, false, 0, {}, false, false);
 int turnsPassed = 0;
 potion_type_t potionInUse = NO_POTION;
+vector<pair<int, int>> wandUsedCoords = {};
+
 
 /*
  Allows the user to choose between saving, loading, and creating dungeons
@@ -210,7 +214,7 @@ bool compareEntries(const leaderboardEntry_t& a, const leaderboardEntry_t& b) {
 void showLeaderboard(void) {
     PC& pc = dungeon.getPC();
     int score = pc.getSpeed() + pc.getDamageDealt() + pc.getFloorsVisited() +
-        pc.getNumItemsPickedUp() + pc.getDistanceTraveled() + pc.getMonstersKilled() + pc.getCoins();
+    pc.getNumItemsPickedUp() + pc.getDistanceTraveled() + pc.getMonstersKilled() + pc.getCoins() + pc.getSouls();
 
     // Get the current time
     time_t now = time(nullptr);
@@ -289,14 +293,13 @@ void showLeaderboard(void) {
     // Sort entries by score (descending)
     sort(entries.begin(), entries.end(), compareEntries);
 
-    // Display the leaderboard
-    printf("\n--- Game Leaderboard ---\n");
-    printf("Top 5 Scores:\n");
+    // Display the leaderboard                                 -------------------------------
+    printf("\n------------------------------- Game Leaderboard -------------------------------\n");
     int displayCount = min(5, (int)entries.size());
     for (int i = 0; i < displayCount; i++) {
         printf("%d. %s - %d (%s)\n", i + 1, entries[i].name.c_str(), entries[i].score, entries[i].timestamp.c_str());
     }
-    printf("-----------------------\n");
+    printf("--------------------------------------------------------------------------------\n");
     if (cheatsEnabled) printf("\e[1mScore not counted on leaderboard since you enabled cheats.\e[1m\n");
     printf("Your Score: %s - %d (%s)\n", pc.getName().c_str(), score, timestamp.c_str());
     printf("Thanks for playing!\n");
@@ -437,6 +440,7 @@ void checkKeyInput(void) {
             if (dungeon.getModeType() == HARDNESS_MAP) {
                 turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
+                gameMessage = "Adventuring...";
             }
             else {
                 gameMessage = "Rock hardness map. Use H to return to player control.";
@@ -449,6 +453,7 @@ void checkKeyInput(void) {
             if (dungeon.getModeType() == DISTANCE_MAPS) {
                 turnMessage = "Your turn to move!";
                 dungeon.setModeType(PLAYER_CONTROL);
+                gameMessage = "Adventuring...";
             }
             else {
                 gameMessage = "Use keys [1] Non-Tunneling Map [2] Tunneling Map [3] Pass Wall Map [D] return";
@@ -910,6 +915,16 @@ void printCharacter(int x, int y) {
         }
     }
     if (dungeon.getMap()[y][x].ch == 'S' && dungeon.getMap()[y][x].hardness == -3) color = COLOR_MAGENTA; // for the shop
+    else if (dungeon.getMap()[y][x].hardness == -4) color = COLOR_BLUE; // water
+    else if (dungeon.getMap()[y][x].hardness == -5) color = COLOR_RED;  // lava
+    
+    for (pair<int, int> coords: wandUsedCoords) {
+        if (x <= coords.second + 5 && x >= coords.second - 5 &&
+            y <= coords.first + 5 && y >= coords.first - 5) {
+            color = COLOR_YELLOW;
+        }
+    }
+   
     attron(COLOR_PAIR(color));
     if (fogOfWar) {
         if (dungeon.getMap()[y][x].ch == '*')  addch(dungeon.getMap()[y][x].ch);
@@ -949,6 +964,7 @@ void scheduleEvent(event_type_t type, int index, int currentTurn) {
     unique_ptr<event_t> newEvent(new event_t);
     newEvent->type = type;
     newEvent->index = index;
+    const double waterSlowness = 0.5; // water slows PC and monster speed by half
     if (type == EVENT_PC) {
         int speedBoost = 0;
         if (potionInUse) turnsPassed++;
@@ -965,10 +981,20 @@ void scheduleEvent(event_type_t type, int index, int currentTurn) {
             potionInUse = NO_POTION;
             gameMessage = "Invisibility potion ended!";
         }
-        newEvent->turn = currentTurn + (1000 / (dungeon.getPC().getSpeed() + speedBoost));
+        if (!dungeon.getPC().inWater()) {
+            newEvent->turn = currentTurn + (1000 / (dungeon.getPC().getSpeed() + speedBoost));
+        }
+        else {
+            newEvent->turn = currentTurn + (1000 / ((dungeon.getPC().getSpeed()  + speedBoost) * waterSlowness));
+        }
     }
     else {
-        newEvent->turn = currentTurn + (1000 / dungeon.getMonsters()[index].getSpeed());
+        if (!dungeon.getMonsters()[index].inWater()) {
+            newEvent->turn = currentTurn + (1000 / dungeon.getMonsters()[index].getSpeed());
+        }
+        else {
+            newEvent->turn = currentTurn + (1000 / (dungeon.getMonsters()[index].getSpeed() * waterSlowness));
+        }
     }
     event_queue.insert(newEvent->index, 0, newEvent->turn);
 }
@@ -1010,7 +1036,9 @@ void drawMessages(void) {
     attron(COLOR_PAIR(COLOR_YELLOW));
     mvprintw(22, 15, "Speed: ");
     attroff(COLOR_PAIR(COLOR_YELLOW));
-    mvprintw(22, 22, "%d", dungeon.getPC().getSpeed());
+    int speed = dungeon.getPC().getSpeed();
+    if (dungeon.getPC().inWater()) speed = dungeon.getPC().getSpeed() / 2;
+    mvprintw(22, 22, "%d", speed);
     
     attron(COLOR_PAIR(COLOR_YELLOW));
     mvprintw(22, 28, "Coins: ");
@@ -1058,11 +1086,16 @@ void drawMessages(void) {
     mvprintw(23, 45, "[X: %d, Y: %d]", dungeon.getPC().getPosX(), dungeon.getPC().getPosY());
     
     // Direction message
-    size_t len = strlen(directionMessage.c_str());
+    /*size_t len = strlen(directionMessage.c_str());
     size_t x = DUNGEON_WIDTH - len - 1; // Calculate starting x for right alignment
     attron(COLOR_PAIR(COLOR_GREEN));
     mvprintw(23, (int) x, "%s", directionMessage.c_str()); // Print right-aligned
     attroff(COLOR_PAIR(COLOR_GREEN));
+     */
+    attron(COLOR_PAIR(COLOR_GREEN));
+    mvprintw(23, 63, "Souls: ");
+    attroff(COLOR_PAIR(COLOR_GREEN));
+    mvprintw(23, 70, "%d", dungeon.getPC().getSouls());
 }
 
 pair<int, int> getMinAndMaxDamage(void) {
@@ -1169,8 +1202,8 @@ void calculateDistances(int mapNum) {
 
                 // Check passability
                 cell_t neighborCell = dungeon.getMap()[ny][nx];
-                if (mapNum == 0 && neighborCell.hardness > 0) continue;  // Non-tunneler non-pass can't pass through rock
-                if (neighborCell.hardness == 255) continue;             // Immutable rock
+                if (mapNum == 0 && (neighborCell.hardness > 0 || neighborCell.hardness == -5)) continue;  // Non-tunneler non-pass can't pass through rock
+                if (neighborCell.hardness == 255 || neighborCell.hardness == -5) continue;             // Immutable rock or lava
 
                 // Calculate weight
                 int weight = 1;

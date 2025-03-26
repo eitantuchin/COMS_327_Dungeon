@@ -3,8 +3,8 @@
 using namespace std;
 
 // Constructor implementation
-Character::Character(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory)
-: posX(x), posY(y), previousCell(previousCell), speed(speed), cell(cell), HP(HP), DAM(DAM), inventory(inventory) {}
+Character::Character(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, bool isInWater)
+: posX(x), posY(y), previousCell(previousCell), speed(speed), cell(cell), HP(HP), DAM(DAM), inventory(inventory), isInWater(isInWater) {}
 
 // Getter implementations
 uint8_t Character::getPosX() const {
@@ -40,6 +40,10 @@ vector<Item>& Character::getInventory() {
     return inventory;
 }
 
+bool Character::inWater() const {
+    return isInWater;
+}
+
 // Setter implementations
 void Character::setPosX(uint8_t x) {
     posX = x;
@@ -67,4 +71,8 @@ void Character::setHealth(int32_t hp) {
 
 void Character::setDamage(const string& dam) {
     DAM = dam;
+}
+
+void Character::setInWater(bool inWater) {
+    isInWater = inWater;
 }

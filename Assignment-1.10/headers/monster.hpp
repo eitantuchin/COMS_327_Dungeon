@@ -22,9 +22,9 @@ private:
 
 public:
     Monster() // default
-    : Character(0, 0, cell_t(), 0, cell_t(), 0, "", {}), lastSeenPCX(-1), lastSeenPCY(-1), alive(false), NAME(""), DESC(""), COLOR(), SYMB(' '), ABIL(), RRTY(0){}
+    : Character(0, 0, cell_t(), 0, cell_t(), 0, "", {}, false), lastSeenPCX(-1), lastSeenPCY(-1), alive(false), NAME(""), DESC(""), COLOR(), SYMB(' '), ABIL(), RRTY(0){}
     // Constructor
-    Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY);
+    Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, bool isInWater, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY);
     
 
     // Getters
@@ -60,3 +60,4 @@ bool hasLineOfSight(int x1, int y1, int x2, int y2);
 vector<Monster> monsterFactory(void);
 int getMonsterAtPointer(void);
 void displayMonsterDetails(int monsterIndex);
+pair<int, int> getMonsterCoordinates(void);

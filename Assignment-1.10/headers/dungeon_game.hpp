@@ -44,6 +44,8 @@ class my_priority_queue;
 #define MAX_NUM_ITEMS 15
 #define MIN_NUM_ITEMS 10
 #define FILE_MARKER "RLG327-S2025"
+#define MIN_POOL_SIZE 3
+#define MAX_POOL_SIZE 6
 
 typedef struct leaderboardEntry {
     string name;
@@ -78,6 +80,8 @@ extern const cell_t DOWNWARD_STAIRS_CELL;
 extern const cell_t PLAYER_CELL;
 extern const cell_t POINTER_CELL;
 extern const cell_t SHOP_CELL;
+extern const cell_t WATER_CELL;
+extern const cell_t LAVA_CELL;
 
 typedef enum {
     UP,
@@ -152,6 +156,7 @@ extern bool cheatsEnabled;
 extern Item randShopItem;
 extern int turnsPassed;
 extern potion_type_t potionInUse;
+extern vector<pair<int, int>> wandUsedCoords;
 
 // Function prototypes
 

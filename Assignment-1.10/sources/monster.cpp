@@ -8,8 +8,8 @@
 
 using namespace std;
 
-Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY)
-: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), NAME(NAME), DESC(DESC), COLOR(COLOR),SYMB(SYMB), ABIL(ABIL), RRTY(RRTY) {}
+Monster::Monster(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, bool isInWater, int lastSeenX, int lastSeenY, bool isAlive, string NAME, string DESC, vector<short> COLOR, char SYMB, vector<string> ABIL, u_int8_t RRTY)
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory, isInWater), lastSeenPCX(lastSeenX), lastSeenPCY(lastSeenY), alive(isAlive), NAME(NAME), DESC(DESC), COLOR(COLOR),SYMB(SYMB), ABIL(ABIL), RRTY(RRTY) {}
 
 void displayMonsterDetails(int monsterIndex) {
     int screenHeight, screenWidth;
@@ -181,14 +181,15 @@ vector<Monster> monsterFactory(void) {
         bool monsterInvalid = containsString(invalidItemsAndMonsters, monsterDescription.NAME);
         if (!monsterInvalid) {
             monsterArray.push_back(Monster(
-               coordinates.second,
-               coordinates.first,
+               -1,
+               -1,
                PREVIOUS_CELL,
                speed,
                MONSTER_CELL,
                health,
                monsterDescription.DAM,
                inventory,
+               false,
                -1,
                -1,
                !monsterInvalid,
@@ -341,7 +342,7 @@ inline int sign(int x) {
 
 void moveMonster(int index) {
     // Do nothing if monster is not alive.
-    if (!dungeon.getMonsters()[index].isAlive())
+    if (!dungeon.getMonsters()[index].isAlive() || potionInUse == INVISIBILITY)
         return;
         
     Monster *m = &dungeon.getMonsters()[index];
@@ -383,7 +384,7 @@ void moveMonster(int index) {
     // Not telepatchic nor intelligent
     else if (!isTelepathic && !isIntelligent) {
         // Moves towards PC only if LOS exists, in a straight line
-        if (!hasLineOfSight(oldX, oldY, targetX, targetY) || potionInUse == INVISIBILITY)
+        if (!hasLineOfSight(oldX, oldY, targetX, targetY))
             return;
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
@@ -391,7 +392,7 @@ void moveMonster(int index) {
     // Not telepathic but is intelligent
     else if (!isTelepathic && isIntelligent) {
         // Moves toward PC on shortest path if LOS exists, remembers last seen position
-        if (hasLineOfSight(oldX, oldY, targetX, targetY) && potionInUse != INVISIBILITY) {
+        if (hasLineOfSight(oldX, oldY, targetX, targetY)) {
             m->setLastSeenPCX(targetX);
             m->setLastSeenPCY(targetY);
         }
@@ -421,10 +422,10 @@ void moveMonster(int index) {
         // Passes through rock, 50% random, otherwise always knows PC position, moves in straight line
         newX = oldX + sign(targetX - oldX);
         newY = oldY + sign(targetY - oldY);
-        if (potionInUse != INVISIBILITY) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        }
+       
+        m->setLastSeenPCX(targetX);
+        m->setLastSeenPCY(targetY);
+        
     }
     // Is telepathic and is intelligent
     else if (isTelepathic && isIntelligent) {
@@ -446,12 +447,10 @@ void moveMonster(int index) {
                 }
             }
         }
-        if (potionInUse != INVISIBILITY) {
-            m->setLastSeenPCX(targetX);
-            m->setLastSeenPCY(targetY);
-        }
+        m->setLastSeenPCX(targetX);
+        m->setLastSeenPCY(targetY);
+        
     }
-    
     // Update position, tunneling only applies to tunneling monsters
     updateMonsterPosition(index, oldX, oldY, newX, newY, m, isTunneling, canPass);
 }
@@ -462,6 +461,17 @@ void updateMonsterPosition(int index, int oldX, int oldY, int newX, int newY, Mo
     bool cellSet = false;
     if (newX >= 1 && newX < DUNGEON_WIDTH - 1 && newY >= 1 && newY < DUNGEON_HEIGHT - 1 && dungeon.getMap()[newY][newX].ch != '%') {
         // Check for collision with PC (for combat)
+        if (dungeon.getMap()[newY][newX].hardness == -5) { // lava
+            m->setAlive(false); // items fall in lava if they were carrying any anyway// Original cell under monster
+            dungeon.getMap()[oldY][oldX] = m->getPreviousCell();
+            return;
+        }
+        else if (dungeon.getMap()[newY][newX].hardness == -4) { // water
+            m->setInWater(true);
+        }
+        else {
+            m->setInWater(false);
+        }
         bool pcCollision = (newX == dungeon.getPC().getPosX() && newY == dungeon.getPC().getPosY());
         if (pcCollision) { // Combat
             size_t defensivePoints = dungeon.getPC().getEquippedItems().size();

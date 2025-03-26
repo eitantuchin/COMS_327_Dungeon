@@ -5,14 +5,95 @@
 #include "../headers/priority_queue.h"
 #include "../headers/item.hpp"
 #include <algorithm>
+#include <queue>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
+
+void generateLiquids() {
+    const int MAX_CELLS = 30;      // Max cells per pool (controls size)
+    const float SPREAD_CHANCE = 0.6f; // Probability of spreading to a neighbor
+
+    // Directions for 4-way spread (up, down, left, right)
+    const int dx[] = {0, 0, -1, 1};
+    const int dy[] = {-1, 1, 0, 0};
+
+    for (int poolType = 0; poolType < 2; ++poolType) { // 0 = water, 1 = lava
+        const int NUM_POOLS = 2 + rand() % 4;
+        for (int i = 0; i < NUM_POOLS; i++) {
+            bool poolPlaced = false;
+            while (!poolPlaced) {
+                // Random seed position
+                int seedX = rand() % (DUNGEON_WIDTH - 2) + 1;
+                int seedY = rand() % (DUNGEON_HEIGHT - 2) + 1;
+
+                cell_t& seedCell = dungeon.getMap()[seedY][seedX];
+                if (seedCell.ch != ' ' || seedCell.hardness == IMMUTABLE_ROCK_CELL.hardness) {
+                    continue;
+                }
+
+                // Use a queue for flood-fill-like growth
+                queue<pair<int, int>> toVisit;
+                vector<vector<bool>> visited(DUNGEON_HEIGHT, vector<bool>(DUNGEON_WIDTH, false));
+                toVisit.push({seedX, seedY});
+                visited[seedY][seedX] = true;
+                int cellsPlaced = 0;
+
+                while (!toVisit.empty() && cellsPlaced < MAX_CELLS) {
+                    pair<int, int> current = toVisit.front();
+                    int x = current.first;
+                    int y = current.second;
+                    toVisit.pop();
+
+                    // Place liquid
+                    if (dungeon.getMap()[y][x].ch != ' ' || dungeon.getMap()[y][x].hardness == IMMUTABLE_ROCK_CELL.hardness) {
+                        continue;
+                    }
+                    dungeon.getMap()[y][x] = (poolType == 0) ? WATER_CELL : LAVA_CELL;
+                    
+                    cellsPlaced++;
+
+                    // Spread to neighbors randomly
+                    for (int dir = 0; dir < 4; dir++) {
+                        int nx = x + dx[dir];
+                        int ny = y + dy[dir];
+
+                        // Check bounds
+                        if (nx < 1 || nx >= DUNGEON_WIDTH - 1 || ny < 1 || ny >= DUNGEON_HEIGHT - 1) {
+                            continue;
+                        }
+
+                        // Skip if already visited or invalid terrain
+                        if (visited[ny][nx]) {
+                            continue;
+                        }
+                        cell_t& neighbor = dungeon.getMap()[ny][nx];
+                        if (neighbor.ch != ' ' || neighbor.hardness == IMMUTABLE_ROCK_CELL.hardness) {
+                            continue;
+                        }
+
+                        // Randomly decide to spread
+                        if ((float)rand() / RAND_MAX < SPREAD_CHANCE) {
+                            toVisit.push({nx, ny});
+                            visited[ny][nx] = true;
+                        }
+                    }
+                }
+
+                if (cellsPlaced > 10) {
+                    poolPlaced = true; // Successfully placed at least one cell
+                }
+            }
+        }
+    }
+}
 
 void displayShop(Item randItem) {
     vector<Item> shopItems = {};
     shopItems.push_back(randItem);
     // Health potion, invis potion, speed potion
-    Item healthPotion = Item(0, 0, "Potion of Healing", "Brewed by adding golden watermelon to suspicious water. Take and become heartened!", "FLASK", {COLOR_MAGENTA}, "0+0d1", 0, 0, 0, 2, 0, "70+6d8", 200, true, 80, SHOP_CELL, true, false);
+    Item healthPotion = Item(0, 0, "Potion of Healing", "Brewed by adding golden watermelon to suspicious water. Take and become heartened!", "FLASK", {COLOR_MAGENTA}, "0+0d1", 0, 0, 0, 2, 0, "250+6d8", 200, true, 80, SHOP_CELL, true, false);
     Item speedPotion = Item(0, 0, "Potion of Speed", "Brewed by adding sugar to suspicious water. Take and become fast AF!", "FLASK", {COLOR_GREEN}, "0+0d1", 0, 0, 0, 2, rollDice("10+5d4"), "0+0d1", 150, true, 80, SHOP_CELL, true, false);
     Item invisPotion = Item(0, 0, "Potion of Invisibility", "Brewed by adding a fermented spider eye to suspicious water. Take and become invisible!", "FLASK", {COLOR_WHITE}, "0+0d1", 0, 0, 0, 2, 0, "0+0d1", 250, true, 80, SHOP_CELL, true, false);
     shopItems.push_back(healthPotion);
@@ -257,12 +338,15 @@ void initMonsters(void) {
     int monstersInserted = 0;
     vector<int> indexesOfUniqueMonstersInserted;
     while (monstersInserted != dungeon.getNumMonsters()) {
+        pair<int, int> coordinates = getMonsterCoordinates();
         int randIndex = rand() % monsters.size();
         int randRarity = rand() % (100);
         if (monsters[randIndex].isAlive() && monsters[randIndex].getRarity() < randRarity) {
             // if the monster is unique and hasn't been inserted yet or if the monster isn't unique
             bool isUnique = containsString(monsters[randIndex].getAbilities(), string("UNIQ"));
             if ((isUnique && !containsInt(indexesOfUniqueMonstersInserted, randIndex)) || !isUnique) {
+                monsters[randIndex].setPosX(coordinates.second);
+                monsters[randIndex].setPosY(coordinates.first);
                 if (isUnique) {
                     indexesOfUniqueMonstersInserted.push_back(randIndex);
                 }
@@ -527,10 +611,12 @@ void generateDungeon(void) {
         dungeon.getPC().getFloorsVisited() != 0) { // a shop appears every 3 floors
         generateShop();
     }
+    generateLiquids();
 }
 
 void resetDungeonLevel(void) {
     // Clear dungeon data
+    wandUsedCoords.clear();
     memset(dungeon.getPC().getFogMap(), false, sizeof(dungeon.getPC().getFogMap()));  // Set all values to false
     memset(dungeon.getItemMap(), false, sizeof(dungeon.getItemMap()));
     // Reset counters and global variables
@@ -565,7 +651,7 @@ void resetDungeonLevel(void) {
 
 // Constructor implementation
 Dungeon::Dungeon()
-: numRooms(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, 100, "0+1d4", {}, UP, {}, 0, 0, 0, 0, 0, 0, 0, "", 0), numUpwardsStairs(0), numDownwardsStairs(0), numMonsters(0) {
+: numRooms(0), pc(0, 0, ROOM_CELL, PC_SPEED, PLAYER_CELL, 100, "0+1d4", {}, false, UP, {},  0, 0, 0, 0, 0, 0, 0, "", 0, 0), numUpwardsStairs(0), numDownwardsStairs(0), numMonsters(0) {
 }
 
 // Getter for map

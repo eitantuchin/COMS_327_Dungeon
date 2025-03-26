@@ -6,8 +6,8 @@
 using namespace std;
 
 // Constructor implementation
-PC::PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, direction_t direction, vector<Item> equippedItems, int damageDealt, int damageTaken, int distanceTraveled, int monstersKilled, int floorsVisited, int numItemsPickedUp, int numHealing, string name, int numCoins)
-: Character(x, y, previousCell, speed, cell, HP, DAM, inventory), currentDirection(direction), equippedItems(equippedItems), damageDealt(damageDealt), damageTaken(damageTaken), distanceTraveled(distanceTraveled), monstersKilled(monstersKilled), floorsVisited(floorsVisited), numItemsPickedUp(numItemsPickedUp), numHealing(numHealing), name(name), numCoins(numCoins) {}
+PC::PC(uint8_t x, uint8_t y, cell_t previousCell, int16_t speed, cell_t cell, int32_t HP, string DAM, vector<Item> inventory, bool isInWater, direction_t direction, vector<Item> equippedItems, int damageDealt, int damageTaken, int distanceTraveled, int monstersKilled, int floorsVisited, int numItemsPickedUp, int numHealing, string name, int numCoins, int numSouls)
+: Character(x, y, previousCell, speed, cell, HP, DAM, inventory, isInWater), currentDirection(direction), equippedItems(equippedItems), damageDealt(damageDealt), damageTaken(damageTaken), distanceTraveled(distanceTraveled), monstersKilled(monstersKilled), floorsVisited(floorsVisited), numItemsPickedUp(numItemsPickedUp), numHealing(numHealing), name(name), numCoins(numCoins), numSouls(numSouls) {}
 
 void useItem(char key) {
     vector<Item>& inventory = dungeon.getPC().getInventory();
@@ -23,7 +23,7 @@ void useItem(char key) {
     else {
         // use item
         Item item = inventory[index];
-        if (item.getType() == "FLASK") { // only flask item types can be used for now
+        if (item.getType() == "FLASK" && !potionInUse) {
             if (item.getName() == "Potion of Healing") {
                 potionInUse = HEALING;
                 int healingAmount = rollDice(item.getAttribute());
@@ -46,6 +46,70 @@ void useItem(char key) {
             clear();
             choosingCarryItem = NO_SELECT;
             dungeon.setModeType(PLAYER_CONTROL);
+        }
+        else if (item.getType() == "FLASK" && potionInUse) {
+            clear();
+            attron(COLOR_PAIR(COLOR_RED));
+            mvprintw(16, 15, "%-70s", "You already have a potion effect. Impossible to get another.");
+            attroff(COLOR_PAIR(COLOR_RED));
+            refresh();
+        }
+        else if (item.getType() == "WAND") {
+            if (item.getName() == "Wand of Lightning") {
+                int soulsUsed = rollDice(item.getAttribute());
+                if (dungeon.getPC().getSouls() - soulsUsed < 0) { // not enough souls
+                    clear();
+                    attron(COLOR_PAIR(COLOR_RED));
+                    mvprintw(16, 15, "%-70s", "You don't have enough souls to use this WAND item.");
+                    attroff(COLOR_PAIR(COLOR_RED));
+                    refresh();
+                }
+                else {
+                    wandUsedCoords.push_back({dungeon.getPC().getPosY(), dungeon.getPC().getPosX()});
+                    dungeon.getPC().setSouls(dungeon.getPC().getSouls() - soulsUsed);
+                    gameMessage = "You summoned " + to_string(soulsUsed) + " souls to unleash the Wand of Lightning!";
+                    int pcY = dungeon.getPC().getPosY();
+                    int pcX = dungeon.getPC().getPosX();
+                    for (int y = pcY - 5; y <= pcY + 5; ++y) {
+                        for (int x = pcX - 5; x <= pcX + 5; ++x) {
+                            for (Monster& m: dungeon.getMonsters()) {
+                                if (m.getPosX() == x && m.getPosY() == y && m.isAlive()) {
+                                    m.setHealth(m.getHealth() - rollDice(item.getDamage()));
+                                    if (m.getHealth() <= 0) { // if the monster died
+                                        dungeon.getPC().addMonstersKilled(1);
+                                        int soulsCollected = 10 + rand() % 20;
+                                        dungeon.getPC().setSouls(dungeon.getPC().getSouls() + soulsCollected);
+                                        m.setAlive(false);
+                                        if (containsString(m.getAbilities(), string("UNIQ"))) {
+                                            invalidItemsAndMonsters.push_back(m.getName());
+                                        }
+                                        vector<Item>& inventory = m.getInventory();
+                                        cell_t monsterOriginalCell = m.getPreviousCell(); // Original cell under monster
+                                        for (Item& item : inventory) {
+                                            item.setPosX(m.getPosX());
+                                            item.setPosY(m.getPosY());
+                                            item.setPreviousCell(monsterOriginalCell); // Set to what was under the monster
+                                            dungeon.getItemMap()[m.getPosY()][m.getPosX()].push_back(item);
+                                        }
+                                        inventory.clear();
+                                        vector<Item>& items = dungeon.getItemMap()[m.getPosY()][m.getPosX()];
+                                        if (!items.empty()) {
+                                            char symbol = getSymbolFromType(items.back().getType());
+                                            dungeon.getMap()[m.getPosY()][m.getPosX()] = cell_t{symbol, -2};
+                                        }
+                                        else {
+                                            dungeon.getMap()[m.getPosY()][m.getPosX()] = m.getPreviousCell();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    clear();
+                    choosingCarryItem = NO_SELECT;
+                    dungeon.setModeType(PLAYER_CONTROL);
+                }
+            }
         }
         else {
             clear();
@@ -121,6 +185,7 @@ void displayStats(void) {
     statsList.push_back("Health: " + to_string(pc.getHealth()));
     statsList.push_back("Speed: " + to_string(pc.getSpeed()));
     statsList.push_back("Coins collected: " + to_string(pc.getCoins()));
+    statsList.push_back("Souls collected: " + to_string(pc.getSouls()));
     statsList.push_back("Damage Dealt: " + to_string(pc.getDamageDealt()));
     statsList.push_back("Damage Range: " + to_string(damageRange.first) + " - " + to_string(damageRange.second));
     statsList.push_back("Floors Visited: " + to_string(pc.getFloorsVisited()));
@@ -133,6 +198,7 @@ void displayStats(void) {
     statsList.push_back("Distance Traveled (No Teleport): " + to_string(pc.getDistanceTraveled()));
     statsList.push_back("Current Direction: " + directionMessage.substr(8));
     statsList.push_back("Current Floor: " + to_string(pc.getFloorsVisited() + 1));
+
    
 
     if (scrollOffset < 0) {
@@ -832,6 +898,8 @@ void attack(int attackX, int attackY, int oldX, int oldY, Monster *m) {
     }
     else {
         dungeon.getPC().addMonstersKilled(1);
+        int soulsCollected = 10 + rand() % 20;
+        dungeon.getPC().setSouls(dungeon.getPC().getSouls() + soulsCollected);
         m->setAlive(false);
         if (containsString(m->getAbilities(), string("UNIQ"))) {
             invalidItemsAndMonsters.push_back(m->getName());
@@ -906,6 +974,18 @@ void movePlayer(int key) {
         if (dungeon.getMap()[newY][newX].hardness == -3) {
             gameMessage = "Stop trying to run into the shopkeeper!!!";
         }
+        else if (dungeon.getMap()[newY][newX].hardness == -5) { // lava
+            gameOver = true;
+            endwin();
+            printf("\nTo the depths of the lava lake you go...\n");
+            printf("______ ___________\n");
+            printf("| ___ \\_   _| ___ \\\n");
+            printf("| |_/ / | | | |_/ /\n");
+            printf("|    /  | | |  __/\n");
+            printf("| |\\ \\ _| |_| |\n");
+            printf("\\_| \\_|\\___/\\_|\n");
+            printf("\nYou fell in lava! Better luck next time!\n");
+        }
         else {
             dungeon.getMap()[oldY][oldX] = dungeon.getPC().getPreviousCell();
             dungeon.getPC().setPreviousCell(dungeon.getMap()[newY][newX]);
@@ -926,6 +1006,13 @@ void movePlayer(int key) {
             }
             else {
                 gameMessage = "Adventuring...";
+            }
+            if (dungeon.getPC().getPreviousCell().hardness == -4) { // water
+                gameMessage = "It's hard to navigate quickly in water!";
+                dungeon.getPC().setInWater(true);
+            }
+            else {
+                dungeon.getPC().setInWater(false);
             }
         }
     }
@@ -1010,4 +1097,10 @@ void PC::setCoins(int coins) {
 }
 int PC::getCoins() const {
     return numCoins;
+}
+void PC::setSouls(int souls) {
+    numSouls = souls;
+}
+int PC::getSouls() const {
+    return numSouls;
 }

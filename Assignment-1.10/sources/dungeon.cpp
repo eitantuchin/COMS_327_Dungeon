@@ -261,7 +261,7 @@ void generateShop(void) {
        
         int nearestRoomIdx = -1;
         int minDistance = INT_MAX;
-        for (int i = 0; i < rooms.size(); i++) {
+        for (int i = 0; i < (int) rooms.size(); i++) {
             int roomCenterX = rooms[i].posX + rooms[i].width / 2;
             int roomCenterY = rooms[i].posY + rooms[i].height / 2;
             int dist = abs(centerX - roomCenterX) + abs(centerY - roomCenterY); // Manhattan distance
@@ -350,6 +350,7 @@ void initMonsters(void) {
                 if (isUnique) {
                     indexesOfUniqueMonstersInserted.push_back(randIndex);
                 }
+                monsters[randIndex].setPreviousCell(dungeon.getMap()[monsters[randIndex].getPosY()][monsters[randIndex].getPosX()]);
                 dungeon.getMap()[monsters[randIndex].getPosY()][monsters[randIndex].getPosX()] = monsters[randIndex].getCell();
                 monstersInserted++;
                 dungeonMonsters.push_back(monsters[randIndex]);

@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <ctime>
+#include <algorithm>
+
 
 using namespace std;
 
